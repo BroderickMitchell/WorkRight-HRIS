@@ -56,6 +56,7 @@ pytest
 
 By default the application stores data in `hris.db` using SQLite. Set the `HRIS_DATABASE_URL` environment variable to point to another supported SQLAlchemy database engine if required.
 
+
 ## Document Templates
 
 Document templates support double-brace placeholders such as `{{full_name}}`, `{{department}}`, or `{{position}}`. Generated documents resolve placeholders against the employee context and optional ad-hoc values supplied in the request body.
