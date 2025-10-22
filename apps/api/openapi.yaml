@@ -1,0 +1,78 @@
+openapi: 3.0.3
+info:
+  title: WorkRight HRIS API
+  version: 1.0.0
+servers:
+  - url: https://api.workright.example.com/v1
+paths:
+  /identity/tenants:
+    post:
+      summary: Create tenant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTenantDto'
+      responses:
+        '201':
+          description: Tenant created
+  /directory/employees:
+    get:
+      summary: List employees
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Employees
+    post:
+      summary: Create employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmployeeDto'
+      responses:
+        '201':
+          description: Employee created
+  /performance/goals:
+    post:
+      summary: Create goal
+      responses:
+        '201':
+          description: Goal created
+  /leave/requests:
+    post:
+      summary: Submit leave request
+      responses:
+        '201':
+          description: Leave created
+components:
+  schemas:
+    CreateTenantDto:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+    CreateEmployeeDto:
+      type: object
+      properties:
+        givenName:
+          type: string
+        familyName:
+          type: string
+        email:
+          type: string
+        startDate:
+          type: string
+          format: date
+        managerId:
+          type: string
+        positionId:
+          type: string

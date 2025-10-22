@@ -1,0 +1,443 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleKey {
+  SYSTEM_OWNER
+  HR_BUSINESS_PARTNER
+  MANAGER
+  EMPLOYEE
+  AUDITOR
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  CANCELLED
+}
+
+enum ReviewStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  COMPLETED
+}
+
+model Tenant {
+  id         String      @id @default(cuid())
+  name       String
+  slug       String      @unique
+  locale     String      @default("en-AU")
+  region     String      @default("ap-southeast-2")
+  dataResidencyAU Boolean @default(true)
+  settings   Json
+  users      User[]
+  employees  Employee[]
+  departments Department[]
+  positions  Position[]
+  locations  Location[]
+  leavePolicies LeavePolicy[]
+  courses    Course[]
+  auditEvents AuditEvent[]
+  webhookEndpoints WebhookEndpoint[]
+  notifications Notification[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model User {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  email      String
+  givenName  String
+  familyName String
+  roles      RoleKey[]
+  mfaEnabled Boolean  @default(false)
+  lastLoginAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId, email])
+  @@unique([tenantId, email], name: "email_tenantId")
+}
+
+model AuditEvent {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  actorId   String?
+  entity    String
+  entityId  String
+  action    String
+  changes   Json
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, entity])
+}
+
+model Department {
+  id        String    @id @default(cuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  name      String
+  description String?
+  managerId String?
+  employees Employee[]
+  positions Position[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([tenantId, name])
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  name      String
+  state     String
+  country   String   @default("Australia")
+  timezone  String   @default("Australia/Sydney")
+  employees Employee[]
+}
+
+model Position {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  title       String
+  departmentId String?
+  department  Department? @relation(fields: [departmentId], references: [id])
+  reportsToId String?
+  reportsTo   Position?  @relation("PositionReports", fields: [reportsToId], references: [id])
+  directReports Position[] @relation("PositionReports")
+  employees   Employee[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Employee {
+  id           String      @id @default(cuid())
+  tenantId     String
+  tenant       Tenant      @relation(fields: [tenantId], references: [id])
+  userId       String?
+  user         User?       @relation(fields: [userId], references: [id])
+  givenName    String
+  familyName   String
+  email        String
+  startDate    DateTime
+  terminatedAt DateTime?
+  managerId    String?
+  manager      Employee?   @relation("EmployeeManager", fields: [managerId], references: [id])
+  directReports Employee[] @relation("EmployeeManager")
+  positionId   String?
+  position     Position?   @relation(fields: [positionId], references: [id])
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  locationId   String?
+  location     Location?   @relation(fields: [locationId], references: [id])
+  employments  Employment[]
+  goals        Goal[]      @relation("GoalOwner")
+  reviews      Review[]    @relation("EmployeeReviews")
+  feedbackGiven Feedback[] @relation("FeedbackAuthor")
+  feedbackReceived Feedback[] @relation("FeedbackRecipient")
+  leaveBalances LeaveBalance[]
+  leaveRequests LeaveRequest[]
+  enrolments   Enrolment[]
+  notifications Notification[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([tenantId, email])
+}
+
+model Employment {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  employeeId   String
+  employee     Employee @relation(fields: [employeeId], references: [id])
+  startDate    DateTime
+  endDate      DateTime?
+  contractType String
+  fte          Float    @default(1)
+  payType      String
+  payRate      Decimal? @db.Numeric(12,2)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Goal {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  title       String
+  description String?
+  dueDate     DateTime
+  weighting   Float     @default(0.1)
+  status      String    @default("in-progress")
+  ownerId     String
+  owner       Employee  @relation("GoalOwner", fields: [ownerId], references: [id])
+  parentGoalId String?
+  parentGoal   Goal?     @relation("GoalHierarchy", fields: [parentGoalId], references: [id])
+  alignedGoals Goal[]    @relation("GoalHierarchy")
+  alignmentsParent GoalAlignment[] @relation("ParentAlignment")
+  alignmentsChild  GoalAlignment[] @relation("ChildAlignment")
+  progressUpdates ProgressUpdate[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId, ownerId])
+}
+
+model GoalAlignment {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  parentId    String
+  childId     String
+  parent      Goal     @relation("ParentAlignment", fields: [parentId], references: [id])
+  child       Goal     @relation("ChildAlignment", fields: [childId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([tenantId, parentId, childId])
+}
+
+model ProgressUpdate {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  goalId    String
+  goal      Goal     @relation(fields: [goalId], references: [id])
+  value     Float
+  comment   String?
+  recordedAt DateTime @default(now())
+}
+
+model ReviewCycle {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  status    ReviewStatus @default(NOT_STARTED)
+  participants ReviewParticipant[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ReviewParticipant {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  reviewCycleId String
+  reviewCycle  ReviewCycle @relation(fields: [reviewCycleId], references: [id])
+  participantId String
+  participant  Employee   @relation(fields: [participantId], references: [id])
+  order        Int        @default(0)
+  reviews      Review[]
+
+  @@index([tenantId, reviewCycleId])
+  @@unique([tenantId, reviewCycleId, participantId])
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  reviewParticipantId String
+  reviewParticipant ReviewParticipant @relation(fields: [reviewParticipantId], references: [id])
+  reviewerId    String
+  reviewer      Employee @relation("EmployeeReviews", fields: [reviewerId], references: [id])
+  status        ReviewStatus @default(NOT_STARTED)
+  overallRating Float?
+  summary       String?
+  feedback      Feedback[]
+  submittedAt   DateTime?
+}
+
+model Feedback {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  reviewId     String
+  review       Review   @relation(fields: [reviewId], references: [id])
+  authorId     String
+  author       Employee @relation("FeedbackAuthor", fields: [authorId], references: [id])
+  recipientId  String
+  recipient    Employee @relation("FeedbackRecipient", fields: [recipientId], references: [id])
+  content      String
+  rating       Int?
+  createdAt    DateTime @default(now())
+}
+
+model LeavePolicy {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  name        String
+  code        String
+  accrualRule Json
+  maxBalance  Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  leaveRequests LeaveRequest[]
+  balances    LeaveBalance[]
+}
+
+model LeaveBalance {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  leaveTypeId String
+  leaveType   LeavePolicy @relation(fields: [leaveTypeId], references: [id])
+  balance     Float   @default(0)
+  asAt        DateTime @default(now())
+
+  @@index([tenantId, employeeId, leaveTypeId], name: "leave_balance_employee_type")
+  @@unique([tenantId, employeeId, leaveTypeId])
+}
+
+model LeaveRequest {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  employeeId   String
+  employee     Employee @relation(fields: [employeeId], references: [id])
+  leaveTypeId  String
+  leaveType    LeavePolicy @relation(fields: [leaveTypeId], references: [id])
+  startDate    DateTime
+  endDate      DateTime
+  status       LeaveStatus @default(PENDING)
+  notes        String?
+  approvers    LeaveApproval[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model LeaveApproval {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  leaveRequestId String
+  leaveRequest LeaveRequest @relation(fields: [leaveRequestId], references: [id])
+  approverId   String
+  approver     Employee @relation(fields: [approverId], references: [id])
+  stepOrder    Int
+  status       LeaveStatus @default(PENDING)
+  comment      String?
+  actedAt      DateTime?
+
+  @@unique([tenantId, leaveRequestId, stepOrder])
+}
+
+model Holiday {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  state     String
+  name      String
+  date      DateTime
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, state, date], name: "holiday_state_date")
+}
+
+model Course {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  title     String
+  summary   String?
+  deliveryType String @default("Self-paced")
+  modules   Module[]
+  enrolments Enrolment[]
+  completions Completion[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Module {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  title     String
+  content   String?
+  order     Int      @default(0)
+}
+
+model Enrolment {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id])
+  assigneeId  String
+  assignee    Employee @relation(fields: [assigneeId], references: [id])
+  dueDate     DateTime?
+  status      String   @default("assigned")
+  completions Completion[]
+  createdAt   DateTime @default(now())
+}
+
+model Completion {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  enrolmentId String
+  enrolment   Enrolment @relation(fields: [enrolmentId], references: [id])
+  completedAt DateTime @default(now())
+  score       Float?
+  evidenceUrl String?
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  type        String
+  payload     Json
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, employeeId, readAt])
+}
+
+model WebhookEndpoint {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  event      String
+  targetUrl  String
+  signingKey String
+  deliveries WebhookDelivery[]
+  createdAt  DateTime @default(now())
+}
+
+model WebhookDelivery {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  endpointId String
+  endpoint   WebhookEndpoint @relation(fields: [endpointId], references: [id])
+  payload    Json
+  status     String
+  attempts   Int      @default(0)
+  lastAttemptedAt DateTime?
+  createdAt  DateTime @default(now())
+}
