@@ -56,15 +56,6 @@ pytest
 
 By default the application stores data in `hris.db` using SQLite. Set the `HRIS_DATABASE_URL` environment variable to point to another supported SQLAlchemy database engine if required.
 
-## Deploying to Azure
-
-WorkRight HRIS is ready to be containerised and hosted on Azure App Service. The repository provides:
-
-- A production-ready `Dockerfile` that builds the FastAPI application image with all dependencies.
-- An infrastructure-as-code template at `azure/app_service.bicep` that provisions an App Service Plan, Linux Web App, and Azure Database for PostgreSQL Flexible Server, wiring the connection string into the app settings.
-- Step-by-step instructions in `azure/README.md` that cover building and pushing the container to Azure Container Registry and deploying the Bicep template with the Azure CLI.
-
-Follow the Azure deployment guide to publish the API and database into your Azure subscription and retrieve the public endpoint URL.
 
 ## Document Templates
 
