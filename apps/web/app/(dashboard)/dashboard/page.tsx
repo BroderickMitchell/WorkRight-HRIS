@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import { Card, CardDescription, CardHeader, CardTitle, Badge, Button } from '@workright/ui';
 import {
   sampleReports,
@@ -10,13 +10,13 @@ import {
 
 const quickLinks = [
   {
-    href: '/people/employees',
+    href: '/employees',
     label: 'People directory',
     description: 'Maintain employee central records and reporting lines.',
     badge: 'Directory'
   },
   {
-    href: '/performance/goals',
+    href: '/goals',
     label: 'Performance & goals',
     description: 'Set OKRs, track progress, and gather feedback.',
     badge: 'Performance'
@@ -59,7 +59,7 @@ export default function DashboardPage() {
               </div>
               <span className="mt-8 inline-flex items-center text-sm font-medium text-brand">
                 Explore
-                <span className="ml-1 transition group-hover:translate-x-1">→</span>
+                <span className="ml-1 transition group-hover:translate-x-1">?</span>
               </span>
             </Link>
           ))}
@@ -81,7 +81,7 @@ export default function DashboardPage() {
             {sampleTasks.map((task) => (
               <div key={task.id} className="rounded-xl border border-slate-200 bg-white p-4">
                 <p className="font-medium text-slate-900">{task.title}</p>
-                <p className="text-sm text-slate-600">Due {task.dueDate} · {task.context}</p>
+                <p className="text-sm text-slate-600">Due {task.dueDate} Â· {task.context}</p>
               </div>
             ))}
           </div>
@@ -187,3 +187,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+
+
+

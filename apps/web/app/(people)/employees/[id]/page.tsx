@@ -1,12 +1,12 @@
 import { notFound } from 'next/navigation';
-import { Card, CardHeader, CardTitle, Badge, Button } from '@workright/ui';
+import { Card, CardHeader, CardTitle, Button } from '@workright/ui';
 import { sampleEmployees, sampleGoals, sampleLeave } from '../../../../lib/sample-data';
 
 interface Props {
   params: { id: string };
 }
 
-export default function EmployeeProfilePage({ params }: Props) {
+export default function EmployeeOverviewPage({ params }: Props) {
   const employee = sampleEmployees.find((person) => person.id === params.id);
   if (!employee) {
     notFound();
@@ -17,14 +17,7 @@ export default function EmployeeProfilePage({ params }: Props) {
   const leave = sampleLeave.filter((record) => record.employee === employee.name);
 
   return (
-    <div className="space-y-6" aria-label="Employee profile">
-      <header className="space-y-2">
-        <Badge className="w-max">{employee.department}</Badge>
-        <h1 className="text-3xl font-semibold text-slate-900">{employee.name}</h1>
-        <p className="text-slate-600">{employee.role} · {employee.location}</p>
-        <p className="text-sm text-slate-500">{employee.email}</p>
-      </header>
-
+    <div className="space-y-6" aria-label="Employee overview">
       <section className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -72,3 +65,4 @@ export default function EmployeeProfilePage({ params }: Props) {
     </div>
   );
 }
+

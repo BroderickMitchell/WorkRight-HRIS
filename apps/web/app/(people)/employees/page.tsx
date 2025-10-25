@@ -31,7 +31,7 @@ export default function EmployeesPage() {
               </div>
             </dl>
             <Link
-              href={`/people/employees/${employee.id}`}
+              href={`/employees/${employee.id}`}
               className="mt-4 inline-flex items-center text-sm font-medium text-brand hover:underline"
             >
               View profile<span className="sr-only"> for {employee.name}</span>
