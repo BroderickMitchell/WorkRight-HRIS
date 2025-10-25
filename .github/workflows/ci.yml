@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  build-test:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -41,6 +41,7 @@ jobs:
       - run: pnpm run lint
       - run: pnpm run typecheck
       - run: pnpm run build
+      - run: pnpm run test
       - name: Prisma migrate
         run: |
           cd apps/api

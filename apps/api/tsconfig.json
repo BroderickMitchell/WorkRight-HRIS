@@ -4,10 +4,10 @@
     "outDir": "dist",
     "rootDir": "src",
     "module": "CommonJS",
-    "types": ["node"],
+    "types": ["node", "vitest"],
     "incremental": true,
     "composite": true
   },
-  "include": ["src", "prisma"],
+  "include": ["src", "test", "prisma"],
   "exclude": ["node_modules", "dist"]
 }
