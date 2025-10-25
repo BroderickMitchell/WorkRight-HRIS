@@ -8,11 +8,6 @@ export const featureFlagSchema = z.object({
 
 export const tenantSettingSchema = z.object({
   brandingPrimaryColor: z.string().default('#004c97'),
-  brandName: z.string().default('WorkRight HRIS'),
-  brandTagline: z.string().default('People platform for Australian organisations'),
-  brandLogoUrl: z
-    .union([z.string().url(), z.literal('')])
-    .default(''),
   locale: z.string().default('en-AU'),
   paySchedule: z.enum(['fortnightly', 'monthly', 'weekly']).default('fortnightly'),
   leavePolicies: z
