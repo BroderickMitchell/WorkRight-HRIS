@@ -37,7 +37,7 @@ WorkRight HRIS is a modern, multi-tenant HR platform tailored for Australian org
    ```
 
    This bootstraps the pnpm workspaces (`apps/*` and `packages/*`).
-3. **Configure environment variables.** Copy each `.env.example` to `.env` within `apps/api` and `apps/web`, then adjust secrets (Postgres, Redis, Auth.js secret, S3 bucket, API URL). The example files checked into the repo mirror the Docker Compose defaults so you can start with sensible production-like values. The API enforces the `X-Tenant-Id` header for every authenticated request.
+3. **Configure environment variables.** Copy each `.env.example` to `.env` within `apps/api` and `apps/web`, then fill in secrets (Postgres, Redis, Auth.js secret, S3 bucket, API URL). The API enforces the `X-Tenant-Id` header for every authenticated request.
 4. **Bring services online.** Choose one of the following approaches:
    - **Docker Compose (recommended for parity).**
 
@@ -45,7 +45,7 @@ WorkRight HRIS is a modern, multi-tenant HR platform tailored for Australian org
      docker-compose up --build
      ```
 
-     Compose provisions PostgreSQL with row-level security, Redis for BullMQ, Mailhog, the NestJS API, and the Next.js frontend. Containers run the production build outputs (no dev servers) so you exercise the same artefacts that deploy to AWS.
+     Compose provisions PostgreSQL with row-level security, Redis for BullMQ, Mailhog, the NestJS API, and the Next.js frontend.
    - **Local processes (advanced).** Run `pnpm --filter api run start:dev` and `pnpm --filter web dev` in separate terminals after starting Postgres/Redis manually.
 5. **Apply database migrations and seed demo tenants.** With the API dependencies running:
 
@@ -57,13 +57,14 @@ WorkRight HRIS is a modern, multi-tenant HR platform tailored for Australian org
    ```
 
    This creates the `acme` and `demo` tenants and sample Australian data (dates in `dd/MM/yyyy`).
-6. **Produce optimised production builds.** From the repo root run:
+6. **Execute the automated test suites.** From the repo root run:
 
    ```bash
    pnpm run build
+   pnpm run test
    ```
 
-   This command compiles every workspace using production settings so you can deploy or package the artefacts immediately after. For additional quality gates you can still run targeted checks:
+   These commands compile the workspaces and execute the aggregated Jest/Vitest/Playwright entrypoints. For faster feedback you can run targeted checks:
 
    ```bash
    pnpm run lint
@@ -81,7 +82,7 @@ For day-to-day development, the following scripts are available from the reposit
 - `pnpm run build` – Production builds for the API, web app, and shared packages.
 - `pnpm run format` – Prettier check/format.
 
-Individual packages expose additional scripts focused on linting, building, and type-checking for local development and deployment workflows.
+Individual packages expose additional scripts (for example, `pnpm --filter api test:e2e`), and Vitest/Playwright configs live alongside each app for focused runs.
 
 ### Environment variables
 
@@ -133,11 +134,14 @@ Copy `.env.example` into each app and adjust as required.
 
 - **Containerisation** via Dockerfiles for web and API services.
 - **Infrastructure as code** with Terraform provisioning AWS VPC, RDS (PostgreSQL 15 with RLS), ECS/Fargate services, Redis (Elasticache), S3, CloudFront, and ACM certificates.
-- **CI/CD** pipelines on GitHub Actions for linting, type-checking, Prisma migrations, and deployment with manual approvals for production.
+- **CI/CD** pipelines on GitHub Actions for linting, testing, Prisma migrations, and deployment with manual approvals for production.
 
-## Quality gates
+## Testing strategy
 
-The repository relies on linting, strict TypeScript configuration, and reproducible production builds to ensure each bounded context remains deployable. Continuous integration runs `pnpm run lint`, `pnpm run typecheck`, and `pnpm run build` for every change before allowing deployment.
+- Unit tests with Vitest/Jest inside packages and apps.
+- API tests via Supertest.
+- Component tests with React Testing Library.
+- Playwright E2E covering critical flows (tenant setup, reviews, leave approvals).
 
 ## Localisation & accessibility
 

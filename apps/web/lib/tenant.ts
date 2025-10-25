@@ -5,9 +5,6 @@ type TenantSettingsInput = Partial<Parameters<typeof parseTenantSettings>[0]>;
 export function getTenantSettings(input: TenantSettingsInput = {}) {
   return parseTenantSettings({
     brandingPrimaryColor: '#004c97',
-    brandName: 'WorkRight HRIS',
-    brandTagline: 'People platform for Australian organisations',
-    brandLogoUrl: '',
     locale: 'en-AU',
     paySchedule: 'fortnightly',
     leavePolicies: [],
