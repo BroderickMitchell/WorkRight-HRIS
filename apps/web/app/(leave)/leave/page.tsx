@@ -1,4 +1,4 @@
-import { sampleLeave } from '../../lib/sample-data';
+import { sampleLeave } from '../../../lib/sample-data';
 import { Card, CardHeader, CardTitle, CardDescription, Button, Badge } from '@workright/ui';
 
 export default function LeavePage() {

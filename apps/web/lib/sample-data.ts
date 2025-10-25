@@ -93,3 +93,13 @@ export const sampleReports = {
   leaveBalance: '312 days outstanding',
   reviewCompletion: '68% complete for FY24'
 };
+
+export const sampleTasks = [
+  { id: 'task-1', title: 'Approve leave request', dueDate: 'Today', context: 'Leave & time off' },
+  { id: 'task-2', title: 'Review new goal draft', dueDate: 'Tomorrow', context: 'Performance' }
+];
+
+export const sampleWorkflows = [
+  { id: 'wf-1', title: 'Onboarding – Sienna Surveyor', currentStep: 'Manager review', submitted: '2 days ago' },
+  { id: 'wf-2', title: 'Policy acknowledgement', currentStep: 'Awaiting employee', submitted: '1 week ago' }
+];

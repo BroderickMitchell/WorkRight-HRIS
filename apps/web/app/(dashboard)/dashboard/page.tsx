@@ -6,7 +6,7 @@ import {
   sampleGoals,
   sampleTasks,
   sampleWorkflows
-} from '../../lib/sample-data';
+} from '../../../lib/sample-data';
 
 const quickLinks = [
   {
