@@ -51,6 +51,135 @@ paths:
       responses:
         '201':
           description: Leave created
+  /rosters/templates:
+    get:
+      summary: List roster templates
+      responses:
+        '200':
+          description: Templates
+    post:
+      summary: Create roster template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRosterTemplateDto'
+      responses:
+        '201':
+          description: Created
+  /rosters/assignments:
+    post:
+      summary: Assign roster to employee
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignRosterDto'
+      responses:
+        '201':
+          description: Assigned
+  /rosters/shifts:
+    get:
+      summary: Get shifts for date range
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+        - in: query
+          name: employeeId
+          schema: { type: string }
+      responses:
+        '200':
+          description: Shifts
+  /travel/plan:
+    post:
+      summary: Plan travel and accommodation for a swing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanTravelDto'
+      responses:
+        '201':
+          description: Planned
+  /travel/manifests:
+    get:
+      summary: Get flight manifest by date
+      parameters:
+        - in: query
+          name: date
+          schema: { type: string, format: date }
+      responses:
+        '200': { description: Manifests }
+  /accom/occupancy:
+    get:
+      summary: Get accommodation occupancy
+      parameters:
+        - in: query
+          name: locationId
+          schema: { type: string }
+        - in: query
+          name: date
+          schema: { type: string, format: date }
+      responses:
+        '200': { description: Occupancy }
+  /admin/seed-mining:
+    post:
+      summary: Seed mining demo tenant, employee, roster, travel & accommodation
+      responses:
+        '201': { description: Seeded }
+  /payroll/runs:
+    get:
+      summary: List payroll runs
+      responses:
+        '200': { description: Runs }
+    post:
+      summary: Create payroll run for period
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePayrollRunDto'
+      responses:
+        '201': { description: Created }
+  /payroll/runs/{id}:
+    get:
+      summary: Get payroll run
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Run }
+  /payroll/profiles/{employeeId}:
+    get:
+      summary: Get pay profile by employeeId
+      parameters:
+        - in: path
+          name: employeeId
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Pay profile }
+  /payroll/profiles:
+    post:
+      summary: Upsert pay profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertPayProfileDto'
+      responses:
+        '201': { description: Upserted }
 components:
   schemas:
     CreateTenantDto:
@@ -76,3 +205,43 @@ components:
           type: string
         positionId:
           type: string
+    CreateRosterTemplateDto:
+      type: object
+      required: [name, seedDate, pattern]
+      properties:
+        name: { type: string }
+        seedDate: { type: string, format: date }
+        pattern:
+          type: array
+          items: { type: string }
+    AssignRosterDto:
+      type: object
+      required: [employeeId, templateId, effectiveFrom]
+      properties:
+        employeeId: { type: string }
+        templateId: { type: string }
+        locationId: { type: string }
+        effectiveFrom: { type: string, format: date }
+        effectiveTo: { type: string, format: date }
+    PlanTravelDto:
+      type: object
+      required: [employeeId, locationId, swingDates]
+      properties:
+        employeeId: { type: string }
+        locationId: { type: string }
+        swingDates:
+          type: array
+          items: { type: string, format: date }
+    CreatePayrollRunDto:
+      type: object
+      required: [periodStart, periodEnd]
+      properties:
+        periodStart: { type: string, format: date }
+        periodEnd: { type: string, format: date }
+        locationId: { type: string }
+    UpsertPayProfileDto:
+      type: object
+      required: [employeeId, baseRateCents]
+      properties:
+        employeeId: { type: string }
+        baseRateCents: { type: integer }

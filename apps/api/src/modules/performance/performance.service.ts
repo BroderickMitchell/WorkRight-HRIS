@@ -9,24 +9,24 @@ export class PerformanceService {
 
   createGoal(dto: CreateGoalDto) {
     return this.prisma.goal.create({
-      data: {
+      data: ({
         title: dto.title,
         description: dto.description,
         dueDate: new Date(dto.dueDate),
         weighting: dto.weighting,
         parentGoalId: dto.parentGoalId,
         ownerId: dto.ownerId
-      }
+      } as any)
     });
   }
 
   async createReviewCycle(dto: CreateReviewCycleDto) {
     const reviewCycle = await this.prisma.reviewCycle.create({
-      data: {
+      data: ({
         name: dto.name,
         startDate: new Date(dto.startDate),
         endDate: new Date(dto.endDate)
-      }
+      } as any)
     });
 
     const tenantId = this.cls.get('tenantId');

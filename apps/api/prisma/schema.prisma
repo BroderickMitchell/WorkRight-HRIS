@@ -51,7 +51,8 @@ model Tenant {
   courses             Course[]
   modules             Module[]
   enrolments          Enrolment[]
-  
+  completions         Completion[]
+
   goals               Goal[]
   goalAlignments      GoalAlignment[]
   progressUpdates     ProgressUpdate[]
@@ -63,6 +64,20 @@ model Tenant {
   webhookEndpoints    WebhookEndpoint[]
   webhookDeliveries   WebhookDelivery[]
   notifications       Notification[]
+  // Rostering
+  rosterTemplates     RosterTemplate[]
+  rosterAssignments   RosterAssignment[]
+  shifts              Shift[]
+  swapRequests        SwapRequest[]
+  // Travel & Accommodation
+  rooms               Room[]
+  roomBookings        RoomBooking[]
+  flights             Flight[]
+  flightBookings      FlightBooking[]
+  // Payroll
+  payProfiles         PayProfile[]
+  payrollRuns         PayrollRun[]
+  payrollLines        PayrollLine[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 }
@@ -124,6 +139,11 @@ model Location {
   country   String   @default("Australia")
   timezone  String   @default("Australia/Sydney")
   employees Employee[]
+  // Rostering
+  rosterAssignments RosterAssignment[]
+  shifts       Shift[]
+  // Accommodation
+  rooms     Room[]
 }
 
 model Position {
@@ -171,6 +191,17 @@ model Employee {
   leaveBalances LeaveBalance[]
   leaveRequests LeaveRequest[]
   enrolments   Enrolment[]
+  // Rostering
+  rosterAssignments RosterAssignment[]
+  shifts       Shift[]
+  swapRequestsRequested SwapRequest[] @relation("SwapRequester")
+  swapRequestsTarget    SwapRequest[] @relation("SwapTarget")
+  // Travel & Accommodation
+  roomBookings RoomBooking[]
+  flightBookings FlightBooking[]
+  // Payroll
+  payProfile   PayProfile?
+  payrollLines PayrollLine[]
   notifications Notification[]
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -408,8 +439,43 @@ model Enrolment {
   assignee    Employee @relation(fields: [assigneeId], references: [id])
   dueDate     DateTime?
   status      String   @default("assigned")
-  
+  completions Completion[]
+
   createdAt   DateTime @default(now())
+}
+
+// Payroll minimal
+model PayProfile {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  employeeId  String   @unique
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  baseRateCents Int    @default(5000) // $50/hr
+}
+
+model PayrollRun {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  periodStart DateTime
+  periodEnd   DateTime
+  totalCents  Int      @default(0)
+  createdAt   DateTime @default(now())
+  lines       PayrollLine[]
+}
+
+model PayrollLine {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  runId       String
+  run         PayrollRun @relation(fields: [runId], references: [id])
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  hours       Float    @default(0)
+  amountCents Int      @default(0)
+  details     Json?
 }
 
 model Completion {
@@ -461,3 +527,119 @@ model WebhookDelivery {
   createdAt  DateTime @default(now())
 }
 
+// Rostering models
+model RosterTemplate {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  name         String
+  code         String?
+  seedDate     DateTime
+  pattern      Json      // e.g. ["D","D","D","D","D","D","D","D","R","R","R","R","R","R"]
+  shiftConfig  Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  assignments  RosterAssignment[]
+  shifts       Shift[]
+}
+
+model RosterAssignment {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  templateId   String
+  template     RosterTemplate @relation(fields: [templateId], references: [id])
+  employeeId   String
+  employee     Employee @relation(fields: [employeeId], references: [id])
+  locationId   String?
+  location     Location? @relation(fields: [locationId], references: [id])
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Shift {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  employeeId   String
+  employee     Employee @relation(fields: [employeeId], references: [id])
+  date         DateTime
+  shiftType    String
+  start        DateTime?
+  end          DateTime?
+  locationId   String?
+  location     Location? @relation(fields: [locationId], references: [id])
+  generatedByTemplateId String?
+  generatedByTemplate   RosterTemplate? @relation(fields: [generatedByTemplateId], references: [id])
+  source       String   @default("template")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  swapRequests SwapRequest[]
+}
+
+model SwapRequest {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  shiftId      String
+  shift        Shift    @relation(fields: [shiftId], references: [id])
+  requesterId  String
+  requester    Employee @relation("SwapRequester", fields: [requesterId], references: [id])
+  targetEmployeeId String?
+  targetEmployee   Employee? @relation("SwapTarget", fields: [targetEmployeeId], references: [id])
+  status       String   @default("pending")
+  createdAt    DateTime @default(now())
+  decidedAt    DateTime?
+}
+
+
+// Travel & Accommodation
+model Room {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  locationId String
+  location  Location @relation(fields: [locationId], references: [id])
+  name      String
+  capacity  Int      @default(1)
+  bookings  RoomBooking[]
+}
+
+model RoomBooking {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id])
+  employeeId String
+  employee  Employee @relation(fields: [employeeId], references: [id])
+  startDate DateTime
+  endDate   DateTime
+  status    String   @default("booked")
+}
+
+model Flight {
+  id           String  @id @default(cuid())
+  tenantId     String
+  tenant       Tenant  @relation(fields: [tenantId], references: [id])
+  carrier      String
+  flightNumber String
+  depAirport   String
+  arrAirport   String
+  bookings     FlightBooking[]
+}
+
+model FlightBooking {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  flightId   String
+  flight     Flight   @relation(fields: [flightId], references: [id])
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  depTime    DateTime
+  arrTime    DateTime
+  status     String   @default("booked")
+}

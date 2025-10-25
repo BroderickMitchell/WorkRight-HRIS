@@ -8,13 +8,13 @@ export class LeaveService {
 
   requestLeave(dto: CreateLeaveRequestDto) {
     return this.prisma.leaveRequest.create({
-      data: {
+      data: ({
         employeeId: dto.employeeId,
         leaveTypeId: dto.leaveTypeId,
         startDate: new Date(dto.startDate),
         endDate: new Date(dto.endDate),
         notes: dto.notes
-      },
+      } as any),
       include: {
         employee: true,
         approvers: true

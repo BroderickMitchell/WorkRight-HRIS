@@ -1,21 +1,24 @@
 import { Injectable } from '@nestjs/common';
+import { ClsService } from 'nestjs-cls';
 import { PrismaService } from '../../common/prisma.service.js';
 import { CreateEmployeeDto } from './directory.dto.js';
 
 @Injectable()
 export class DirectoryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly cls: ClsService) {}
 
   createEmployee(dto: CreateEmployeeDto) {
+    const tenantId = this.cls.get('tenantId');
     return this.prisma.employee.create({
-      data: {
+      data: ({
+        tenant: tenantId ? { connect: { id: tenantId } } : undefined,
         givenName: dto.givenName,
         familyName: dto.familyName,
         email: dto.email,
         startDate: new Date(dto.startDate),
         positionId: dto.positionId,
         managerId: dto.managerId ?? null
-      },
+      } as any),
       include: {
         position: true
       }

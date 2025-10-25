@@ -1,6 +1,6 @@
 "use client";
 import { notFound } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { approveWorkflow, declineWorkflow, getWorkflow } from '../../../lib/workflows';
 import { getEmployeeWithOverrides } from '../../../lib/overrides';
 import { Card, CardHeader, CardTitle, CardDescription, Button, Badge } from '@workright/ui';
@@ -10,7 +10,7 @@ interface Props { params: { id: string } }
 export default function WorkflowDetailPage({ params }: Props) {
   const [role, setRole] = useState<'MANAGER' | 'HR_ADMIN'>('MANAGER');
   const [refresh, setRefresh] = useState(0);
-  const wf = useMemo(() => getWorkflow(params.id), [params.id, refresh]);
+  const wf = getWorkflow(params.id);
   if (!wf) return notFound();
   const employee = getEmployeeWithOverrides(wf.employeeId);
 

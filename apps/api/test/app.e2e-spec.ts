@@ -3,7 +3,9 @@ import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { AppModule } from '../src/modules/app.module.js';
 
-describe('Health', () => {
+const hasDb = !!process.env.DATABASE_URL;
+
+(hasDb ? describe : describe.skip)('Health', () => {
   let app: INestApplication;
 
   beforeAll(async () => {

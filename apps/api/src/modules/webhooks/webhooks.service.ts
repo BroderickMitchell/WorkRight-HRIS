@@ -8,11 +8,11 @@ export class WebhooksService {
 
   registerEndpoint(dto: RegisterWebhookDto) {
     return this.prisma.webhookEndpoint.create({
-      data: {
+      data: ({
         event: dto.event,
         targetUrl: dto.targetUrl,
         signingKey: dto.signingKey
-      }
+      } as any)
     });
   }
 

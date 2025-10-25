@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from './prisma.service.js';
+import type { Prisma } from '@prisma/client';
 import { ClsService } from 'nestjs-cls';
 
 type AuditPayload = {
@@ -29,7 +30,7 @@ export class AuditService {
         entity: payload.entity,
         entityId: payload.entityId,
         action: payload.action,
-        changes: payload.changes,
+        changes: payload.changes as unknown as Prisma.InputJsonValue,
         metadata: {
           ip: this.cls.get('ip'),
           userAgent: this.cls.get('userAgent')

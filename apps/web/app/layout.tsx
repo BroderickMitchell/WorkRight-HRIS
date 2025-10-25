@@ -52,6 +52,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/leave">
                       Leave
                     </Link>
+                    <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/travel">
+                      Travel
+                    </Link>
+                    <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/accommodation">
+                      Accommodation
+                    </Link>
+                    <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/payroll">
+                      Payroll
+                    </Link>
                     <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/courses">
                       Learning
                     </Link>
