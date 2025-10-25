@@ -5,6 +5,7 @@ export interface Employee {
   department: string;
   location: string;
   email: string;
+  avatarUrl?: string;
   managerId?: string;
   dottedLineManagerId?: string;
 }
@@ -16,7 +17,8 @@ export const sampleEmployees: Employee[] = [
     role: 'Superintendent',
     department: 'Operations',
     location: 'Perth, WA',
-    email: 'manager@acme.example.au'
+    email: 'manager@acme.example.au',
+    avatarUrl: 'https://i.pravatar.cc/128?img=68'
   },
   {
     id: 'emp-2',
@@ -25,6 +27,7 @@ export const sampleEmployees: Employee[] = [
     department: 'Operations',
     location: 'Perth, WA',
     email: 'sienna.surveyor@acme.example.au',
+    avatarUrl: 'https://i.pravatar.cc/128?img=49',
     managerId: 'emp-1'
   },
   {
@@ -34,6 +37,7 @@ export const sampleEmployees: Employee[] = [
     department: 'People & Culture',
     location: 'Brisbane, QLD',
     email: 'noah.navigator@acme.example.au',
+    avatarUrl: 'https://i.pravatar.cc/128?img=12',
     managerId: 'emp-1',
     dottedLineManagerId: 'emp-2'
   }
