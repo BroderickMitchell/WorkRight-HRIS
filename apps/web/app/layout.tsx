@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Inter } from 'next/font/google';
 import { QueryProvider } from '../components/query-provider';
 import { ThemeProvider } from '../components/theme-provider';
+import { BrandingProvider } from '../components/branding-provider';
 import { getTenantSettings, hexToRgbString } from '../lib/tenant';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       >
         <ThemeProvider>
           <QueryProvider>
+            <BrandingProvider>
             <div className="min-h-screen grid grid-cols-[240px_1fr]">
               <aside className="flex min-h-screen flex-col justify-between border-r bg-white p-6">
                 <div>
@@ -59,12 +61,16 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                     <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/org-chart">
                       Org chart
                     </Link>
+                    <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/settings">
+                      Settings
+                    </Link>
                   </nav>
                 </div>
                 <p className="text-xs text-slate-400">v0.1.0</p>
               </aside>
               <main className="px-6 py-10">{children}</main>
             </div>
+            </BrandingProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>

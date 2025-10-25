@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+﻿import { ReactNode } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Badge } from '@workright/ui';
@@ -20,6 +20,11 @@ export default function EmployeeLayout({
     { href: `/employees/${employee.id}`, label: 'Overview' },
     { href: `/employees/${employee.id}/goals`, label: 'Goals' },
     { href: `/employees/${employee.id}/leave`, label: 'Leave' },
+    { href: `/employees/${employee.id}/documents`, label: 'Documents' },
+    { href: `/employees/${employee.id}/remuneration`, label: 'Remuneration' },
+    { href: `/employees/${employee.id}/history`, label: 'History' },
+    { href: `/employees/${employee.id}/reviews`, label: 'Reviews' },
+    { href: `/employees/${employee.id}/discipline`, label: 'Discipline' },
     { href: `/employees/${employee.id}/settings`, label: 'Settings' }
   ];
 
@@ -48,4 +53,6 @@ export default function EmployeeLayout({
     </div>
   );
 }
+
+
 

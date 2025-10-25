@@ -1,12 +1,22 @@
-export const sampleEmployees = [
+export interface Employee {
+  id: string;
+  name: string;
+  role: string;
+  department: string;
+  location: string;
+  email: string;
+  managerId?: string;
+  dottedLineManagerId?: string;
+}
+
+export const sampleEmployees: Employee[] = [
   {
     id: 'emp-1',
     name: 'Mason Manager',
     role: 'Superintendent',
     department: 'Operations',
     location: 'Perth, WA',
-    email: 'manager@acme.example.au',
-    reports: 4
+    email: 'manager@acme.example.au'
   },
   {
     id: 'emp-2',
@@ -15,7 +25,7 @@ export const sampleEmployees = [
     department: 'Operations',
     location: 'Perth, WA',
     email: 'sienna.surveyor@acme.example.au',
-    reports: 0
+    managerId: 'emp-1'
   },
   {
     id: 'emp-3',
@@ -24,7 +34,8 @@ export const sampleEmployees = [
     department: 'People & Culture',
     location: 'Brisbane, QLD',
     email: 'noah.navigator@acme.example.au',
-    reports: 0
+    managerId: 'emp-1',
+    dottedLineManagerId: 'emp-2'
   }
 ];
 
@@ -93,6 +104,69 @@ export const sampleReports = {
   leaveBalance: '312 days outstanding',
   reviewCompletion: '68% complete for FY24'
 };
+
+// Documents
+export interface SignedDocument {
+  id: string;
+  employeeId: string;
+  title: string;
+  signedOn: string; // ISO date
+  url?: string;
+}
+export const sampleDocuments: SignedDocument[] = [
+  { id: 'doc-1', employeeId: 'emp-2', title: 'Employment Contract', signedOn: '2024-01-10' },
+  { id: 'doc-2', employeeId: 'emp-3', title: 'Code of Conduct', signedOn: '2024-03-02' }
+];
+
+// Remuneration
+export interface Remuneration {
+  employeeId: string;
+  baseSalaryAud: number; // AUD
+  allowances?: string[];
+}
+export const sampleRemuneration: Remuneration[] = [
+  { employeeId: 'emp-1', baseSalaryAud: 180000, allowances: ['Vehicle', 'Remote'] },
+  { employeeId: 'emp-2', baseSalaryAud: 110000 },
+  { employeeId: 'emp-3', baseSalaryAud: 98000 }
+];
+
+// Salary/Contract history
+export interface EmploymentHistoryItem {
+  id: string;
+  employeeId: string;
+  effective: string; // ISO
+  type: 'Salary Change' | 'Contract Updated';
+  details: string;
+}
+export const sampleEmploymentHistory: EmploymentHistoryItem[] = [
+  { id: 'hist-1', employeeId: 'emp-2', effective: '2024-07-01', type: 'Salary Change', details: 'Base increased to $110,000' },
+  { id: 'hist-2', employeeId: 'emp-3', effective: '2024-05-15', type: 'Contract Updated', details: 'Converted from casual to permanent' }
+];
+
+// Performance reviews
+export interface PerformanceReview {
+  id: string;
+  employeeId: string;
+  cycle: string;
+  status: 'Not Started' | 'In Progress' | 'Submitted' | 'Completed';
+  overall?: string;
+}
+export const sampleReviews: PerformanceReview[] = [
+  { id: 'rev-1', employeeId: 'emp-2', cycle: 'FY24', status: 'Completed', overall: 'Meets Expectations' },
+  { id: 'rev-2', employeeId: 'emp-3', cycle: 'FY24', status: 'In Progress' }
+];
+
+// Disciplinary records
+export interface DisciplinaryRecord {
+  id: string;
+  employeeId: string;
+  date: string;
+  category: 'Warning' | 'Performance Plan' | 'Other';
+  notes: string;
+}
+export const sampleDiscipline: DisciplinaryRecord[] = [
+  { id: 'disc-1', employeeId: 'emp-3', date: '2024-06-20', category: 'Warning', notes: 'Attendance reminder issued' }
+];
 
 export const sampleTasks = [
   { id: 'task-1', title: 'Approve leave request', dueDate: 'Today', context: 'Leave & time off' },
