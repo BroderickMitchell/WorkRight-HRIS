@@ -1,8 +1,8 @@
-﻿import { ReactNode } from 'react';
-import Link from 'next/link';
+import { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
-import { Badge } from '@workright/ui';
-import { sampleEmployees } from '../../../../lib/sample-data';
+import { Badge, Button } from '@workright/ui';
+import Link from 'next/link';
+import { getEmployeeWithOverrides } from '../../../../lib/overrides';
 
 export default function EmployeeLayout({
   children,
@@ -11,7 +11,7 @@ export default function EmployeeLayout({
   children: ReactNode;
   params: { id: string };
 }) {
-  const employee = sampleEmployees.find((person) => person.id === params.id);
+  const employee = getEmployeeWithOverrides(params.id);
   if (!employee) {
     notFound();
   }
@@ -37,22 +37,29 @@ export default function EmployeeLayout({
         <p className="text-sm text-slate-500">{employee.email}</p>
       </header>
 
-      <nav className="-mb-px flex gap-4 border-b">
-        {tabs.map((tab) => (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            className="border-b-2 border-transparent px-1 pb-2 text-sm font-medium text-slate-600 hover:border-brand hover:text-brand"
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </nav>
+      <div className="flex items-center justify-between">
+        <nav className="-mb-px flex gap-4 border-b">
+          {tabs.map((tab) => (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className="border-b-2 border-transparent px-1 pb-2 text-sm font-medium text-slate-600 hover:border-brand hover:text-brand"
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </nav>
+        <Link href={`/employees/${employee.id}/settings`}>
+          <Button size="sm" variant="secondary">Edit profile</Button>
+        </Link>
+      </div>
 
       <div>{children}</div>
     </div>
   );
 }
+
+
 
 
 
