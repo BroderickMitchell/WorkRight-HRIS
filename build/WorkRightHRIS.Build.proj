@@ -1,8 +1,7 @@
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-    <NodePackageManager Condition="'$(NodePackageManager)'==''">corepack pnpm@11.6.2</NodePackageManager>
-    <NodeRestoreCommand Condition="'$(NodeRestoreCommand)'=='' and Exists('pnpm-lock.yaml')">$(NodePackageManager) install --frozen-lockfile</NodeRestoreCommand>
-    <NodeRestoreCommand Condition="'$(NodeRestoreCommand)'==''">$(NodePackageManager) install</NodeRestoreCommand>
+    <NodePackageManager Condition="'$(NodePackageManager)'==''">pnpm</NodePackageManager>
+    <NodeRestoreCommand Condition="'$(NodeRestoreCommand)'==''">$(NodePackageManager) install --frozen-lockfile</NodeRestoreCommand>
     <NodeBuildCommand Condition="'$(NodeBuildCommand)'==''">$(NodePackageManager) run build</NodeBuildCommand>
     <NodeEnvFile>./apps/api/.env.example</NodeEnvFile>
   </PropertyGroup>

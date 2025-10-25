@@ -2,10 +2,11 @@
   "name": "workright-hris",
   "private": true,
   "version": "0.1.0",
-  "packageManager": "pnpm@11.6.2",
+  "packageManager": "pnpm@8.15.5",
   "scripts": {
     "lint": "pnpm -r lint",
     "build": "pnpm -r build",
+    "test": "pnpm -r test",
     "format": "prettier --write .",
     "typecheck": "pnpm -r typecheck"
   },
