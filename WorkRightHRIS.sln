@@ -1,0 +1,21 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.7.34018.315
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{54A90642-561A-4BB1-AD56-7FC2899967C0}") = "WorkRightHRIS.Build", "build\\WorkRightHRIS.Build.proj", "{B38488B9-0202-4543-8048-E756A5DBBFE3}"
+EndProject
+Global
+GlobalSection(SolutionConfigurationPlatforms) = preSolution
+Debug|Any CPU = Debug|Any CPU
+Release|Any CPU = Release|Any CPU
+EndGlobalSection
+GlobalSection(ProjectConfigurationPlatforms) = postSolution
+{B38488B9-0202-4543-8048-E756A5DBBFE3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+{B38488B9-0202-4543-8048-E756A5DBBFE3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+{B38488B9-0202-4543-8048-E756A5DBBFE3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+{B38488B9-0202-4543-8048-E756A5DBBFE3}.Release|Any CPU.Build.0 = Release|Any CPU
+EndGlobalSection
+GlobalSection(SolutionProperties) = preSolution
+HideSolutionNode = FALSE
+EndGlobalSection
+EndGlobal

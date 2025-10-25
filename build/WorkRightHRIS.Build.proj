@@ -1,0 +1,34 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <NodePackageManager Condition="'$(NodePackageManager)'==''">pnpm</NodePackageManager>
+    <NodeRestoreCommand Condition="'$(NodeRestoreCommand)'=='' and Exists('pnpm-lock.yaml')">$(NodePackageManager) install --frozen-lockfile</NodeRestoreCommand>
+    <NodeRestoreCommand Condition="'$(NodeRestoreCommand)'==''">$(NodePackageManager) install</NodeRestoreCommand>
+    <NodeBuildCommand Condition="'$(NodeBuildCommand)'==''">$(NodePackageManager) run build</NodeBuildCommand>
+    <NodeEnvFile>./apps/api/.env.example</NodeEnvFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EnvironmentFiles Include="apps/api/.env" Condition="Exists('apps/api/.env')" />
+    <EnvironmentFiles Include="apps/web/.env" Condition="Exists('apps/web/.env')" />
+  </ItemGroup>
+
+  <Target Name="EnsureEnvExamples">
+    <Message Text="Ensuring environment example files exist for build context." Importance="Low" />
+    <Error Condition="!Exists('apps/api/.env.example')" Text="The API environment example file apps/api/.env.example is required." />
+    <Error Condition="!Exists('apps/web/.env.example')" Text="The Web environment example file apps/web/.env.example is required." />
+  </Target>
+
+  <Target Name="Restore" DependsOnTargets="EnsureEnvExamples">
+    <Message Text="Running $(NodeRestoreCommand)" Importance="High" />
+    <Exec Command="$(NodeRestoreCommand)" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
+  <Target Name="Build" DependsOnTargets="Restore">
+    <Message Text="Running $(NodeBuildCommand)" Importance="High" />
+    <Exec Command="$(NodeBuildCommand)" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
+
+  <Target Name="Publish" DependsOnTargets="Build">
+    <Message Text="Build artefacts available under apps/api/dist and apps/web/.next" Importance="High" />
+  </Target>
+</Project>
