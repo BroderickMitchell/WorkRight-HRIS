@@ -1,0 +1,5 @@
+project    = "workright"
+region     = "ap-southeast-2"
+vpc_cidr   = "10.20.0.0/16"
+db_username = "workright"
+db_password = "change-me"

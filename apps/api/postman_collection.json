@@ -1,0 +1,40 @@
+{
+  "info": {
+    "name": "WorkRight HRIS API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create tenant",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/identity/tenants",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "identity", "tenants"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Acme Mining Co\",\n  \"slug\": \"acme\"\n}"
+        }
+      }
+    },
+    {
+      "name": "List employees",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "X-Tenant-Id", "value": "tenant-acme" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/v1/directory/employees",
+          "host": ["{{baseUrl}}"],
+          "path": ["v1", "directory", "employees"]
+        }
+      }
+    }
+  ]
+}
