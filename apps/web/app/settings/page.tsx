@@ -132,6 +132,18 @@ export default function SettingsPage() {
         </div>
       </header>
 
+      <Card>
+        <CardHeader>
+          <div>
+            <CardTitle>Admin shortcuts</CardTitle>
+            <CardDescription>Quick links to frequently used admin pages.</CardDescription>
+          </div>
+        </CardHeader>
+        <div className="p-6 pt-0 text-sm">
+          <p>Manage position ID formats per department: <a href="/settings/ids" className="text-brand hover:underline">Position ID settings</a></p>
+        </div>
+      </Card>
+
       {tab === 'branding' && (
         <Card>
           <CardHeader>

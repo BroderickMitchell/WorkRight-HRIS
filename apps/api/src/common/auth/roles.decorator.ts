@@ -4,6 +4,8 @@ export type AppRole =
   | 'HR_ADMIN'
   | 'HRBP'
   | 'PAYROLL'
+  | 'FINANCE'
+  | 'EXEC'
   | 'MANAGER'
   | 'EMPLOYEE'
   | 'COMPLIANCE_OFFICER'
@@ -12,4 +14,3 @@ export type AppRole =
 
 export const ROLES_KEY = 'app_roles_required';
 export const Roles = (...roles: AppRole[]) => SetMetadata(ROLES_KEY, roles);
-

@@ -239,13 +239,17 @@ function OrgChartInner() {
             className="w-72 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
             aria-label="Search org chart"
           />
-          <div className="text-xs text-slate-500">Click +/− to expand or collapse</div>
+          <div className="text-xs text-slate-500">Click +/- to expand or collapse</div>
+          <div className="ml-auto flex items-center gap-3 text-sm">
+            <label className="flex items-center gap-1"><input type="radio" name="mode" checked readOnly /> People</label>
+            <label className="flex items-center gap-1"><input type="radio" name="mode" onChange={() => router.push('/org-chart/positions')} /> Positions</label>
+          </div>
         </div>
         <div className="relative max-w-full overflow-x-auto overflow-y-hidden rounded border border-slate-200">
           <div className="absolute left-2 top-2 z-10 flex gap-2">
-            <button onClick={zoomOut} className="rounded border border-slate-300 bg-white px-2 py-1 text-sm">−</button>
-            <button onClick={zoomIn} className="rounded border border-slate-300 bg-white px-2 py-1 text-sm">+</button>
-            <button onClick={resetView} className="rounded border border-slate-300 bg-white px-2 py-1 text-sm">Reset</button>
+            <button onClick={zoomOut} className="rounded border border-slate-300 bg-white px-2 py-1 text-sm">-</button>
+            <button onClick={zoomIn} className="rounded border border-slate-300 bg-white px-2 py-1 text-sm">-</button>
+            <button onClick={resetView} className="rounded border border-slate-300 bg-white px-2 py-1 text-sm">-</button>
           </div>
           <div
             className="relative h-[600px] min-w-[800px] cursor-grab"
@@ -275,7 +279,7 @@ function OrgChartInner() {
         </div>
         <div className="mt-6 text-center">
           <Link href="/employees" className="text-sm text-brand hover:underline">
-            View full organizational chart
+            View full organisational chart
           </Link>
         </div>
       </section>
@@ -290,3 +294,6 @@ export default function OrgChartPage() {
     </Suspense>
   );
 }
+
+
+

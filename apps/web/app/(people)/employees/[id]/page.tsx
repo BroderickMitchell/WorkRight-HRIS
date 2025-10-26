@@ -150,7 +150,7 @@ export default function EmployeeOverviewPage({ params }: Props) {
                 </div>
               </div>
               <div className="mt-4">
-                <Link href="/org-chart" className="text-sm text-brand hover:underline">View full organizational chart</Link>
+                <Link href="/org-chart" className="text-sm text-brand hover:underline">View full organisational chart</Link>
               </div>
             </div>
           </Card>
@@ -215,3 +215,4 @@ export default function EmployeeOverviewPage({ params }: Props) {
     </div>
   );
 }
+

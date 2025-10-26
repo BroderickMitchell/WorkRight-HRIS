@@ -121,6 +121,11 @@ model Department {
   tenant    Tenant    @relation(fields: [tenantId], references: [id])
   name      String
   description String?
+  codePrefix String      @default("")
+  parentDepartmentId String?
+  parent    Department? @relation("DepartmentParent", fields: [parentDepartmentId], references: [id])
+  children  Department[] @relation("DepartmentParent")
+  status    DepartmentStatus @default(ACTIVE)
   managerId String?
   employees Employee[]
   positions Position[]
@@ -146,19 +151,106 @@ model Location {
   rooms     Room[]
 }
 
+enum DepartmentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PositionStatus {
+  PENDING
+  ACTIVE
+  ARCHIVED
+}
+
+enum BudgetStatus {
+  BUDGETED
+  UNBUDGETED
+}
+
+model OrgUnit {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  name      String
+  parentId  String?
+  parent    OrgUnit? @relation("OrgUnitParent", fields: [parentId], references: [id])
+  children  OrgUnit[] @relation("OrgUnitParent")
+  positions Position[]
+}
+
 model Position {
   id          String    @id @default(cuid())
   tenantId    String
   tenant      Tenant    @relation(fields: [tenantId], references: [id])
   title       String
-  departmentId String?
-  department  Department? @relation(fields: [departmentId], references: [id])
+  positionHumanId String   @unique
+  departmentId String
+  department  Department @relation(fields: [departmentId], references: [id])
+  orgUnitId   String
+  orgUnit     OrgUnit  @relation(fields: [orgUnitId], references: [id])
+  employmentType String
+  workType    String
+  fte         Float     @default(1)
+  location    String?
   reportsToId String?
   reportsTo   Position?  @relation("PositionReports", fields: [reportsToId], references: [id])
   directReports Position[] @relation("PositionReports")
+  budgetStatus BudgetStatus
+  status      PositionStatus @default(PENDING)
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+  justification String?
+  createdByEmployeeId String?
+  approvalsAudit Json?
   employees   Employee[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model ApprovalStep {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  name       String
+  roleRequired String
+  sequence   Int
+  slaDays    Int @default(3)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  approvals  PositionApproval[]
+}
+
+enum ApprovalAction {
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model PositionApproval {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  positionId String
+  position   Position @relation(fields: [positionId], references: [id])
+  stepId     String
+  step       ApprovalStep @relation(fields: [stepId], references: [id])
+  approverEmployeeId String?
+  action     ApprovalAction @default(SUBMITTED)
+  comment    String?
+  actedAt    DateTime?
+  createdAt  DateTime @default(now())
+}
+
+// Per-department position id counters
+model PositionIdCounter {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  departmentId String  @unique
+  department  Department @relation(fields: [departmentId], references: [id])
+  nextNumber  Int      @default(1)
+  width       Int      @default(3)
+  hyphenStyle Boolean  @default(false)
 }
 
 model Employee {

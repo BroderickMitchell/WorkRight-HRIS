@@ -13,6 +13,8 @@ import { RostersModule } from './rosters/rosters.module.js';
 import { TravelModule } from './travel/travel.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { PayrollModule } from './payroll/payroll.module.js';
+import { PositionsModule } from './positions/positions.module.js';
+import { OrganizationModule } from './organization/organization.module.js';
 import { PrismaModule } from '../common/prisma.module.js';
 import { TenantGuard } from '../common/tenant.guard.js';
 import { RolesGuard } from '../common/auth/roles.guard.js';
@@ -40,7 +42,9 @@ import { RedactionInterceptor } from '../common/security/redaction.interceptor.j
     RostersModule,
     TravelModule,
     AdminModule,
-    PayrollModule
+    PayrollModule,
+    PositionsModule,
+    OrganizationModule
   ],
   controllers: [HealthController],
   providers: [
