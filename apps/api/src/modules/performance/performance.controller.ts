@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { PerformanceService } from './performance.service.js';
 import { CreateGoalDto, CreateReviewCycleDto } from './performance.dto.js';
@@ -11,6 +11,11 @@ export class PerformanceController {
   @Post('goals')
   createGoal(@Body() dto: CreateGoalDto) {
     return this.performance.createGoal(dto);
+  }
+
+  @Get('goals')
+  listGoals(@Query('ownerId') ownerId?: string) {
+    return this.performance.listGoals(ownerId);
   }
 
   @Post('review-cycles')

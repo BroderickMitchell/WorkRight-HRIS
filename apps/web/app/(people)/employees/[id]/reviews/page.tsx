@@ -1,13 +1,13 @@
 import { notFound } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, Badge } from '@workright/ui';
-import { sampleEmployees, sampleReviews } from '../../../../../lib/sample-data';
+import { fetchEmployeeProfile } from '@/lib/directory';
 
 interface Props { params: { id: string } }
 
-export default function EmployeeReviewsPage({ params }: Props) {
-  const employee = sampleEmployees.find((p) => p.id === params.id);
+export default async function EmployeeReviewsPage({ params }: Props) {
+  const employee = await fetchEmployeeProfile(params.id).catch(() => null);
   if (!employee) notFound();
-  const reviews = sampleReviews.filter((r) => r.employeeId === employee.id);
+  const reviews = employee.reviews ?? [];
 
   return (
     <div className="space-y-4">
@@ -39,4 +39,3 @@ export default function EmployeeReviewsPage({ params }: Props) {
     </div>
   );
 }
-

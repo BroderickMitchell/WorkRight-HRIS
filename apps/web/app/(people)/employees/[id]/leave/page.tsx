@@ -1,34 +1,61 @@
 import { notFound } from 'next/navigation';
 import { Card, CardHeader, CardTitle } from '@workright/ui';
-import { sampleEmployees, sampleLeave } from '../../../../../lib/sample-data';
+import { fetchEmployeeProfile } from '@/lib/directory';
 
 interface Props {
   params: { id: string };
 }
 
-export default function EmployeeLeavePage({ params }: Props) {
-  const employee = sampleEmployees.find((person) => person.id === params.id);
+function format(date: string) {
+  try {
+    return new Intl.DateTimeFormat('en-AU', { dateStyle: 'medium' }).format(new Date(date));
+  } catch {
+    return date;
+  }
+}
+
+export default async function EmployeeLeavePage({ params }: Props) {
+  const employee = await fetchEmployeeProfile(params.id).catch(() => null);
   if (!employee) {
     notFound();
   }
 
-  const leave = sampleLeave.filter((record) => record.employee === employee.name);
+  const balances = employee.leaveBalances ?? [];
+  const requests = employee.leaveRequests ?? [];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Leave for {employee.name}</CardTitle>
+          <CardTitle>Leave balances</CardTitle>
+        </CardHeader>
+        <div className="grid gap-3 p-6 pt-0 md:grid-cols-2">
+          {balances.length === 0 ? (
+            <p className="text-sm text-slate-500">No leave balances recorded.</p>
+          ) : (
+            balances.map((balance) => (
+              <div key={balance.id} className="rounded-lg border border-slate-200 p-4">
+                <p className="text-sm text-slate-500">{balance.leaveType?.name ?? balance.leaveTypeId}</p>
+                <p className="text-2xl font-semibold text-slate-900">{balance.balance.toFixed(1)} days</p>
+              </div>
+            ))
+          )}
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Leave requests</CardTitle>
         </CardHeader>
         <div className="space-y-3 p-6 pt-0">
-          {leave.length === 0 ? (
-            <p className="text-sm text-slate-500">No leave recorded.</p>
+          {requests.length === 0 ? (
+            <p className="text-sm text-slate-500">No leave requests on record.</p>
           ) : (
-            leave.map((record) => (
-              <div key={record.id} className="rounded-lg border border-slate-200 p-4">
-                <p className="font-medium text-slate-900">{record.type}</p>
-                <p className="text-sm text-slate-600">{record.period}</p>
-                <p className="text-sm text-brand">{record.status}</p>
+            requests.map((request) => (
+              <div key={request.id} className="rounded-lg border border-slate-200 p-4">
+                <p className="font-medium text-slate-900">{request.leaveType?.name ?? 'Leave'}</p>
+                <p className="text-sm text-slate-600">{format(request.startDate)} – {format(request.endDate)}</p>
+                <p className="text-sm text-brand">{request.status}</p>
               </div>
             ))
           )}
@@ -37,4 +64,3 @@ export default function EmployeeLeavePage({ params }: Props) {
     </div>
   );
 }
-

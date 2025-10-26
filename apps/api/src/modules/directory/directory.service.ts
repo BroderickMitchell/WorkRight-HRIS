@@ -20,7 +20,7 @@ export class DirectoryService {
         managerId: dto.managerId ?? null
       } as any),
       include: {
-        position: true
+        position: { include: { department: true } }
       }
     });
   }
@@ -36,7 +36,13 @@ export class DirectoryService {
             ]
           }
         : undefined,
-      include: { position: true, manager: true }
+      include: {
+        position: { include: { department: true } },
+        department: true,
+        location: true,
+        manager: { select: { id: true, givenName: true, familyName: true } }
+      },
+      orderBy: [{ givenName: 'asc' }, { familyName: 'asc' }]
     });
   }
 
@@ -45,10 +51,16 @@ export class DirectoryService {
       where: { id },
       include: {
         position: { include: { department: true } },
-        manager: true,
-        directReports: true,
+        department: true,
+        location: true,
+        manager: { select: { id: true, givenName: true, familyName: true, email: true } },
+        directReports: {
+          select: { id: true, givenName: true, familyName: true, email: true, position: { select: { title: true } } }
+        },
         goals: true,
-        leaveRequests: true
+        leaveRequests: true,
+        leaveBalances: true,
+        reviews: true
       }
     });
   }

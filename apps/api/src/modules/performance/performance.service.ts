@@ -20,6 +20,17 @@ export class PerformanceService {
     });
   }
 
+  listGoals(ownerId?: string) {
+    return this.prisma.goal.findMany({
+      where: ownerId ? { ownerId } : undefined,
+      include: {
+        owner: { select: { id: true, givenName: true, familyName: true } }
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 50
+    });
+  }
+
   async createReviewCycle(dto: CreateReviewCycleDto) {
     const reviewCycle = await this.prisma.reviewCycle.create({
       data: ({

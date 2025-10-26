@@ -22,6 +22,20 @@ export class LeaveService {
     });
   }
 
+  listRequests(employeeId?: string) {
+    return this.prisma.leaveRequest.findMany({
+      where: employeeId ? { employeeId } : undefined,
+      orderBy: { startDate: 'desc' },
+      take: 25,
+      include: {
+        employee: {
+          select: { id: true, givenName: true, familyName: true, email: true }
+        },
+        leaveType: true
+      }
+    });
+  }
+
   getLeave(id: string) {
     return this.prisma.leaveRequest.findUnique({
       where: { id },
