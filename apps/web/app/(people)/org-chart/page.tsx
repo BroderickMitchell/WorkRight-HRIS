@@ -248,8 +248,8 @@ function OrgChartInner() {
         <div className="relative max-w-full overflow-x-auto overflow-y-hidden rounded border border-slate-200">
           <div className="absolute left-2 top-2 z-10 flex gap-2">
             <button onClick={zoomOut} className="rounded border border-slate-300 bg-white px-2 py-1 text-sm">-</button>
-            <button onClick={zoomIn} className="rounded border border-slate-300 bg-white px-2 py-1 text-sm">-</button>
-            <button onClick={resetView} className="rounded border border-slate-300 bg-white px-2 py-1 text-sm">-</button>
+            <button onClick={zoomIn} className="rounded border border-slate-300 bg-white px-2 py-1 text-sm">+</button>
+            <button onClick={resetView} className="rounded border border-slate-300 bg-white px-2 py-1 text-sm">Reset</button>
           </div>
           <div
             className="relative h-[600px] min-w-[800px] cursor-grab"

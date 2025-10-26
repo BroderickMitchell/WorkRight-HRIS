@@ -14,6 +14,7 @@ function getMonthRange(d: Date) {
 export default function RostersPage() {
   const [when, setWhen] = useState(new Date());
   const [shifts, setShifts] = useState<ShiftVm[]>([]);
+  const [assignments, setAssignments] = useState<Array<{ id: string; employeeName?: string; templateName?: string; locationName?: string; effectiveFrom: string; effectiveTo?: string }>>([]);
   const { from, to } = useMemo(() => getMonthRange(when), [when]);
 
   const load = useCallback(async () => {
@@ -35,6 +36,21 @@ export default function RostersPage() {
   }, [from, to]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    async function loadAssignments() {
+      try {
+        const rows = await apiFetch<Array<{ id: string; employeeName?: string; templateName?: string; locationName?: string; effectiveFrom: string; effectiveTo?: string }>>('/v1/rosters/assignments');
+        setAssignments(rows);
+      } catch {
+        // fallback sample
+        setAssignments([
+          { id: 'asn-emp2-8-6', employeeName: 'Sienna Surveyor', templateName: '8/6 Day Shifts', locationName: 'Karratha Camp', effectiveFrom: '2024-11-04', effectiveTo: '2024-11-12' }
+        ]);
+      }
+    }
+    loadAssignments();
+  }, []);
 
   const days = useMemo(() => {
     const arr: { date: Date; key: string }[] = [];
@@ -75,6 +91,41 @@ export default function RostersPage() {
               </div>
             );
           })}
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Roster assignments</CardTitle>
+        </CardHeader>
+        <div className="overflow-x-auto p-6 pt-0">
+          <table className="min-w-[600px] text-sm">
+            <thead>
+              <tr className="text-left text-slate-600">
+                <th className="pb-2 pr-4 font-medium">Employee</th>
+                <th className="pb-2 pr-4 font-medium">Template</th>
+                <th className="pb-2 pr-4 font-medium">Location</th>
+                <th className="pb-2 pr-4 font-medium">From</th>
+                <th className="pb-2 pr-4 font-medium">To</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {assignments.map((a) => (
+                <tr key={a.id}>
+                  <td className="py-2 pr-4">{a.employeeName ?? '-'}</td>
+                  <td className="py-2 pr-4">{a.templateName ?? '-'}</td>
+                  <td className="py-2 pr-4">{a.locationName ?? '-'}</td>
+                  <td className="py-2 pr-4">{new Date(a.effectiveFrom).toLocaleDateString()}</td>
+                  <td className="py-2 pr-4">{a.effectiveTo ? new Date(a.effectiveTo).toLocaleDateString() : '-'}</td>
+                </tr>
+              ))}
+              {assignments.length === 0 && (
+                <tr>
+                  <td className="py-3 text-slate-500" colSpan={5}>No assignments</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </Card>
     </div>

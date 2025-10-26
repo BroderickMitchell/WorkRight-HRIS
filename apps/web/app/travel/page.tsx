@@ -102,8 +102,8 @@ export default function TravelPage() {
             <ul className="divide-y divide-slate-200">
               {manifest.map((m) => (
                 <li key={m.id} className="py-3">
-                  <p className="font-medium text-slate-900">{m.flight.carrier} {m.flight.flightNumber} {m.flight.depAirport} → {m.flight.arrAirport}</p>
-                  <p className="text-sm text-slate-600">Dep {new Date(m.depTime).toLocaleString()} · Arr {new Date(m.arrTime).toLocaleString()}</p>
+                  <p className="font-medium text-slate-900">{m.flight.carrier} {m.flight.flightNumber} {m.flight.depAirport} {'->'} {m.flight.arrAirport}</p>
+                  <p className="text-sm text-slate-600">Dep {new Date(m.depTime).toLocaleString()} {'->'} Arr {new Date(m.arrTime).toLocaleString()}</p>
                 </li>
               ))}
             </ul>
