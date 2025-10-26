@@ -1,6 +1,5 @@
-"use client";
+﻿"use client";
 import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, Button, Badge } from '@workright/ui';
 import { apiFetch } from '../../../lib/api';
 import { listTemplates, saveTemplate, type WorkflowTemplate, type TemplateStage, type TemplateStep, type Assignee } from '../../../lib/workflow-templates';
@@ -92,7 +91,7 @@ export default function WorkflowTemplatesSettingsPage() {
         <CardHeader>
           <div>
             <CardTitle>Create Template</CardTitle>
-            <CardDescription>Define stages and steps. Each step can be assigned to positions or the employee's manager.</CardDescription>
+            <CardDescription>Define stages and steps. Each step can be assigned to positions or the employee&#39;s manager.</CardDescription>
           </div>
         </CardHeader>
         <div className="space-y-4 p-6 pt-0">
@@ -140,7 +139,7 @@ export default function WorkflowTemplatesSettingsPage() {
                         {st.assignees.map((a, i) => (
                           <Badge key={i} className="border-slate-200 bg-slate-100 text-slate-800 flex items-center gap-2">
                             {a.kind === 'POSITION' ? `Position: ${a.positionId}` : 'Manager of employee'}
-                            <button className="ml-1 text-slate-500 hover:text-slate-700" onClick={() => removeAssignee(stage.id, st.id, i)}>×</button>
+                            <button className="ml-1 text-slate-500 hover:text-slate-700" onClick={() => removeAssignee(stage.id, st.id, i)}>Ã—</button>
                           </Badge>
                         ))}
                       </div>
@@ -150,9 +149,9 @@ export default function WorkflowTemplatesSettingsPage() {
                             const posId = e.target.value;
                             if (posId) addAssignee(stage.id, st.id, { kind: 'POSITION', positionId: posId });
                           }}>
-                            <option value="">Assign by position…</option>
+                            <option value="">Assign by positionâ€¦</option>
                             {activePositions.map((p) => (
-                              <option key={p.id} value={p.id}>{p.positionHumanId} – {p.title}</option>
+                              <option key={p.id} value={p.id}>{p.positionHumanId} â€“ {p.title}</option>
                             ))}
                           </select>
                         </div>
@@ -187,7 +186,7 @@ export default function WorkflowTemplatesSettingsPage() {
             <div key={t.id} className="flex items-center justify-between py-3">
               <div>
                 <p className="font-medium text-slate-900">{t.name}</p>
-                <p className="text-sm text-slate-600">Target: {t.target} • Stages: {t.stages.length}</p>
+                <p className="text-sm text-slate-600">Target: {t.target} â€¢ Stages: {t.stages.length}</p>
               </div>
             </div>
           ))}
@@ -196,3 +195,5 @@ export default function WorkflowTemplatesSettingsPage() {
     </div>
   );
 }
+
+

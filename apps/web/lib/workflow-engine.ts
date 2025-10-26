@@ -1,4 +1,4 @@
-import { apiFetch, apiPost } from './api';
+﻿import { apiFetch, apiPost } from './api';
 import { getItem, setItem } from './store';
 import type { Assignee, WorkflowTemplate, TemplateStage, TemplateStep } from './workflow-templates';
 
@@ -70,6 +70,10 @@ const KEY_INSTANCES = 'workflowInstances';
 
 export function listInstances(): WorkflowInstance[] {
   return getItem<WorkflowInstance[]>(KEY_INSTANCES, []);
+}
+
+function saveInstances(list: WorkflowInstance[]) {
+  setItem(KEY_INSTANCES, list);
 }
 
 
@@ -263,6 +267,7 @@ export async function actOnStep(
   all[idx] = wf;
   saveInstances(all);
 }
+
 
 
 

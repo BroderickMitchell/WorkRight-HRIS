@@ -1,6 +1,6 @@
 "use client";
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { actOnStep, listInstances, type WorkflowInstance } from '../../../../lib/workflow-engine';
 import { apiFetch } from '../../../../lib/api';
 import { Card, CardHeader, CardTitle, CardDescription, Button, Badge } from '@workright/ui';
@@ -16,7 +16,21 @@ export default function TemplateWorkflowDetail({ params }: Props) {
   const [actorName, setActorName] = useState<string>('You');
   const [actorEmployeeId, setActorEmployeeId] = useState<string>('');
   const [actorRole, setActorRole] = useState<string>('MANAGER');
+
+  // Server audit
   const [serverEvents, setServerEvents] = useState<any[]>([]);
+  const [serverCursor, setServerCursor] = useState<string | undefined>(undefined);
+  const [eventsLoading, setEventsLoading] = useState<boolean>(false);
+  const [filterAction, setFilterAction] = useState<string>('');
+  const [filterFrom, setFilterFrom] = useState<string>('');
+  const [filterTo, setFilterTo] = useState<string>('');
+
+  // Toast
+  const [toast, setToast] = useState<string>('');
+  function showToast(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(''), 2000);
+  }
 
   useEffect(() => {
     const found = listInstances().find((i) => i.id === params.id) ?? null;
@@ -26,7 +40,7 @@ export default function TemplateWorkflowDetail({ params }: Props) {
   useEffect(() => {
     (async () => {
       try {
-        const rows = await apiFetch<Employee[]>(`/v1/directory/employees`);
+        const rows = await apiFetch<Employee[]>('/v1/directory/employees');
         setEmployees(rows);
       } catch {
         setEmployees([]);
@@ -34,24 +48,43 @@ export default function TemplateWorkflowDetail({ params }: Props) {
     })();
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      if (!instance?.id) return;
-      try {
-        const events = await apiFetch<any[]>(`/v1/audit/events?entity=workflowInstance&entityId=${instance.id}&limit=100`);
-        setServerEvents(events);
-      } catch {
-        setServerEvents([]);
+  const loadEvents = useCallback(async (reset = false) => {
+    if (!instance?.id) return;
+    try {
+      setEventsLoading(true);
+      const qs: string[] = [
+        'entity=workflowInstance',
+        `entityId=${encodeURIComponent(instance.id)}`,
+        'limit=20'
+      ];
+      if (!reset && serverCursor) qs.push(`cursor=${encodeURIComponent(serverCursor)}`);
+      if (filterAction) qs.push(`action=${encodeURIComponent(filterAction)}`);
+      if (filterFrom) {
+        try { const iso = new Date(filterFrom).toISOString(); qs.push(`from=${encodeURIComponent(iso)}`); } catch {}
       }
-    })();
-  }, [instance?.id, refresh]);
+      if (filterTo) {
+        try { const iso = new Date(filterTo).toISOString(); qs.push(`to=${encodeURIComponent(iso)}`); } catch {}
+      }
+      const res = await apiFetch<{ items: any[]; nextCursor?: string }>(`/v1/audit/events?${qs.join('&')}`);
+      setServerEvents((prev) => (reset ? res.items : [...prev, ...res.items]));
+      setServerCursor(res.nextCursor);
+    } catch {
+      if (reset) setServerEvents([]);
+      showToast('Failed to load audit events');
+    } finally {
+      setEventsLoading(false);
+    }
+  }, [instance?.id, serverCursor, filterAction, filterFrom, filterTo]);
 
-  const employeeName = (id?: string) => {
-    if (!id) return 'Unassigned';
-    const e = employees.find((x) => x.id === id);
-    if (!e) return id;
-    return `${e.givenName ?? ''} ${e.familyName ?? ''}`.trim() || id;
-  };
+  useEffect(() => { loadEvents(true); }, [instance?.id, filterAction, filterFrom, filterTo]);
+
+  async function act(stepId: string, action: 'APPROVE' | 'COMPLETE' | 'DECLINE') {
+    if (!instance) return;
+    const selectedEmp = employees.find(e => e.id === actorEmployeeId);
+    const name = actorName || (selectedEmp ? `${selectedEmp.givenName ?? ''} ${selectedEmp.familyName ?? ''}`.trim() : 'You');
+    await actOnStep(instance.id, stepId, action, { id: actorEmployeeId || undefined, name, role: actorRole || undefined });
+    setRefresh((n) => n + 1);
+  }
 
   if (!instance) {
     return (
@@ -62,31 +95,29 @@ export default function TemplateWorkflowDetail({ params }: Props) {
     );
   }
 
-  const currentStage = instance.currentStageIndex >= 0 ? instance.stages[instance.currentStageIndex] : undefined;
-
-  function act(stepId: string, action: 'APPROVE' | 'COMPLETE' | 'DECLINE') {
-    const selectedEmp = employees.find(e => e.id === actorEmployeeId);
-    const name = actorName || (selectedEmp ? `${selectedEmp.givenName ?? ''} ${selectedEmp.familyName ?? ''}`.trim() : 'You');
-    actOnStep(instance.id, stepId, action, { id: actorEmployeeId || undefined, name, role: actorRole || undefined });
-    setRefresh((n) => n + 1);
-  }
+  const employeeName = (id?: string) => {
+    if (!id) return 'Unassigned';
+    const e = employees.find((x) => x.id === id);
+    if (!e) return id;
+    return `${e.givenName ?? ''} ${e.familyName ?? ''}`.trim() || id;
+  };
 
   return (
     <div className="space-y-6" aria-label="Workflow instance detail">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">{instance.name}</h1>
-          <p className="text-slate-600">ID {instance.id} • Status: {instance.status}</p>
+          <p className="text-slate-600">ID {instance.id} — Status: {instance.status}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <label className="text-sm text-slate-600">Actor</label>
-            <select className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm" value={actorEmployeeId} onChange={(e) => setActorEmployeeId(e.target.value)} >
+            <select className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm" value={actorEmployeeId} onChange={(e) => setActorEmployeeId(e.target.value)}>
               <option value="">Select employee…</option>
               {employees.map((e) => (<option key={e.id} value={e.id}>{`${e.givenName ?? ''} ${e.familyName ?? ''}`.trim() || e.id}</option>))}
             </select>
             <input className="rounded-md border border-slate-300 px-2 py-1 text-sm" placeholder="Or enter name" value={actorName} onChange={(e) => setActorName(e.target.value)} />
-            <select className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm" value={actorRole} onChange={(e) => setActorRole(e.target.value)} >
+            <select className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm" value={actorRole} onChange={(e) => setActorRole(e.target.value)}>
               {['MANAGER','HR_ADMIN','HRBP','PAYROLL','FINANCE','EXEC'].map(r => (<option key={r} value={r}>{r}</option>))}
             </select>
           </div>
@@ -112,7 +143,7 @@ export default function TemplateWorkflowDetail({ params }: Props) {
               onClick={() => {
                 const hash = `#stage-${stage.id}`;
                 const url = typeof window !== 'undefined' ? window.location.origin + window.location.pathname + hash : hash;
-                navigator.clipboard?.writeText(url);
+                navigator.clipboard?.writeText(url).then(() => showToast('Link copied'));
               }}
             >
               Copy link
@@ -161,7 +192,7 @@ export default function TemplateWorkflowDetail({ params }: Props) {
                       onClick={() => {
                         const hash = `#step-${st.id}`;
                         const url = typeof window !== 'undefined' ? window.location.origin + window.location.pathname + hash : hash;
-                        navigator.clipboard?.writeText(url);
+                        navigator.clipboard?.writeText(url).then(() => showToast('Link copied'));
                       }}
                     >
                       Copy link
@@ -212,6 +243,7 @@ export default function TemplateWorkflowDetail({ params }: Props) {
           )}
         </div>
       </Card>
+
       <Card>
         <CardHeader>
           <div>
@@ -220,6 +252,18 @@ export default function TemplateWorkflowDetail({ params }: Props) {
           </div>
         </CardHeader>
         <div className="divide-y divide-slate-200 p-6 pt-0">
+          <div className="mb-4 grid gap-3 md:grid-cols-4">
+            <select className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm" value={filterAction} onChange={(e) => setFilterAction(e.target.value)}>
+              <option value="">All actions</option>
+              {['INSTANCE_CREATED','STAGE_STARTED','STEP_COMPLETED','STEP_DECLINED','STAGE_COMPLETED','INSTANCE_COMPLETED'].map(a => <option key={a} value={a}>{a.replace('_',' ')}</option>)}
+            </select>
+            <input type="datetime-local" className="rounded-md border border-slate-300 px-3 py-2 text-sm" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} />
+            <input type="datetime-local" className="rounded-md border border-slate-300 px-3 py-2 text-sm" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} />
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" onClick={() => { setFilterAction(''); setFilterFrom(''); setFilterTo(''); }}>Reset</Button>
+              <span className="text-xs text-slate-500">Last updated: {new Date().toLocaleTimeString()}</span>
+            </div>
+          </div>
           {serverEvents.length === 0 ? (
             <p className="text-sm text-slate-500">No server-side audit events.</p>
           ) : (
@@ -248,8 +292,19 @@ export default function TemplateWorkflowDetail({ params }: Props) {
               </div>
             ))
           )}
+          <div className="mt-4 flex items-center justify-end gap-3">
+            <Button variant="secondary" onClick={() => loadEvents(false)} disabled={!serverCursor || eventsLoading}>
+              {eventsLoading ? 'Loading...' : (serverCursor ? 'Load more' : 'No more')}
+              {eventsLoading && <span className="ml-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-transparent" />}
+            </Button>
+          </div>
         </div>
       </Card>
+
+      {toast && (
+        <div className="fixed bottom-6 right-6 rounded-md bg-slate-900/90 px-4 py-2 text-sm text-white shadow-lg">{toast}</div>
+      )}
     </div>
   );
 }
+

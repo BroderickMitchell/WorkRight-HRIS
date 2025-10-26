@@ -39,7 +39,7 @@ export class AuditService {
     });
   }
 
-  async list(params: { entity?: string; entityId?: string; limit?: number } = {}) {
+  async list(params: { entity?: string; entityId?: string; limit?: number; cursor?: string; action?: string; from?: string; to?: string } = {}) {
     const tenantId = this.cls.get('tenantId');
     if (!tenantId) {
       this.logger.warn('Attempted to list audit events without tenant');
@@ -48,6 +48,24 @@ export class AuditService {
     const where: any = { tenantId };
     if (params.entity) where.entity = params.entity;
     if (params.entityId) where.entityId = params.entityId;
+    if (params.action) where.action = params.action;
+    // createdAt range filters
+    let createdAt: any = undefined;
+    if (params.from) {
+      const dt = new Date(params.from);
+      if (!isNaN(dt.getTime())) createdAt = { ...(createdAt ?? {}), gte: dt };
+    }
+    if (params.to) {
+      const dt = new Date(params.to);
+      if (!isNaN(dt.getTime())) createdAt = { ...(createdAt ?? {}), lte: dt };
+    }
+    if (params.cursor) {
+      const dt = new Date(params.cursor);
+      if (!isNaN(dt.getTime())) {
+        createdAt = { ...(createdAt ?? {}), lt: dt };
+      }
+    }
+    if (createdAt) where.createdAt = createdAt;
     const take = Math.min(Math.max(params.limit ?? 100, 1), 500);
     return this.prisma.auditEvent.findMany({ where, orderBy: { createdAt: 'desc' }, take });
   }
