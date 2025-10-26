@@ -6,6 +6,7 @@ import { Inter } from 'next/font/google';
 import { QueryProvider } from '../components/query-provider';
 import { ThemeProvider } from '../components/theme-provider';
 import { BrandingProvider } from '../components/branding-provider';
+import { getSidebarNav } from '../lib/navigation';
 import { getTenantSettings, hexToRgbString } from '../lib/tenant';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const tenantSettings = getTenantSettings();
+  const sections = getSidebarNav();
   return (
     <html lang={tenantSettings.locale} className="h-full">
       <body
@@ -39,43 +41,25 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                       <p className="text-sm text-slate-500">Empowering Aussie teams</p>
                     </div>
                   </div>
-                  <nav className="space-y-1 text-sm text-slate-700">
-                    <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/dashboard">
-                      Dashboard
-                    </Link>
-                    <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/employees">
-                      Directory
-                    </Link>
-                    <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/goals">
-                      Performance
-                    </Link>
-                    <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/leave">
-                      Leave
-                    </Link>
-                    <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/travel">
-                      Travel
-                    </Link>
-                    <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/accommodation">
-                      Accommodation
-                    </Link>
-                    <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/payroll">
-                      Payroll
-                    </Link>
-                    <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/courses">
-                      Learning
-                    </Link>
-                    <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/reports">
-                      Reporting
-                    </Link>
-                    <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/org-chart">
-                      Org chart
-                    </Link>
-                    <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/positions">
-                      Positions
-                    </Link>
-                    <Link className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand" href="/settings">
-                      Settings
-                    </Link>
+                  <nav className="space-y-5 text-sm text-slate-700">
+                    {sections.map((section) => (
+                      <div key={section.section}>
+                        <p className="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          {section.section}
+                        </p>
+                        <div className="space-y-1">
+                          {section.items.map((item) => (
+                            <Link
+                              key={item.href}
+                              className="block rounded-md px-3 py-2 hover:bg-brand/10 hover:text-brand"
+                              href={item.href}
+                            >
+                              {item.label}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </nav>
                 </div>
                 <p className="text-xs text-slate-400">v0.1.0</p>
