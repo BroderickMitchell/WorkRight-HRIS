@@ -10,6 +10,10 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   app.useLogger(logger);
   app.use(helmet());
+  app.enableCors({
+    origin: /localhost:\d+$/,
+    credentials: true
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

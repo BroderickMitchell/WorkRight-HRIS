@@ -7,12 +7,13 @@ export class SeedController {
 
   @Post('seed-mining')
   async seed() {
-    // Create or reuse a deterministic demo tenant so clients can call with X-Tenant-Id: tenant-demo
-    const tenant = await this.prisma.tenant.upsert({
-      where: { slug: 'demo' },
-      update: {},
-      create: ({ id: 'tenant-demo', slug: 'demo', name: 'Demo Mining AU', settings: {} } as any)
-    });
+    try {
+      // Create or reuse a deterministic demo tenant so clients can call with X-Tenant-Id: tenant-demo
+      const tenant = await this.prisma.tenant.upsert({
+        where: { slug: 'demo' },
+        update: {},
+        create: ({ id: 'tenant-demo', slug: 'demo', name: 'Demo Mining AU', settings: {} } as any)
+      });
 
     // Create location
     const location = await this.prisma.location.upsert({
@@ -137,6 +138,25 @@ export class SeedController {
       } as any)
     });
 
-    return { ok: true, tenantId: tenant.id, employeeId: employee.id, locationId: location.id, templateId: tmpl.id };
+    // Recruitment seed: one approved requisition and posting
+    const req = await (this.prisma as any).requisition.upsert({
+      where: { id: 'req-ops-001' },
+      update: {},
+      create: ({ id: 'req-ops-001', positionId: 'pos-ops-001', title: 'Shift Supervisor - Karratha', employmentType: 'Full-time', workType: 'Permanent', vacancyCount: 1, location: 'Karratha, WA', description: 'Lead a production shift safely and efficiently at our Karratha site.', selectionCriteria: ['Supervision', 'Safety', 'FIFO experience'] } as any)
+    });
+    await (this.prisma as any).jobPosting.upsert({ where: { externalSlug: 'shift-supervisor-karratha' }, update: {}, create: ({ requisitionId: req.id, externalSlug: 'shift-supervisor-karratha', visibility: 'public', channels: ['website'], status: 'active' } as any) });
+
+    // Rejection reasons
+    await (this.prisma as any).rejectionReason.upsert({ where: { code: 'NOT_SHORTLISTED' }, update: {}, create: ({ code: 'NOT_SHORTLISTED', label: 'Not shortlisted', visibleToCandidate: false } as any) });
+    await (this.prisma as any).rejectionReason.upsert({ where: { code: 'INTERVIEW_OUTCOME' }, update: {}, create: ({ code: 'INTERVIEW_OUTCOME', label: 'Interview outcome', visibleToCandidate: false } as any) });
+    await (this.prisma as any).rejectionReason.upsert({ where: { code: 'ROLE_WITHDRAWN' }, update: {}, create: ({ code: 'ROLE_WITHDRAWN', label: 'Role withdrawn', visibleToCandidate: false } as any) });
+
+      return { ok: true, tenantId: tenant.id, employeeId: employee.id, locationId: location.id, templateId: tmpl.id };
+    } catch (e: any) {
+      // Surface error for debugging in dev; respond with details
+      // eslint-disable-next-line no-console
+      console.error('Seed error', e);
+      return { ok: false, error: String(e?.message ?? e), stack: String(e?.stack ?? '') } as any;
+    }
   }
 }

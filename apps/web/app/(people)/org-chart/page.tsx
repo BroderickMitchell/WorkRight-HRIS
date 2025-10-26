@@ -30,13 +30,7 @@ function OrgNode({ emp, dottedLabel, onRef }: { emp: Employee; dottedLabel?: str
         <p className="text-sm text-slate-600">{emp.role}</p>
       </div>
       </div>
-      {dottedLabel && (
-        <div className="text-xs text-slate-500">
-          {/* dashed indicator for dotted line reporting */}
-          <span className="mr-2 inline-block h-px w-4 align-middle border-t border-dashed border-slate-400" />
-          Dotted to {dottedLabel}
-        </div>
-      )}
+      {/* Hide dotted-line indicator in org chart (matrix manager still editable in profile) */}
     </div>
   );
 }
@@ -186,41 +180,8 @@ function OrgChartInner() {
   const zoomOut = () => setZoom((z) => Math.max(0.5, +(z - 0.1).toFixed(2)));
   const resetView = () => { setZoom(1); setOffset({ x: 0, y: 0 }); };
 
-  // Node refs for dashed dotted-line connectors
-  const contentRef = useRef<HTMLDivElement>(null);
-  const nodesRef = useRef<Map<string, HTMLDivElement | null>>(new Map());
-  const handleNodeRef = useCallback((id: string, el: HTMLDivElement | null) => {
-    nodesRef.current.set(id, el);
-  }, []);
-
-  const [edges, setEdges] = useState<Array<{ x1: number; y1: number; x2: number; y2: number }>>([]);
-  const recomputeEdges = useCallback(() => {
-    const cont = contentRef.current;
-    if (!cont) return;
-    const cRect = cont.getBoundingClientRect();
-    const list: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
-    for (const e of sampleEmployees) {
-      if (!e.dottedLineManagerId) continue;
-      const a = nodesRef.current.get(e.id);
-      const b = nodesRef.current.get(e.dottedLineManagerId);
-      if (!a || !b) continue; // only draw if both visible
-      const ra = a.getBoundingClientRect();
-      const rb = b.getBoundingClientRect();
-      const x1 = ra.left - cRect.left + ra.width / 2;
-      const y1 = ra.top - cRect.top + ra.height / 2;
-      const x2 = rb.left - cRect.left + rb.width / 2;
-      const y2 = rb.top - cRect.top + rb.height / 2;
-      list.push({ x1, y1, x2, y2 });
-    }
-    setEdges(list);
-  }, []);
-
-  useEffect(() => {
-    recomputeEdges();
-    const onResize = () => recomputeEdges();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [recomputeEdges, expanded, query]);
+  // Dotted-line connectors are intentionally disabled in the org chart view
+  // (Matrix manager remains editable within an employee profile form.)
   return (
     <div className="space-y-6" aria-label="Organisation chart">
       <header className="space-y-1">
@@ -259,19 +220,12 @@ function OrgChartInner() {
             onMouseLeave={onMouseUp}
           >
             <div
-              ref={contentRef}
               className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
               style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})` }}
             >
-              {/* dashed connectors for dotted-line managers */}
-              <svg className="pointer-events-none absolute inset-0 z-0" width="2000" height="2000">
-                {edges.map((e, idx) => (
-                  <line key={idx} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} stroke="#94a3b8" strokeWidth={1.5} strokeDasharray="4 4" />
-                ))}
-              </svg>
               <div className="relative z-10 flex flex-col items-center gap-8 p-10">
                 {filteredRoots.map((r) => (
-                  <Subtree key={r.id} emp={r} expanded={expanded} onToggle={onToggle} dottedMap={dottedMap} onRef={handleNodeRef} />
+                  <Subtree key={r.id} emp={r} expanded={expanded} onToggle={onToggle} dottedMap={dottedMap} onRef={() => {}} />
                 ))}
               </div>
             </div>

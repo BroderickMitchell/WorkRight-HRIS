@@ -33,10 +33,17 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
         params.args.where = { ...params.args.where, tenantId };
       } else if (['update', 'delete', 'findUnique'].includes(params.action)) {
         params.args.where = { ...params.args.where, tenantId };
-      } else if (['create', 'createMany', 'upsert'].includes(params.action)) {
+      } else if (['create', 'createMany'].includes(params.action)) {
         params.args.data = Array.isArray(params.args.data)
           ? params.args.data.map((item: any) => ({ ...item, tenantId }))
           : { ...params.args.data, tenantId };
+      } else if (params.action === 'upsert') {
+        if (params.args.create) {
+          params.args.create = { ...params.args.create, tenantId };
+        }
+        if (params.args.update) {
+          params.args.update = { ...params.args.update, tenantId };
+        }
       }
       return next(params);
     });
