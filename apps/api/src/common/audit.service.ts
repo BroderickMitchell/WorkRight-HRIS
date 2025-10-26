@@ -38,4 +38,17 @@ export class AuditService {
       }
     });
   }
+
+  async list(params: { entity?: string; entityId?: string; limit?: number } = {}) {
+    const tenantId = this.cls.get('tenantId');
+    if (!tenantId) {
+      this.logger.warn('Attempted to list audit events without tenant');
+      return [];
+    }
+    const where: any = { tenantId };
+    if (params.entity) where.entity = params.entity;
+    if (params.entityId) where.entityId = params.entityId;
+    const take = Math.min(Math.max(params.limit ?? 100, 1), 500);
+    return this.prisma.auditEvent.findMany({ where, orderBy: { createdAt: 'desc' }, take });
+  }
 }
