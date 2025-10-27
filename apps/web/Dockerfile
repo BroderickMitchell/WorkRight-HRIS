@@ -32,7 +32,6 @@ RUN if [ -f pnpm-lock.yaml ]; then \
         --filter @workright/profile-schema... \
         --filter @workright/ui... \
         --frozen-lockfile \
-        --include-dev-deps \
         --include-workspace-root \
         --workspace-root; \
     else \
@@ -41,7 +40,6 @@ RUN if [ -f pnpm-lock.yaml ]; then \
         --filter @workright/config... \
         --filter @workright/profile-schema... \
         --filter @workright/ui... \
-        --include-dev-deps \
         --include-workspace-root \
         --no-frozen-lockfile \
         --workspace-root; \
