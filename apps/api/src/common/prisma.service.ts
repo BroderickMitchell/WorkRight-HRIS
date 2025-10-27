@@ -1,6 +1,5 @@
-// src/common/prisma.service.ts
-import { Injectable, INestApplication, OnModuleInit } from '@nestjs/common';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Injectable, INestApplication, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 /**
  * Simple per-request tenant accessor.
@@ -31,84 +30,112 @@ const TENANTED_MODELS = new Set<string>([
  */
 const TENANT_MIDDLEWARE_ENABLED = process.env.PRISMA_TENANT_MIDDLEWARE === '1';
 
-@Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit {
-  async onModuleInit() {
-    await this.$connect();
+type QueryContext = {
+  model?: string;
+  operation: string;
+  args?: Record<string, unknown>;
+  query: (args?: Record<string, unknown>) => Promise<unknown>;
+};
 
-    if (TENANT_MIDDLEWARE_ENABLED) {
-      // One middleware to enforce tenant scoping on reads/writes
-      const tenantMiddleware: Prisma.Middleware = async (params, next) => {
-        const { model, action } = params;
-
-        // Only apply to selected models
+const tenantExtension = Prisma.defineExtension({
+  name: 'tenant-guard',
+  query: {
+    $allModels: {
+      async $allOperations({ model, operation, args, query }: QueryContext) {
         if (!model || !TENANTED_MODELS.has(model)) {
-          return next(params);
+          return query(args);
         }
 
         const tenantId = getTenantId();
+
         if (!tenantId) {
-          // No tenant in context; for safety, block writes and return empty reads.
-          // Adjust to your needs (e.g. throw ForbiddenException).
-          if (action.startsWith('find')) {
-            // Return empty results for find ops by scoping to impossible where
-            params.args = params.args ?? {};
-            params.args.where = { ...(params.args.where ?? {}), tenantId: '__NO_TENANT__' };
-            return next(params);
+          if (operation.startsWith('find')) {
+            const baseArgs = { ...(args ?? {}) };
+            const guardedArgs: Record<string, unknown> = {
+              ...baseArgs,
+              where: {
+                ...((baseArgs.where as Record<string, unknown> | undefined) ?? {}),
+                tenantId: '__NO_TENANT__'
+              }
+            };
+
+            return query(guardedArgs);
           }
+
           throw new Error('Tenant context missing');
         }
 
-        // Read actions: merge tenantId into where
-        if (
-          action === 'findUnique' ||
-          action === 'findFirst' ||
-          action === 'findMany' ||
-          action === 'count' ||
-          action === 'aggregate' ||
-          action === 'groupBy'
-        ) {
-          params.args = params.args ?? {};
-          // Ensure where exists and add tenantId guard
-          params.args.where = { ...(params.args.where ?? {}), tenantId };
+        const nextArgs: Record<string, unknown> = { ...(args ?? {}) };
+        const where = {
+          ...((nextArgs.where as Record<string, unknown> | undefined) ?? {}),
+          tenantId
+        };
+
+        switch (operation) {
+          case 'findUnique':
+          case 'findFirst':
+          case 'findMany':
+          case 'count':
+          case 'aggregate':
+          case 'groupBy':
+            nextArgs.where = where;
+            break;
+          case 'create':
+            nextArgs.data = {
+              ...((nextArgs.data as Record<string, unknown> | undefined) ?? {}),
+              tenantId
+            };
+            break;
+          case 'createMany':
+            if (Array.isArray(nextArgs.data)) {
+              nextArgs.data = nextArgs.data.map((row) => ({
+                ...(row as Record<string, unknown>),
+                tenantId
+              }));
+            } else if (nextArgs.data) {
+              nextArgs.data = {
+                ...((nextArgs.data as Record<string, unknown>) ?? {}),
+                tenantId
+              };
+            }
+            break;
+          case 'update':
+          case 'updateMany':
+          case 'delete':
+          case 'deleteMany':
+            nextArgs.where = where;
+            break;
+          case 'upsert':
+            nextArgs.where = where;
+            nextArgs.create = {
+              ...((nextArgs.create as Record<string, unknown> | undefined) ?? {}),
+              tenantId
+            };
+            break;
+          default:
+            break;
         }
 
-        // Write actions: enforce tenant on create/update/upsert/delete
-        if (action === 'create') {
-          params.args = params.args ?? {};
-          params.args.data = { ...(params.args.data ?? {}), tenantId };
-        }
-
-        if (action === 'createMany') {
-          params.args = params.args ?? {};
-          const data = params.args.data ?? [];
-          params.args.data = Array.isArray(data)
-            ? data.map((row: any) => ({ ...row, tenantId }))
-            : { ...data, tenantId };
-        }
-
-        if (action === 'update' || action === 'updateMany' || action === 'upsert' || action === 'delete' || action === 'deleteMany') {
-          params.args = params.args ?? {};
-          // Guard the where with tenantId so you never write across tenants
-          params.args.where = { ...(params.args.where ?? {}), tenantId };
-
-          // For upsert, also ensure create side carries tenantId
-          if (action === 'upsert') {
-            params.args.create = { ...(params.args.create ?? {}), tenantId };
-          }
-        }
-
-        return next(params);
-      };
-
-      this.$use(tenantMiddleware);
+        return query(nextArgs);
+      }
     }
+  }
+});
 
-    // Example: another middleware slot (audit, etc)
-    this.$use(async (params, next) => {
-      // add any cross-cutting behaviour here (timing, logging)
-      return next(params);
+@Injectable()
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  constructor() {
+    super({
+      extensions: TENANT_MIDDLEWARE_ENABLED ? [tenantExtension] : []
     });
+  }
+
+  async onModuleInit() {
+    await this.$connect();
+  }
+
+  async onModuleDestroy() {
+    await this.$disconnect();
   }
 
   async enableShutdownHooks(app: INestApplication) {
