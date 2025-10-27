@@ -57,11 +57,6 @@ export function JobInfoCard({ data, canEdit, onSave, isSaving }: JobInfoCardProp
       description="Role, position and employment details"
     >
       {({ isEditing, markDirty, stopEditing }) => {
-        useEffect(() => {
-          const subscription = form.watch(() => markDirty(form.formState.isDirty));
-          return () => subscription.unsubscribe();
-        }, [form, markDirty]);
-
         const handleCancel = () => {
           form.reset(mapJobToForm(data));
           markDirty(false);
@@ -76,6 +71,7 @@ export function JobInfoCard({ data, canEdit, onSave, isSaving }: JobInfoCardProp
 
         return (
           <form onSubmit={handleSubmit} className="space-y-4">
+            <FormDirtyTracker form={form} onDirtyChange={markDirty} />
             <div className="grid gap-4 md:grid-cols-2">
               <InputField label="Position ID" name="positionId" form={form} disabled={!isEditing} />
               <InputField label="Job title" name="jobTitle" form={form} disabled={!isEditing} />
@@ -220,6 +216,21 @@ function mapFormToJob(values: JobFormValues, previous: EmployeeProfilePayload['j
     probationEndDate: values.probationEndDate || null,
     contractEndDate: values.contractEndDate || null
   };
+}
+
+function FormDirtyTracker({
+  form,
+  onDirtyChange
+}: {
+  form: UseFormReturn<JobFormValues>;
+  onDirtyChange: (dirty: boolean) => void;
+}) {
+  useEffect(() => {
+    const subscription = form.watch(() => onDirtyChange(form.formState.isDirty));
+    return () => subscription.unsubscribe();
+  }, [form, onDirtyChange]);
+
+  return null;
 }
 
 interface InputFieldProps {

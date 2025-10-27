@@ -43,11 +43,6 @@ export function TimeEligibilityCard({ data, canEdit, onSave, isSaving }: TimeEli
       description="Location, schedule and eligibility controls"
     >
       {({ isEditing, markDirty, stopEditing }) => {
-        useEffect(() => {
-          const subscription = form.watch(() => markDirty(form.formState.isDirty));
-          return () => subscription.unsubscribe();
-        }, [form, markDirty]);
-
         const handleCancel = () => {
           form.reset(mapTimeToForm(data));
           markDirty(false);
@@ -62,6 +57,7 @@ export function TimeEligibilityCard({ data, canEdit, onSave, isSaving }: TimeEli
 
         return (
           <form onSubmit={handleSubmit} className="space-y-4">
+            <FormDirtyTracker form={form} onDirtyChange={markDirty} />
             <div className="grid gap-4 md:grid-cols-2">
               <ReadOnlyField label="Work location" value={data.location} />
               <InputField label="Timezone" name="timezone" form={form} disabled={!isEditing} />
@@ -145,6 +141,21 @@ function mapFormToTime(
     exempt: values.exempt,
     benefitsEligible: values.benefitsEligible
   };
+}
+
+function FormDirtyTracker({
+  form,
+  onDirtyChange
+}: {
+  form: UseFormReturn<TimeEligibilityFormValues>;
+  onDirtyChange: (dirty: boolean) => void;
+}) {
+  useEffect(() => {
+    const subscription = form.watch(() => onDirtyChange(form.formState.isDirty));
+    return () => subscription.unsubscribe();
+  }, [form, onDirtyChange]);
+
+  return null;
 }
 
 function InputField({

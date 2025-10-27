@@ -62,11 +62,6 @@ export function CompensationCard({ data, canEdit, onSave, isSaving }: Compensati
       description="Pay, bonus and allowances"
     >
       {({ isEditing, markDirty, stopEditing }) => {
-        useEffect(() => {
-          const subscription = form.watch(() => markDirty(form.formState.isDirty));
-          return () => subscription.unsubscribe();
-        }, [form, markDirty]);
-
         const handleCancel = () => {
           form.reset(mapCompToForm(data));
           markDirty(false);
@@ -81,6 +76,7 @@ export function CompensationCard({ data, canEdit, onSave, isSaving }: Compensati
 
         return (
           <form onSubmit={handleSubmit} className="space-y-4">
+            <FormDirtyTracker form={form} onDirtyChange={markDirty} />
             <div className="grid gap-4 md:grid-cols-3">
               <Controller
                 control={form.control}
@@ -289,6 +285,21 @@ function mapFormToComp(
       taxable: allowance.taxable
     }))
   };
+}
+
+function FormDirtyTracker({
+  form,
+  onDirtyChange
+}: {
+  form: UseFormReturn<CompensationFormValues>;
+  onDirtyChange: (dirty: boolean) => void;
+}) {
+  useEffect(() => {
+    const subscription = form.watch(() => onDirtyChange(form.formState.isDirty));
+    return () => subscription.unsubscribe();
+  }, [form, onDirtyChange]);
+
+  return null;
 }
 
 function TextInput({
