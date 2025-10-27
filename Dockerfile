@@ -1,15 +1,11 @@
-# Base stage for building the application
+# --- base ---
 FROM node:20-bullseye-slim AS base
 
 WORKDIR /app
 
-# Set environment variables
 ENV PNPM_HOME="/usr/local/share/pnpm"
 ENV PATH="${PNPM_HOME}:$PATH"
-ENV NODE_ENV=development
-ENV NPM_CONFIG_PRODUCTION=false
 
-# Install dependencies
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -20,9 +16,11 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/* \
   && corepack enable
 
-# Copy necessary files for dependency installation
-COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
+# Copy root manifests first for better caching
+COPY pnpm-workspace.yaml package.json ./
 COPY pnpm-lock.yaml* ./
+
+# Copy package manifests (no sources yet) to warm the install layer
 COPY apps/api/package.json apps/api/
 COPY apps/api/tsconfig.json apps/api/
 COPY apps/web/package.json apps/web/
@@ -31,40 +29,46 @@ COPY packages/config/package.json packages/config/
 COPY packages/profile-schema/package.json packages/profile-schema/
 COPY packages/ui/package.json packages/ui/
 
-# Install all workspace dependencies with pnpm
-RUN pnpm install --recursive \
-                 --workspace-root \
-                 --no-frozen-lockfile --prod=false
+# Install ALL deps (incl. dev) across the workspace
+RUN pnpm install --frozen-lockfile
 
-# Debug tsup installation
-RUN pnpm list tsup --depth=0
-
-# Inspect profile-schema node_modules directory
-RUN ls -la packages/profile-schema/node_modules
-
-# Copy the rest of the application code
+# Now copy sources
 COPY . .
 
-# Build the application
+# Build packages (dev deps available here)
 RUN pnpm --filter @workright/profile-schema run build \
   && pnpm --filter @workright/config run build \
   && pnpm --filter @workright/api run prisma:generate \
-  && pnpm --filter @workright/api run build \
-  && pnpm prune --prod --filter @workright/api...
+  && pnpm --filter @workright/api run build
 
-# Final stage for running the application
-FROM node:20-bullseye-slim AS runner
+# --- runtime image (only prod deps for the API) ---
+FROM node:20-bullseye-slim AS runtime
 
 WORKDIR /app
 
-# Copy production dependencies and built files from the base stage
-COPY --from=base /app /app
+ENV PNPM_HOME="/usr/local/share/pnpm"
+ENV PATH="${PNPM_HOME}:$PATH"
 
-# Set environment variables for production
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+  && rm -rf /var/lib/apt/lists/* \
+  && corepack enable
+
+COPY --from=base /app/pnpm-workspace.yaml /app/package.json ./
+COPY --from=base /app/pnpm-lock.yaml* ./
+COPY --from=base /app/apps/api/package.json apps/api/
+
+# Install prod deps only for API
+RUN pnpm --filter @workright/api... install --prod --frozen-lockfile
+
+# Bring over built artifacts
+COPY --from=base /app/apps/api/dist apps/api/dist
+COPY --from=base /app/apps/api/prisma apps/api/prisma
+
 ENV NODE_ENV=production
 
-# Expose the application port
 EXPOSE 3000
 
-# Start the application
 CMD ["node", "apps/api/dist/index.js"]
