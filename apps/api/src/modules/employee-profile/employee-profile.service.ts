@@ -32,6 +32,7 @@ import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 
 const MAX_DATE = new Date('9999-12-31T23:59:59.999Z');
+const asJson = (value: unknown): Prisma.InputJsonValue => value as Prisma.InputJsonValue;
 
 interface DownloadDescriptor {
   stream: ReturnType<typeof createReadStream>;
@@ -345,6 +346,8 @@ export class EmployeeProfileService {
   async upsertCostSplits(id: string, input: UpsertCostSplitInput) {
     await this.ensureEmployeeExists(id);
     this.validateCostSplits(input.splits);
+    const tenantId = this.cls.get('tenantId');
+    if (!tenantId) throw new BadRequestException('Tenant context missing');
 
     const existing = await this.prisma.employeeCostSplit.findMany({ where: { employeeId: id } });
     const incomingIds = new Set(input.splits.map((split) => split.id).filter(Boolean) as string[]);
@@ -364,6 +367,7 @@ export class EmployeeProfileService {
         } else {
           await tx.employeeCostSplit.create({
             data: {
+              tenantId,
               employeeId: id,
               costCodeId: split.costCodeId,
               percentage: new Prisma.Decimal(split.percentage),
@@ -526,17 +530,20 @@ export class EmployeeProfileService {
     };
 
     const artifact = await this.documents.generate(input.format ?? template.format, template.name, template.body, merge);
+    const tenantId = this.cls.get('tenantId');
+    if (!tenantId) throw new BadRequestException('Tenant context missing');
     await this.ensureStorage();
     await fs.writeFile(join(this.documentsDir, artifact.filename), artifact.buffer);
 
     const record = await this.prisma.generatedDocument.create({
       data: {
+        tenantId,
         employeeId: id,
         templateId: template.id,
         format: input.format ?? template.format,
         filename: artifact.filename,
         storageUrl: '',
-        payload: { path: artifact.filename, merge },
+        payload: asJson({ path: artifact.filename, merge }),
         createdBy: this.cls.get('actorId') ?? 'system'
       }
     });
@@ -666,9 +673,7 @@ export class EmployeeProfileService {
     }).catch(() => null);
 
     const data: Prisma.EmployeeUpdateInput = {
-      positionId: payload.positionId ?? null,
       jobTitle: payload.jobTitle ?? null,
-      managerId: payload.manager?.id ?? null,
       departmentId: payload.department?.id ?? employee.departmentId,
       locationId: payload.location?.id ?? employee.locationId,
       status: payload.status,
@@ -677,6 +682,14 @@ export class EmployeeProfileService {
       contractEndDate: payload.contractEndDate ? new Date(payload.contractEndDate) : employee.contractEndDate,
       exempt: payload.exempt
     };
+
+    data.manager = payload.manager?.id
+      ? { connect: { id: payload.manager.id } }
+      : { disconnect: true };
+
+    data.position = payload.positionId
+      ? { connect: { id: payload.positionId } }
+      : { disconnect: true };
 
     await this.prisma.employee.update({ where: { id }, data });
 
@@ -868,6 +881,7 @@ export class EmployeeProfileService {
         }
       },
       create: {
+        tenantId,
         employeeId,
         type,
         line1: address.line1,
@@ -892,6 +906,8 @@ export class EmployeeProfileService {
     employeeId: string,
     contacts: Array<{ id?: string; name: string; relationship: string; phone: string; email?: string | null }>
   ) {
+    const tenantId = this.cls.get('tenantId');
+    if (!tenantId) throw new BadRequestException('Tenant context missing');
     const existing = await this.prisma.employeeEmergencyContact.findMany({ where: { employeeId } });
     const keep = new Set<string>();
     for (const contact of contacts) {
@@ -909,6 +925,7 @@ export class EmployeeProfileService {
       } else {
         const created = await this.prisma.employeeEmergencyContact.create({
           data: {
+            tenantId,
             employeeId,
             name: contact.name,
             relationship: contact.relationship,
@@ -927,12 +944,15 @@ export class EmployeeProfileService {
   }
 
   private async recordEvent(employeeId: string, type: EmploymentEventType, payload: Record<string, unknown>) {
+    const tenantId = this.cls.get('tenantId');
+    if (!tenantId) throw new BadRequestException('Tenant context missing');
     await this.prisma.employmentEvent.create({
       data: {
+        tenantId,
         employeeId,
         type,
         effectiveDate: new Date(),
-        payload,
+        payload: asJson(payload),
         actorId: this.cls.get('actorId') ?? 'system',
         source: 'UI',
         createdBy: this.cls.get('actorId') ?? 'system'
