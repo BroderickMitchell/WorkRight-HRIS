@@ -9,7 +9,7 @@ ith the Azure Resource Manager API.
 `infra/azure/main.bicep` deploys the following:
 
 - Virtual network with dedicated application and data subnets (no subnet tags to satisfy ARM requirements)
-- Azure SQL server + database
+- Azure Database for PostgreSQL flexible server + database
 - Azure Storage account with a private container for attachments
 - Azure Service Bus namespace and queue
 - Azure Cache for Redis instance
