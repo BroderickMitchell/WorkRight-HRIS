@@ -20,7 +20,7 @@ export class PrismaService
 
   async onModuleInit() {
     // Enforce tenant context for every query.
-    const tenantMiddleware: Prisma.Middleware = async (params, next) => {
+    super.$use(async (params: Prisma.MiddlewareParams, next: Prisma.MiddlewareNext) => {
       const tenantId = this.cls.get('tenantId');
       if (params.model === 'Tenant') {
         return next(params);
