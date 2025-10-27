@@ -674,7 +674,6 @@ export class EmployeeProfileService {
 
     const data: Prisma.EmployeeUpdateInput = {
       jobTitle: payload.jobTitle ?? null,
-      managerId: payload.manager?.id ?? null,
       departmentId: payload.department?.id ?? employee.departmentId,
       locationId: payload.location?.id ?? employee.locationId,
       status: payload.status,
