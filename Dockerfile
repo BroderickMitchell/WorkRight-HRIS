@@ -6,6 +6,8 @@ WORKDIR /app
 
 ENV PNPM_HOME="/usr/local/share/pnpm"
 ENV PATH="${PNPM_HOME}:$PATH"
+ENV NODE_ENV=development
+ENV NPM_CONFIG_PRODUCTION=false
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
@@ -27,9 +29,9 @@ COPY packages/ui/package.json packages/ui/
 
 RUN set -eux; \
   if [ -f pnpm-lock.yaml ]; then \
-    pnpm install --frozen-lockfile; \
+    pnpm install --frozen-lockfile --prod=false; \
   else \
-    pnpm install --no-frozen-lockfile; \
+    pnpm install --no-frozen-lockfile --prod=false; \
   fi
 
 COPY . .
