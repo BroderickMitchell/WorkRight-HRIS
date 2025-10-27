@@ -674,7 +674,6 @@ export class EmployeeProfileService {
 
     const data: Prisma.EmployeeUpdateInput = {
       jobTitle: payload.jobTitle ?? null,
-      departmentId: payload.department?.id ?? employee.departmentId,
       locationId: payload.location?.id ?? employee.locationId,
       status: payload.status,
       serviceDate: payload.serviceDate ? new Date(payload.serviceDate) : employee.serviceDate,
@@ -682,6 +681,10 @@ export class EmployeeProfileService {
       contractEndDate: payload.contractEndDate ? new Date(payload.contractEndDate) : employee.contractEndDate,
       exempt: payload.exempt
     };
+
+    data.department = payload.department?.id
+      ? { connect: { id: payload.department.id } }
+      : { disconnect: true };
 
     data.position = payload.positionId
       ? { connect: { id: payload.positionId } }
