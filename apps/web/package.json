@@ -14,17 +14,21 @@
     "@workright/config": "workspace:*",
     "@workright/ui": "workspace:*",
     "@tanstack/react-query": "^5.28.3",
+    "@heroicons/react": "^2.1.5",
     "@headlessui/react": "^1.7.18",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "date-fns": "^3.6.0",
     "lucide-react": "^0.395.0",
+    "zustand": "^4.5.2",
+    "@hookform/resolvers": "^3.3.4",
     "next": "^14.2.3",
     "next-themes": "^0.2.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.51.2",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "@workright/profile-schema": "workspace:*"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.4.2",

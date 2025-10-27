@@ -117,6 +117,216 @@ paths:
           schema: { type: string, format: date }
       responses:
         '200': { description: Manifests }
+  /employees/{id}:
+    get:
+      summary: Get full employee profile
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Employee profile aggregate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeProfileResponse'
+    patch:
+      summary: Update a specific profile section
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEmployeeProfileRequest'
+      responses:
+        '200':
+          description: Updated employee profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeProfileResponse'
+  /employees/{id}/cost-splits:
+    get:
+      summary: List cost splits for an employee
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Cost allocations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CostSplit'
+    post:
+      summary: Upsert cost splits for an employee
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertCostSplitRequest'
+      responses:
+        '200':
+          description: Updated cost allocations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CostSplit'
+  /employees/cost-splits/{splitId}:
+    patch:
+      summary: Update an individual cost split
+      parameters:
+        - in: path
+          name: splitId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CostSplitInput'
+      responses:
+        '200':
+          description: Updated cost splits
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CostSplit'
+    delete:
+      summary: Delete a cost split row
+      parameters:
+        - in: path
+          name: splitId
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Cost split deleted }
+  /employees/{id}/history:
+    get:
+      summary: List employment history events
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: type
+          schema: { type: string }
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Timeline events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmploymentEvent'
+  /employees/{id}/history/export:
+    get:
+      summary: Export employment history as CSV data URI
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+        - in: query
+          name: type
+          schema: { type: string }
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Download payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoryCsvResponse'
+  /employees/{id}/documents:
+    get:
+      summary: List generated documents for an employee
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GeneratedDocument'
+  /employees/{id}/documents/generate:
+    post:
+      summary: Generate a document for an employee
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateDocumentRequest'
+      responses:
+        '200':
+          description: Generated artifact metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneratedDocument'
+  /employees/documents/{docId}/download:
+    get:
+      summary: Download a generated document
+      parameters:
+        - in: path
+          name: docId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Document stream
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            application/vnd.openxmlformats-officedocument.wordprocessingml.document:
+              schema: { type: string, format: binary }
   /accom/occupancy:
     get:
       summary: Get accommodation occupancy
@@ -245,3 +455,306 @@ components:
       properties:
         employeeId: { type: string }
         baseRateCents: { type: integer }
+    EmployeeProfileResponse:
+      type: object
+      properties:
+        employee:
+          $ref: '#/components/schemas/EmployeeProfileHeader'
+        personal:
+          $ref: '#/components/schemas/EmployeePersonalSection'
+        contact:
+          $ref: '#/components/schemas/EmployeeContactSection'
+        job:
+          $ref: '#/components/schemas/EmployeeJobSection'
+        compensation:
+          $ref: '#/components/schemas/EmployeeCompensationSection'
+        timeAndEligibility:
+          $ref: '#/components/schemas/EmployeeTimeEligibilitySection'
+        costSplits:
+          type: array
+          items: { $ref: '#/components/schemas/CostSplit' }
+        history:
+          type: array
+          items: { $ref: '#/components/schemas/EmploymentEvent' }
+        documents:
+          type: object
+          properties:
+            generated:
+              type: array
+              items: { $ref: '#/components/schemas/GeneratedDocument' }
+            templates:
+              type: array
+              items: { $ref: '#/components/schemas/DocumentTemplate' }
+        permissions:
+          type: object
+          properties:
+            canEditPersonal: { type: boolean }
+            canEditJob: { type: boolean }
+            canEditCompensation: { type: boolean }
+            canManageCostSplits: { type: boolean }
+            canGenerateDocuments: { type: boolean }
+    EmployeeProfileHeader:
+      type: object
+      properties:
+        id: { type: string }
+        employeeNumber: { type: string, nullable: true }
+        positionId: { type: string, nullable: true }
+        legalName:
+          type: object
+          properties:
+            full: { type: string }
+            preferred: { type: string, nullable: true }
+        jobTitle: { type: string }
+        department: { type: string, nullable: true }
+        orgUnit: { type: string, nullable: true }
+        location: { type: string, nullable: true }
+        status: { type: string }
+        costCodeSummary: { type: string, nullable: true }
+        hireDate: { type: string, format: date-time }
+        manager: { type: string, nullable: true }
+    EmployeePersonalSection:
+      type: object
+      properties:
+        legalName:
+          type: object
+          properties:
+            first: { type: string }
+            middle: { type: string, nullable: true }
+            last: { type: string }
+            suffix: { type: string, nullable: true }
+        preferredName: { type: string, nullable: true }
+        pronouns: { type: string, nullable: true }
+        dateOfBirth: { type: string, format: date-time }
+        nationalIdentifiers:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              type: { type: string }
+              country: { type: string }
+              value: { type: string }
+        citizenships:
+          type: array
+          items: { type: string }
+        maritalStatus: { type: string, nullable: true }
+        languages:
+          type: array
+          items: { type: string }
+        veteranStatus: { type: string, nullable: true }
+    EmployeeContactSection:
+      type: object
+      properties:
+        workEmail: { type: string }
+        personalEmail: { type: string, nullable: true }
+        workPhone: { type: string, nullable: true }
+        mobilePhone: { type: string, nullable: true }
+        primaryAddress:
+          $ref: '#/components/schemas/PostalAddress'
+        mailingAddress:
+          $ref: '#/components/schemas/PostalAddress'
+        emergencyContacts:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+              relationship: { type: string }
+              phone: { type: string }
+              email: { type: string, nullable: true }
+        communicationPreferences:
+          type: array
+          items: { type: string }
+    PostalAddress:
+      type: object
+      nullable: true
+      properties:
+        line1: { type: string }
+        line2: { type: string, nullable: true }
+        suburb: { type: string }
+        state: { type: string }
+        postcode: { type: string }
+        country: { type: string }
+    EmployeeJobSection:
+      type: object
+      properties:
+        positionId: { type: string, nullable: true }
+        jobTitle: { type: string }
+        manager:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            name: { type: string }
+        orgUnit:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            name: { type: string }
+        department:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            name: { type: string }
+        location:
+          type: object
+          nullable: true
+          properties:
+            id: { type: string }
+            name: { type: string }
+            timezone: { type: string }
+        grade: { type: string, nullable: true }
+        fte: { type: number }
+        exempt: { type: boolean }
+        workerType: { type: string }
+        employmentType: { type: string }
+        standardHours: { type: number, nullable: true }
+        schedule: { type: string, nullable: true }
+        costCenterSummary: { type: string, nullable: true }
+        status: { type: string }
+        hireDate: { type: string, format: date-time }
+        serviceDate: { type: string, format: date-time, nullable: true }
+        probationEndDate: { type: string, format: date-time, nullable: true }
+        contractEndDate: { type: string, format: date-time, nullable: true }
+    EmployeeCompensationSection:
+      type: object
+      properties:
+        payGroup: { type: string }
+        baseSalary:
+          type: object
+          properties:
+            amount: { type: number }
+            currency: { type: string }
+            frequency: { type: string }
+        payGrade: { type: string, nullable: true }
+        salaryRange:
+          type: object
+          nullable: true
+          properties:
+            min: { type: number }
+            midpoint: { type: number, nullable: true }
+            max: { type: number }
+        bonusTargetPercent: { type: number, nullable: true }
+        allowances:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              label: { type: string }
+              amount: { type: number }
+              currency: { type: string }
+              frequency: { type: string }
+              taxable: { type: boolean }
+        stockPlan: { type: string, nullable: true }
+        effectiveDate: { type: string, format: date-time }
+    EmployeeTimeEligibilitySection:
+      type: object
+      properties:
+        location: { type: string }
+        timezone: { type: string }
+        workSchedule: { type: string }
+        badgeId: { type: string, nullable: true }
+        overtimeEligible: { type: boolean }
+        exempt: { type: boolean }
+        benefitsEligible: { type: boolean }
+        leaveBalances:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              type: { type: string }
+              balanceHours: { type: number }
+    CostSplit:
+      type: object
+      properties:
+        id: { type: string }
+        costCodeId: { type: string }
+        costCode:
+          type: object
+          properties:
+            id: { type: string }
+            code: { type: string }
+            description: { type: string, nullable: true }
+            type: { type: string }
+        percentage: { type: number }
+        startDate: { type: string, format: date-time }
+        endDate: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        createdBy: { type: string, nullable: true }
+    CostSplitInput:
+      type: object
+      properties:
+        id: { type: string, nullable: true }
+        costCodeId: { type: string }
+        percentage: { type: number }
+        startDate: { type: string, format: date-time }
+        endDate: { type: string, format: date-time, nullable: true }
+    UpsertCostSplitRequest:
+      type: object
+      required: [splits]
+      properties:
+        splits:
+          type: array
+          items:
+            $ref: '#/components/schemas/CostSplitInput'
+    EmploymentEvent:
+      type: object
+      properties:
+        id: { type: string }
+        type: { type: string }
+        effectiveDate: { type: string, format: date-time }
+        actor: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        payload: { type: object }
+        source: { type: string }
+    DocumentTemplate:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        format: { type: string }
+        lastUpdatedAt: { type: string, format: date-time }
+    GeneratedDocument:
+      type: object
+      properties:
+        id: { type: string }
+        templateId: { type: string, nullable: true }
+        templateName: { type: string, nullable: true }
+        format: { type: string }
+        filename: { type: string }
+        storageUrl: { type: string }
+        createdAt: { type: string, format: date-time }
+        createdBy: { type: string, nullable: true }
+    UpdateEmployeeProfileRequest:
+      type: object
+      required: [section, payload]
+      properties:
+        section:
+          type: string
+          enum: [personal, contact, job, compensation, timeAndEligibility]
+        payload:
+          type: object
+          description: Section payload aligned with the provided section value.
+    GenerateDocumentRequest:
+      type: object
+      required: [templateId]
+      properties:
+        templateId: { type: string }
+        format:
+          type: string
+          enum: [PDF, DOCX]
+        mergeFields:
+          type: object
+          additionalProperties: true
+    HistoryCsvResponse:
+      type: object
+      properties:
+        url: { type: string }
+        expiresAt: { type: string, format: date-time }
