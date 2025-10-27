@@ -1,9 +1,17 @@
-import { INestApplication, Injectable, OnModuleInit } from '@nestjs/common';
+import {
+  INestApplication,
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { ClsService } from 'nestjs-cls';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   constructor(private readonly cls: ClsService) {
     super({
       log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error']
@@ -11,8 +19,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
   }
 
   async onModuleInit() {
-    await this.$connect();
-
     // Enforce tenant context for every query.
     this.$use(async (params: any, next: (params: any) => Promise<unknown>) => {
       const tenantId = this.cls.get('tenantId');
@@ -51,7 +57,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
         if ('tenantId' in params.args.where) {
           params.args.where = { ...params.args.where, tenantId };
         }
-      } else if (['create', 'createMany', 'upsert'].includes(params.action)) {
+      } else if (['create', 'createMany'].includes(params.action)) {
         params.args.data = Array.isArray(params.args.data)
           ? params.args.data.map((item: any) => ({ ...item, tenantId }))
           : { ...params.args.data, tenantId };
@@ -65,6 +71,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
       }
       return next(params);
     });
+
+    await this.$connect();
+  }
+
+  async onModuleDestroy() {
+    await this.$disconnect();
   }
 
   async enableShutdownHooks(app: INestApplication) {
