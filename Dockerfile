@@ -28,6 +28,7 @@ RUN pnpm install \
   --filter @workright/api... \
   --filter @workright/profile-schema... \
   --filter @workright/config... \
+  --frozen-lockfile \
   --include-dev-deps \
   --include-workspace-root \
   --workspace-root
@@ -37,7 +38,8 @@ COPY . .
 RUN pnpm --filter @workright/profile-schema run build \
   && pnpm --filter @workright/config run build \
   && pnpm --filter @workright/api run prisma:generate \
-  && pnpm --filter @workright/api run build
+  && pnpm --filter @workright/api run build \
+  && pnpm prune --prod --filter @workright/api...
 
 FROM node:20-bullseye-slim AS runner
 
