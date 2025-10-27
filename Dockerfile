@@ -32,14 +32,12 @@ COPY packages/profile-schema/package.json packages/profile-schema/
 COPY packages/ui/package.json packages/ui/
 
 # Install all workspace dependencies with pnpm
-RUN pnpm install --filter @workright/web... \
-                 --filter @workright/api... \
-                 --filter @workright/config... \
-                 --filter @workright/profile-schema... \
-                 --filter @workright/ui... \
+RUN pnpm install --recursive \
                  --workspace-root \
-                 --prod=false \
-                 --no-frozen-lockfile
+                 --no-frozen-lockfile --prod=false
+
+# Debug tsup installation
+RUN pnpm list tsup
 
 # Copy the rest of the application code
 COPY . .
