@@ -26,7 +26,7 @@ COPY packages/profile-schema/package.json packages/profile-schema/
 COPY packages/ui/package.json packages/ui/
 
 RUN set -eux; \
-  INSTALL_FLAGS="--filter @workright/api... --filter @workright/profile-schema... --filter @workright/config... --include-dev-deps --include-workspace-root --workspace-root"; \
+  INSTALL_FLAGS="--filter @workright/api... --filter @workright/profile-schema... --filter @workright/config... --include-workspace-root --workspace-root"; \
   if [ -f pnpm-lock.yaml ]; then \
     pnpm install $INSTALL_FLAGS --frozen-lockfile; \
   else \
