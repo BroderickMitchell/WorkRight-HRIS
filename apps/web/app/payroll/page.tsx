@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, Button, Badge } from '@workright/ui';
 import { apiFetch, apiPost } from '../../lib/api';
 
@@ -14,21 +14,23 @@ export default function PayrollPage() {
   const [end, setEnd] = useState('2024-11-30');
   const [locationId, setLocationId] = useState('');
 
-  async function load() {
+  const load = useCallback(async () => {
     try {
       const data = await apiFetch<PayrollRun[]>(`/v1/payroll/runs`);
       setRuns(data);
     } catch {
       setRuns([]);
     }
-  }
+  }, []);
 
   async function createRun() {
     await apiPost(`/v1/payroll/runs`, { periodStart: start, periodEnd: end, locationId: locationId || undefined }, { roles: 'PAYROLL,HR_ADMIN' });
     await load();
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return (
     <div className="space-y-6" aria-label="Payroll">
