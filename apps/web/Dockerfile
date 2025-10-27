@@ -10,7 +10,7 @@ FROM deps AS builder
 COPY . .
 RUN pnpm build
 
-FROM node:20-alpine AS runner
+FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app/.next ./.next
