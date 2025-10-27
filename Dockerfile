@@ -28,6 +28,7 @@ RUN pnpm install \
   --filter @workright/api... \
   --filter @workright/profile-schema... \
   --filter @workright/config... \
+  --include-workspace-root-deps \
   --workspace-root
 
 COPY . .
