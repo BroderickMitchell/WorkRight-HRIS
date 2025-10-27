@@ -23,21 +23,36 @@ param appSubnetPrefix string = '10.10.0.0/24'
 @description('CIDR for the data/private endpoint subnet')
 param dataSubnetPrefix string = '10.10.1.0/24'
 
-@description('Azure SQL administrator login name')
-param sqlAdministratorLogin string
+@description('PostgreSQL administrator login name')
+param postgresAdministratorLogin string
 
-@description('Azure SQL administrator password')
+@description('PostgreSQL administrator password')
 @secure()
-param sqlAdministratorPassword string
+param postgresAdministratorPassword string
 
-@description('SKU name for the Azure SQL database (for example GP_Gen5_2)')
-param sqlSkuName string = 'GP_Gen5_2'
+@description('SKU name for Azure Database for PostgreSQL Flexible Server (for example Standard_D2s_v3)')
+param postgresSkuName string = 'Standard_D2s_v3'
 
-@description('Capacity for the SQL database in DTUs or vCores depending on tier')
-param sqlSkuCapacity int = 2
+@description('Compute capacity (vCores) for the PostgreSQL flexible server')
+param postgresSkuCapacity int = 2
 
-@description('Name of the Azure SQL database tier (for example GeneralPurpose)')
-param sqlSkuTier string = 'GeneralPurpose'
+@description('SKU tier for the PostgreSQL flexible server (Burstable, GeneralPurpose, MemoryOptimized)')
+param postgresSkuTier string = 'GeneralPurpose'
+
+@description('PostgreSQL version to deploy')
+param postgresVersion string = '16'
+
+@description('Storage size in GiB for the PostgreSQL flexible server')
+param postgresStorageSizeGb int = 64
+
+@description('Backup retention in days for PostgreSQL')
+param postgresBackupRetentionDays int = 7
+
+@description('Name of the default PostgreSQL database to create')
+param postgresDatabaseName string = 'workright'
+
+@description('IPv4 range (start-end) that should be allowed to reach PostgreSQL')
+param postgresAllowedIpRange string = '0.0.0.0-255.255.255.255'
 
 @description('Name of the Azure Storage account (must be globally unique, 3-24 lowercase characters)')
 param storageAccountName string
@@ -100,8 +115,8 @@ param containerRegistryPassword string = ''
 param appSettings object = {}
 
 var webAppName = '${namePrefix}-api'
-var sqlServerName = '${namePrefix}-sql'
-var sqlDatabaseName = '${namePrefix}-db'
+var postgresServerName = '${namePrefix}-pg'
+var postgresFirewallRange = split(postgresAllowedIpRange, '-')
 var serviceBusCapacity = serviceBusSkuTier == 'Basic' ? 0 : max(1, serviceBusSkuCapacity)
 resource vnet 'Microsoft.Network/virtualNetworks@2023-11-01' = {
   name: '${namePrefix}-vnet'
@@ -140,28 +155,45 @@ resource dataSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-11-01' = {
   }
 }
 
-resource sqlServer 'Microsoft.Sql/servers@2022-05-01-preview' = {
-  name: sqlServerName
+resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
+  name: postgresServerName
   location: location
   tags: tags
+  sku: {
+    name: postgresSkuName
+    tier: postgresSkuTier
+    capacity: postgresSkuCapacity
+  }
   properties: {
-    administratorLogin: sqlAdministratorLogin
-    administratorLoginPassword: sqlAdministratorPassword
-    minimalTlsVersion: '1.2'
-    publicNetworkAccess: 'Enabled'
+    administratorLogin: postgresAdministratorLogin
+    administratorLoginPassword: postgresAdministratorPassword
+    version: postgresVersion
+    storage: {
+      storageSizeGB: postgresStorageSizeGb
+    }
+    backup: {
+      backupRetentionDays: postgresBackupRetentionDays
+      geoRedundantBackup: 'Disabled'
+    }
+    highAvailability: {
+      mode: 'Disabled'
+    }
+    network: {
+      publicNetworkAccess: 'Enabled'
+    }
   }
 }
 
-resource sqlDatabase 'Microsoft.Sql/servers/databases@2022-05-01-preview' = {
-  name: '${sqlServer.name}/${sqlDatabaseName}'
-  location: location
-  sku: {
-    name: sqlSkuName
-    tier: sqlSkuTier
-    capacity: sqlSkuCapacity
-  }
+resource postgresDatabase 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2022-12-01' = {
+  name: '${postgresServer.name}/${postgresDatabaseName}'
+  properties: {}
+}
+
+resource postgresFirewall 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
+  name: '${postgresServer.name}/allowListedRange'
   properties: {
-    zoneRedundant: false
+    startIpAddress: postgresFirewallRange[0]
+    endIpAddress: postgresFirewallRange[1]
   }
 }
 
@@ -372,8 +404,8 @@ resource webAppVnetIntegration 'Microsoft.Web/sites/virtualNetworkConnections@20
 }
 
 output webAppDefaultHostName string = webApp.properties.defaultHostName
-output sqlServerFullyQualifiedDomainName string = sqlServer.properties.fullyQualifiedDomainName
-output sqlDatabaseName string = sqlDatabaseName
+output postgresServerFullyQualifiedDomainName string = postgresServer.properties.fullyQualifiedDomainName
+output postgresDatabaseName string = postgresDatabaseName
 output storageAccountResourceId string = storage.id
 output redisHostname string = redisCache.properties.hostName
 output serviceBusNamespaceResourceId string = serviceBusNamespace.id

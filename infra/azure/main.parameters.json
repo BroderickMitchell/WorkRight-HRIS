@@ -8,11 +8,32 @@
     "location": {
       "value": "eastus"
     },
-    "sqlAdministratorLogin": {
-      "value": "sqladmin"
+    "postgresAdministratorLogin": {
+      "value": "pgadmin"
     },
-    "sqlAdministratorPassword": {
+    "postgresAdministratorPassword": {
       "value": "ChangeM3Now!"
+    },
+    "postgresSkuName": {
+      "value": "Standard_D2s_v3"
+    },
+    "postgresSkuTier": {
+      "value": "GeneralPurpose"
+    },
+    "postgresSkuCapacity": {
+      "value": 2
+    },
+    "postgresStorageSizeGb": {
+      "value": 64
+    },
+    "postgresBackupRetentionDays": {
+      "value": 7
+    },
+    "postgresDatabaseName": {
+      "value": "workright"
+    },
+    "postgresAllowedIpRange": {
+      "value": "0.0.0.0-255.255.255.255"
     },
     "storageAccountName": {
       "value": "wrhrisstorage001"
@@ -46,7 +67,7 @@
     },
     "appSettings": {
       "value": {
-        "DATABASE_URL": "Server=tcp:wrhris.database.windows.net,1433;Database=WorkRight;User ID=sqladmin;Password=ChangeM3Now!;Encrypt=true;TrustServerCertificate=false;Connection Timeout=30;",
+        "DATABASE_URL": "postgresql://pgadmin:ChangeM3Now!@wrhris-pg.postgres.database.azure.com:5432/workright?schema=public&sslmode=require",
         "REDIS_URL": "rediss://wrhris-redis.redis.cache.windows.net:6380",
         "AZURE_STORAGE_ACCOUNT": "wrhrisstorage001",
         "AZURE_STORAGE_CONTAINER": "attachments",

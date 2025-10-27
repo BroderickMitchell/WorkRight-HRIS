@@ -27,9 +27,9 @@ COPY packages/ui/package.json packages/ui/
 
 RUN set -eux; \
   if [ -f pnpm-lock.yaml ]; then \
-    pnpm install --frozen-lockfile; \
+    pnpm install --frozen-lockfile --prod=false; \
   else \
-    pnpm install --no-frozen-lockfile; \
+    pnpm install --no-frozen-lockfile --prod=false; \
   fi
 
 COPY . .
