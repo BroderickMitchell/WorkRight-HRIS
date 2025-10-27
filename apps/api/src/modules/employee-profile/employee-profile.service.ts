@@ -674,9 +674,6 @@ export class EmployeeProfileService {
 
     const data: Prisma.EmployeeUpdateInput = {
       jobTitle: payload.jobTitle ?? null,
-      location: payload.location?.id
-        ? { connect: { id: payload.location.id } }
-        : { disconnect: true },
       status: payload.status,
       serviceDate: payload.serviceDate ? new Date(payload.serviceDate) : employee.serviceDate,
       probationEndDate: payload.probationEndDate ? new Date(payload.probationEndDate) : employee.probationEndDate,
@@ -684,13 +681,32 @@ export class EmployeeProfileService {
       exempt: payload.exempt
     };
 
-    data.department = payload.department?.id
-      ? { connect: { id: payload.department.id } }
-      : { disconnect: true };
+    const locationUpdate = payload.location?.id
+      ? { connect: { id: payload.location.id } }
+      : payload.location === null
+        ? { disconnect: true }
+        : undefined;
+    if (locationUpdate !== undefined) {
+      data.location = locationUpdate;
+    }
 
-    data.position = payload.positionId
+    const departmentUpdate = payload.department?.id
+      ? { connect: { id: payload.department.id } }
+      : payload.department === null
+        ? { disconnect: true }
+        : undefined;
+    if (departmentUpdate !== undefined) {
+      data.department = departmentUpdate;
+    }
+
+    const positionUpdate = payload.positionId
       ? { connect: { id: payload.positionId } }
-      : { disconnect: true };
+      : payload.positionId === null
+        ? { disconnect: true }
+        : undefined;
+    if (positionUpdate !== undefined) {
+      data.position = positionUpdate;
+    }
 
     await this.prisma.employee.update({ where: { id }, data });
 
