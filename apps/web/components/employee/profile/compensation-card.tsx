@@ -7,6 +7,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { EmployeeProfilePayload } from '@workright/profile-schema';
 import { ProfileCard } from './profile-card';
 
+const allowanceFrequencies = ['ANNUAL', 'MONTHLY', 'FORTNIGHTLY', 'WEEKLY', 'HOURLY'] as const;
+type AllowanceFrequency = (typeof allowanceFrequencies)[number];
+
 const allowanceSchema = z.object({
   id: z.string().optional(),
   label: z.string().min(1, 'Allowance name is required'),
@@ -14,9 +17,15 @@ const allowanceSchema = z.object({
     .number({ invalid_type_error: 'Amount must be a number' })
     .min(0, 'Amount must be positive'),
   currency: z.string().min(1, 'Currency is required'),
-  frequency: z.string().min(1, 'Frequency is required'),
+  frequency: z.enum(allowanceFrequencies),
   taxable: z.boolean().default(true)
 });
+
+function resolveAllowanceFrequency(frequency: string): AllowanceFrequency {
+  return allowanceFrequencies.includes(frequency as AllowanceFrequency)
+    ? (frequency as AllowanceFrequency)
+    : 'ANNUAL';
+}
 
 const compensationFormSchema = z.object({
   amount: z
@@ -126,7 +135,7 @@ export function CompensationCard({ data, canEdit, onSave, isSaving }: Compensati
                         label: '',
                         amount: 0,
                         currency: data.baseSalary.currency,
-                        frequency: data.baseSalary.frequency,
+                        frequency: resolveAllowanceFrequency(data.baseSalary.frequency),
                         taxable: true
                       })
                     }
