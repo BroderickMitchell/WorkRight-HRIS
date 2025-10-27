@@ -30,9 +30,27 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
           params.action
         )
       ) {
-        params.args.where = { ...params.args.where, tenantId };
-      } else if (['update', 'delete', 'findUnique'].includes(params.action)) {
-        params.args.where = { ...params.args.where, tenantId };
+        params.args.where = { ...(params.args.where ?? {}), tenantId };
+      } else if (['findUnique', 'findUniqueOrThrow', 'update', 'delete'].includes(params.action)) {
+        const ensureTenantInWhere = (value: unknown): boolean => {
+          if (!value || typeof value !== 'object') {
+            return false;
+          }
+          if ('tenantId' in (value as Record<string, unknown>)) {
+            return true;
+          }
+          return Object.values(value).some((nested) => ensureTenantInWhere(nested));
+        };
+
+        if (!params.args.where || !ensureTenantInWhere(params.args.where)) {
+          throw new Error(
+            `Tenant scoped ${params.model}.${params.action} requires a tenant identifier in the unique selector.`
+          );
+        }
+
+        if ('tenantId' in params.args.where) {
+          params.args.where = { ...params.args.where, tenantId };
+        }
       } else if (['create', 'createMany', 'upsert'].includes(params.action)) {
         params.args.data = Array.isArray(params.args.data)
           ? params.args.data.map((item) => ({ ...item, tenantId }))
