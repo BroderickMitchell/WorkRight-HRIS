@@ -17,21 +17,21 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/* \
   && corepack enable
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
+COPY pnpm-lock.yaml* ./
 COPY apps/api/package.json apps/api/
 COPY apps/api/tsconfig.json apps/api/
 COPY packages/config/package.json packages/config/
 COPY packages/profile-schema/package.json packages/profile-schema/
 COPY packages/ui/package.json packages/ui/
 
-RUN pnpm install \
-  --filter @workright/api... \
-  --filter @workright/profile-schema... \
-  --filter @workright/config... \
-  --frozen-lockfile \
-  --include-dev-deps \
-  --include-workspace-root \
-  --workspace-root
+RUN set -eux; \
+  INSTALL_FLAGS="--filter @workright/api... --filter @workright/profile-schema... --filter @workright/config... --include-dev-deps --include-workspace-root --workspace-root"; \
+  if [ -f pnpm-lock.yaml ]; then \
+    pnpm install $INSTALL_FLAGS --frozen-lockfile; \
+  else \
+    pnpm install $INSTALL_FLAGS --no-frozen-lockfile; \
+  fi
 
 COPY . .
 

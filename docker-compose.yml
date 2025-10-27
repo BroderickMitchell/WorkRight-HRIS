@@ -38,7 +38,8 @@ services:
 
   api:
     build:
-      context: ./apps/api
+      context: .
+      dockerfile: Dockerfile
     env_file: ./apps/api/.env
     depends_on:
       - db
