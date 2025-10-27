@@ -1,6 +1,6 @@
 "use client";
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { actOnStep, listInstances, type WorkflowInstance } from '../../../../lib/workflow-engine';
 import { apiFetch } from '../../../../lib/api';
 import { Card, CardHeader, CardTitle, CardDescription, Button, Badge } from '@workright/ui';
@@ -20,6 +20,7 @@ export default function TemplateWorkflowDetail({ params }: Props) {
   // Server audit
   const [serverEvents, setServerEvents] = useState<any[]>([]);
   const [serverCursor, setServerCursor] = useState<string | undefined>(undefined);
+  const serverCursorRef = useRef<string | undefined>(undefined);
   const [eventsLoading, setEventsLoading] = useState<boolean>(false);
   const [filterAction, setFilterAction] = useState<string>('');
   const [filterFrom, setFilterFrom] = useState<string>('');
@@ -48,6 +49,10 @@ export default function TemplateWorkflowDetail({ params }: Props) {
     })();
   }, []);
 
+  useEffect(() => {
+    serverCursorRef.current = serverCursor;
+  }, [serverCursor]);
+
   const loadEvents = useCallback(async (reset = false) => {
     if (!instance?.id) return;
     try {
@@ -57,7 +62,8 @@ export default function TemplateWorkflowDetail({ params }: Props) {
         `entityId=${encodeURIComponent(instance.id)}`,
         'limit=20'
       ];
-      if (!reset && serverCursor) qs.push(`cursor=${encodeURIComponent(serverCursor)}`);
+      const cursor = reset ? undefined : serverCursorRef.current;
+      if (cursor) qs.push(`cursor=${encodeURIComponent(cursor)}`);
       if (filterAction) qs.push(`action=${encodeURIComponent(filterAction)}`);
       if (filterFrom) {
         try { const iso = new Date(filterFrom).toISOString(); qs.push(`from=${encodeURIComponent(iso)}`); } catch {}
@@ -68,15 +74,18 @@ export default function TemplateWorkflowDetail({ params }: Props) {
       const res = await apiFetch<{ items: any[]; nextCursor?: string }>(`/v1/audit/events?${qs.join('&')}`);
       setServerEvents((prev) => (reset ? res.items : [...prev, ...res.items]));
       setServerCursor(res.nextCursor);
+      serverCursorRef.current = res.nextCursor;
     } catch {
       if (reset) setServerEvents([]);
       showToast('Failed to load audit events');
     } finally {
       setEventsLoading(false);
     }
-  }, [instance?.id, serverCursor, filterAction, filterFrom, filterTo]);
+  }, [instance?.id, filterAction, filterFrom, filterTo]);
 
-  useEffect(() => { loadEvents(true); }, [instance?.id, filterAction, filterFrom, filterTo]);
+  useEffect(() => {
+    loadEvents(true);
+  }, [loadEvents]);
 
   async function act(stepId: string, action: 'APPROVE' | 'COMPLETE' | 'DECLINE') {
     if (!instance) return;

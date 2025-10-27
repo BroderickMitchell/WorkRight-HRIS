@@ -1,12 +1,11 @@
 'use client';
 
-import { Fragment, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Controller, useFieldArray, useForm, UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EmployeeProfilePayload } from '@workright/profile-schema';
 import { ProfileCard } from './profile-card';
-import clsx from 'clsx';
 
 const addressSchema = z.object({
   line1: z.string().optional().nullable(),
@@ -64,11 +63,6 @@ export function ContactInfoCard({ data, canEdit, onSave, isSaving }: ContactInfo
   return (
     <ProfileCard title="Contact & Address" section="contact" canEdit={canEdit} description="Contact details, addresses and emergency contacts">
       {({ isEditing, markDirty, stopEditing }) => {
-        useEffect(() => {
-          const subscription = form.watch(() => markDirty(form.formState.isDirty));
-          return () => subscription.unsubscribe();
-        }, [form, markDirty]);
-
         const handleCancel = () => {
           form.reset(mapContactToForm(data));
           markDirty(false);
@@ -83,6 +77,7 @@ export function ContactInfoCard({ data, canEdit, onSave, isSaving }: ContactInfo
 
         return (
           <form onSubmit={handleSubmit} className="space-y-4">
+            <FormDirtyTracker form={form} onDirtyChange={markDirty} />
             <div className="grid gap-4 md:grid-cols-2">
               <InputField label="Work email" value={data.workEmail} disabled helper="Managed in identity" />
               <ControlledInput label="Personal email" name="personalEmail" form={form} disabled={!isEditing} type="email" />
@@ -240,6 +235,21 @@ function mapFormToContact(values: ContactFormValues, previous: EmployeeProfilePa
         email: contact.email ?? null
       }))
   };
+}
+
+function FormDirtyTracker({
+  form,
+  onDirtyChange
+}: {
+  form: UseFormReturn<ContactFormValues>;
+  onDirtyChange: (dirty: boolean) => void;
+}) {
+  useEffect(() => {
+    const subscription = form.watch(() => onDirtyChange(form.formState.isDirty));
+    return () => subscription.unsubscribe();
+  }, [form, onDirtyChange]);
+
+  return null;
 }
 
 function safeRandomId() {

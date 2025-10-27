@@ -1,6 +1,6 @@
 "use client";
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, Button, Badge } from '@workright/ui';
 import { apiFetch } from '../../../lib/api';
 
@@ -19,13 +19,15 @@ export default function PositionsPage() {
   const [includePending, setIncludePending] = useState(false);
   const [rows, setRows] = useState<Position[]>([]);
 
-  async function load() {
+  const load = useCallback(async () => {
     const status = includePending ? undefined : 'active';
     const path = status ? `/v1/org/positions?status=${status}` : `/v1/org/positions`;
     const data = await apiFetch<Position[]>(path);
     setRows(data);
-  }
-  useEffect(() => { load(); }, [includePending]);
+  }, [includePending]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return (
     <div className="space-y-6" aria-label="Positions">
