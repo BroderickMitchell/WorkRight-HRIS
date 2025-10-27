@@ -37,7 +37,10 @@ RUN pnpm install --recursive \
                  --no-frozen-lockfile --prod=false
 
 # Debug tsup installation
-RUN pnpm list tsup
+RUN pnpm list tsup --depth=0
+
+# Inspect profile-schema node_modules directory
+RUN ls -la packages/profile-schema/node_modules
 
 # Copy the rest of the application code
 COPY . .
