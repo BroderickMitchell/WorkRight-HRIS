@@ -46,7 +46,7 @@ services:
       - redis
     ports:
       - "3001:3001"
-    command: pnpm start:dev
+    command: node apps/api/dist/main.js
 
   web:
     build:
