@@ -54,14 +54,7 @@ COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY . .
 
-RUN pnpm --filter @workright/profile-schema run build \
-  && pnpm --filter @workright/config run build \
-  && pnpm --filter @workright/ui run build \
-  && pnpm --filter @workright/web run build \
-  && pnpm prune --prod --filter @workright/web...
-
-FROM node:20-bullseye-slim AS runner
-
+FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
