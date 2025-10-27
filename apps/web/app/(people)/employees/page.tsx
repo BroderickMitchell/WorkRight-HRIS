@@ -41,7 +41,7 @@ function Node({ node }: { node: TreeNode }) {
         </Link>
         <p className="text-sm text-slate-600">
           {node.position?.title ?? 'Unknown role'}
-          {node.department?.name ? ` • ${node.department?.name}` : ''}
+          {node.department?.name ? ` â€¢ ${node.department?.name}` : ''}
         </p>
       </Card>
       {node.children.length > 0 && (
