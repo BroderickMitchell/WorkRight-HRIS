@@ -34,8 +34,10 @@ COPY packages/ui/package.json packages/ui/
 # Install all workspace dependencies with pnpm
 RUN pnpm install --recursive \
                  --workspace-root \
-                 --prod=false \
-                 --no-frozen-lockfile
+                 --no-frozen-lockfile --prod=false
+
+# Debug tsup installation
+RUN pnpm list tsup
 
 # Copy the rest of the application code
 COPY . .
