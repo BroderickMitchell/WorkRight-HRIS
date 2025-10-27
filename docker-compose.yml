@@ -1,4 +1,3 @@
-version: '3.9'
 services:
   db:
     image: postgres:15
@@ -40,7 +39,7 @@ services:
   api:
     build:
       context: ./apps/api
-    env_file: .env.example
+    env_file: ./apps/api/.env
     depends_on:
       - db
       - redis
@@ -50,8 +49,9 @@ services:
 
   web:
     build:
-      context: ./apps/web
-    env_file: .env.example
+      context: .
+      dockerfile: apps/web/Dockerfile
+    env_file: ./apps/web/.env
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3001
     depends_on:
