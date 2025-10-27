@@ -1,5 +1,5 @@
 import { IsArray, IsBoolean, IsEmail, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
-import { RoleKey } from '@prisma/client';
+import { RoleKey } from '../../types/roles.js';
 
 export class CreateTenantDto {
   @IsString()

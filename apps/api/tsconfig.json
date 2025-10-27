@@ -4,10 +4,12 @@
     "outDir": "dist",
     "rootDir": "src",
     "module": "CommonJS",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "types": ["node", "vitest"],
     "incremental": true,
     "composite": true
   },
-  "include": ["src", "test", "prisma"],
+  "include": ["src"],
   "exclude": ["node_modules", "dist"]
 }

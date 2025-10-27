@@ -46,6 +46,8 @@ WorkRight HRIS is a modern, multi-tenant HR platform tailored for Australian org
      ```
 
      Compose provisions PostgreSQL with row-level security, Redis for BullMQ, Mailhog, the NestJS API, and the Next.js frontend.
+     It reads environment variables from `apps/api/.env` and `apps/web/.env`, so make sure you have copied the respective
+     `.env.example` files beforehand.
    - **Local processes (advanced).** Run `pnpm --filter api run start:dev` and `pnpm --filter web dev` in separate terminals after starting Postgres/Redis manually.
 5. **Apply database migrations and seed demo tenants.** With the API dependencies running:
 
@@ -135,6 +137,34 @@ Copy `.env.example` into each app and adjust as required.
 - **Containerisation** via Dockerfiles for web and API services.
 - **Infrastructure as code** with Terraform provisioning AWS VPC, RDS (PostgreSQL 15 with RLS), ECS/Fargate services, Redis (Elasticache), S3, CloudFront, and ACM certificates.
 - **CI/CD** pipelines on GitHub Actions for linting, testing, Prisma migrations, and deployment with manual approvals for production.
+
+### Building and pushing the API Docker image
+
+Use the production `Dockerfile` in the repository root to create the API image that Azure App Service (or any other container runtime) consumes. The lockfile is now included in the build context, so the image is pinned to the workspace dependency graph.
+
+The high-level workflow is:
+
+1. Authenticate to your registry (Azure Container Registry in this example):
+
+   ```bash
+   az acr login --name <acr-name>
+   ```
+
+2. Build the API image from the monorepo root, tagging it for the `workright/api` repository within your registry:
+
+   ```bash
+   docker build -t <acr-name>.azurecr.io/workright/api:<tag> .
+   ```
+
+   The build runs `pnpm install --frozen-lockfile`, compiles the shared packages, generates Prisma client code, and prunes development-only dependencies before the runtime image is assembled.
+
+3. Push the image so the deployment script (or Azure App Service) can pull it:
+
+   ```bash
+   docker push <acr-name>.azurecr.io/workright/api:<tag>
+   ```
+
+For a more detailed walkthrough—including troubleshooting tips for air-gapped environments—see [`docs/docker/api-image.md`](docs/docker/api-image.md).
 
 ## Testing strategy
 
