@@ -4,7 +4,7 @@ import {
   OnModuleDestroy,
   OnModuleInit
 } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { ClsService } from 'nestjs-cls';
 
 @Injectable()
@@ -20,7 +20,7 @@ export class PrismaService
 
   async onModuleInit() {
     // Enforce tenant context for every query.
-    this.$use(async (params: any, next: (params: any) => Promise<unknown>) => {
+    super.$use(async (params: Prisma.MiddlewareParams, next: Prisma.MiddlewareNext) => {
       const tenantId = this.cls.get('tenantId');
       if (params.model === 'Tenant') {
         return next(params);
