@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { LeaveService } from './leave.service.js';
 import { CreateLeaveRequestDto } from './leave.dto.js';
@@ -11,6 +11,11 @@ export class LeaveController {
   @Post('requests')
   requestLeave(@Body() dto: CreateLeaveRequestDto) {
     return this.leave.requestLeave(dto);
+  }
+
+  @Get('requests')
+  listRequests(@Query('employeeId') employeeId?: string) {
+    return this.leave.listRequests(employeeId);
   }
 
   @Get('requests/:id')

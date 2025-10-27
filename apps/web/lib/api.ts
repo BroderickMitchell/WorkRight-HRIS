@@ -22,7 +22,7 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
     headers: {
       'Content-Type': 'application/json',
       'X-Tenant-Id': tenant,
-      'X-Roles': options.roles ?? (typeof window !== 'undefined' ? (localStorage.getItem('demoRoles') ?? 'HR_ADMIN,MANAGER,PAYROLL') : 'HR_ADMIN,MANAGER,PAYROLL'),
+      'X-Roles': options.roles ?? (typeof window !== 'undefined' ? (localStorage.getItem('demoRoles') ?? 'HRBP,MANAGER') : 'HRBP,MANAGER'),
       ...(options.token ? { Authorization: `Bearer ${options.token}` } : {})
     },
     cache: 'no-store'
@@ -41,7 +41,7 @@ export async function apiPost<T = any>(path: string, body: any, options: ApiOpti
     headers: {
       'Content-Type': 'application/json',
       'X-Tenant-Id': tenant,
-      'X-Roles': options.roles ?? (typeof window !== 'undefined' ? (localStorage.getItem('demoRoles') ?? 'HR_ADMIN,MANAGER,PAYROLL') : 'HR_ADMIN,MANAGER,PAYROLL'),
+      'X-Roles': options.roles ?? (typeof window !== 'undefined' ? (localStorage.getItem('demoRoles') ?? 'HRBP,MANAGER') : 'HRBP,MANAGER'),
       ...(options.token ? { Authorization: `Bearer ${options.token}` } : {})
     },
     body: JSON.stringify(body),
@@ -52,3 +52,41 @@ export async function apiPost<T = any>(path: string, body: any, options: ApiOpti
   }
   return res.json().catch(() => ({} as T));
 }
+
+export async function apiPatch<T = any>(path: string, body: any, options: ApiOptions = {}): Promise<T> {
+  const tenant = options.tenant ?? getTenantId();
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Tenant-Id': tenant,
+      'X-Roles': options.roles ?? (typeof window !== 'undefined' ? (localStorage.getItem('demoRoles') ?? 'HRBP,MANAGER') : 'HRBP,MANAGER'),
+      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {})
+    },
+    body: JSON.stringify(body),
+    cache: 'no-store'
+  });
+  if (!res.ok) {
+    throw new Error(`API request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function apiDelete<T = any>(path: string, options: ApiOptions = {}): Promise<T> {
+  const tenant = options.tenant ?? getTenantId();
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Tenant-Id': tenant,
+      'X-Roles': options.roles ?? (typeof window !== 'undefined' ? (localStorage.getItem('demoRoles') ?? 'HRBP,MANAGER') : 'HRBP,MANAGER'),
+      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {})
+    },
+    cache: 'no-store'
+  });
+  if (!res.ok) {
+    throw new Error(`API request failed: ${res.status}`);
+  }
+  return res.json().catch(() => ({} as T));
+}
+
