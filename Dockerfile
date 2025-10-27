@@ -31,12 +31,8 @@ COPY packages/config/package.json packages/config/
 COPY packages/profile-schema/package.json packages/profile-schema/
 COPY packages/ui/package.json packages/ui/
 
-# Install dependencies with pnpm
-RUN pnpm install --filter @workright/web... \
-                 --filter @workright/api... \
-                 --filter @workright/config... \
-                 --filter @workright/profile-schema... \
-                 --filter @workright/ui... \
+# Install all workspace dependencies with pnpm
+RUN pnpm install --recursive \
                  --workspace-root \
                  --no-frozen-lockfile --prod=false
 
