@@ -70,7 +70,9 @@ export class PrismaService
         }
       }
       return next(params);
-    });
+    };
+
+    this.$use(tenantMiddleware);
 
     await this.$connect();
   }
