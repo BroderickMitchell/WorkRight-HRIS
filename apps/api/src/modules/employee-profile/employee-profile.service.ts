@@ -683,10 +683,6 @@ export class EmployeeProfileService {
       exempt: payload.exempt
     };
 
-    data.manager = payload.manager?.id
-      ? { connect: { id: payload.manager.id } }
-      : { disconnect: true };
-
     data.position = payload.positionId
       ? { connect: { id: payload.positionId } }
       : { disconnect: true };
