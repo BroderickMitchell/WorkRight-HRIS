@@ -8,16 +8,30 @@ export class LeaveService {
 
   requestLeave(dto: CreateLeaveRequestDto) {
     return this.prisma.leaveRequest.create({
-      data: {
+      data: ({
         employeeId: dto.employeeId,
         leaveTypeId: dto.leaveTypeId,
         startDate: new Date(dto.startDate),
         endDate: new Date(dto.endDate),
         notes: dto.notes
-      },
+      } as any),
       include: {
         employee: true,
         approvers: true
+      }
+    });
+  }
+
+  listRequests(employeeId?: string) {
+    return this.prisma.leaveRequest.findMany({
+      where: employeeId ? { employeeId } : undefined,
+      orderBy: { startDate: 'desc' },
+      take: 25,
+      include: {
+        employee: {
+          select: { id: true, givenName: true, familyName: true, email: true }
+        },
+        leaveType: true
       }
     });
   }

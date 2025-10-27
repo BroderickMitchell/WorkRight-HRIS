@@ -14,7 +14,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     await this.$connect();
 
     // Enforce tenant context for every query.
-    this.$use(async (params, next) => {
+    this.$use(async (params: any, next: (params: any) => Promise<unknown>) => {
       const tenantId = this.cls.get('tenantId');
       if (params.model === 'Tenant') {
         return next(params);
@@ -53,16 +53,24 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
         }
       } else if (['create', 'createMany', 'upsert'].includes(params.action)) {
         params.args.data = Array.isArray(params.args.data)
-          ? params.args.data.map((item) => ({ ...item, tenantId }))
+          ? params.args.data.map((item: any) => ({ ...item, tenantId }))
           : { ...params.args.data, tenantId };
+      } else if (params.action === 'upsert') {
+        if (params.args.create) {
+          params.args.create = { ...params.args.create, tenantId };
+        }
+        if (params.args.update) {
+          params.args.update = { ...params.args.update, tenantId };
+        }
       }
       return next(params);
     });
   }
 
   async enableShutdownHooks(app: INestApplication) {
-    this.$on('beforeExit', async () => {
-      await app.close();
+    // With Prisma library engine (v5+), use process.beforeExit instead of Client $on('beforeExit')
+    process.on('beforeExit', async () => {
+      try { await app.close(); } catch {}
     });
   }
 }

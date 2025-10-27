@@ -8,9 +8,12 @@ import { PrismaService } from './common/prisma.service.js';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const logger = new Logger('Bootstrap');
-
-  app.useLogger(app.get(Logger));
+  app.useLogger(logger);
   app.use(helmet());
+  app.enableCors({
+    origin: /localhost:\d+$/,
+    credentials: true
+  });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

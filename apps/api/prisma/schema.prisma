@@ -29,43 +29,132 @@ enum ReviewStatus {
   COMPLETED
 }
 
+enum EmployeeStatus {
+  ACTIVE
+  ON_LEAVE
+  TERMINATED
+}
+
+enum CostCodeType {
+  COST_CENTER
+  GL
+  PROJECT
+  WORKTAG
+}
+
+enum EmploymentEventType {
+  HIRE
+  TRANSFER
+  COMP_CHANGE
+  COST_CODE_CHANGE
+  MANAGER_CHANGE
+  LOA
+  TERMINATION
+  OTHER
+}
+
+enum DocumentFormat {
+  PDF
+  DOCX
+}
+
+enum AddressType {
+  PRIMARY
+  MAILING
+}
+
 model Tenant {
-  id         String      @id @default(cuid())
-  name       String
-  slug       String      @unique
-  locale     String      @default("en-AU")
-  region     String      @default("ap-southeast-2")
-  dataResidencyAU Boolean @default(true)
-  settings   Json
-  users      User[]
-  employees  Employee[]
-  departments Department[]
-  positions  Position[]
-  locations  Location[]
-  leavePolicies LeavePolicy[]
-  courses    Course[]
-  auditEvents AuditEvent[]
-  webhookEndpoints WebhookEndpoint[]
-  notifications Notification[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id              String          @id @default(cuid())
+  name            String
+  slug            String          @unique
+  locale          String          @default("en-AU")
+  region          String          @default("ap-southeast-2")
+  dataResidencyAU Boolean         @default(true)
+  settings        Json
+  users           User[]
+  employees       Employee[]
+  employeeAddresses EmployeeAddress[]
+  employeeEmergencyContacts EmployeeEmergencyContact[]
+  costCodes        CostCode[]
+  employeeCostSplits EmployeeCostSplit[]
+  employmentEvents EmploymentEvent[]
+  documentTemplates DocumentTemplate[]
+  generatedDocuments GeneratedDocument[]
+  employments     Employment[]
+  departments     Department[]
+  positions       Position[]
+  locations       Location[]
+  leavePolicies   LeavePolicy[]
+  leaveBalances   LeaveBalance[]
+  leaveRequests   LeaveRequest[]
+  leaveApprovals  LeaveApproval[]
+  holidays        Holiday[]
+  courses         Course[]
+  modules         Module[]
+  enrolments      Enrolment[]
+  completions     Completion[]
+
+  goals                 Goal[]
+  goalAlignments        GoalAlignment[]
+  progressUpdates       ProgressUpdate[]
+  reviewCycles          ReviewCycle[]
+  reviewParticipants    ReviewParticipant[]
+  reviews               Review[]
+  feedback              Feedback[]
+  auditEvents           AuditEvent[]
+  webhookEndpoints      WebhookEndpoint[]
+  webhookDeliveries     WebhookDelivery[]
+  notifications         Notification[]
+  // Org structure
+  orgUnits              OrgUnit[]
+  // Positions workflow & admin
+  approvalSteps         ApprovalStep[]
+  positionApprovals     PositionApproval[]
+  positionIdCounters    PositionIdCounter[]
+  // Rostering
+  rosterTemplates       RosterTemplate[]
+  rosterAssignments     RosterAssignment[]
+  shifts                Shift[]
+  swapRequests          SwapRequest[]
+  // Travel & Accommodation
+  rooms                 Room[]
+  roomBookings          RoomBooking[]
+  flights               Flight[]
+  flightBookings        FlightBooking[]
+  // Payroll
+  payProfiles           PayProfile[]
+  payrollRuns           PayrollRun[]
+  payrollLines          PayrollLine[]
+  // Recruitment
+  requisitions          Requisition[]
+  jobPostings           JobPosting[]
+  candidates            Candidate[]
+  applications          Application[]
+  interviews            Interview[]
+  offers                Offer[]
+  onboardingTasks       OnboardingTask[]
+  rejectionReasons      RejectionReason[]
+  applicationRejections ApplicationRejection[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
 }
 
 model User {
-  id         String   @id @default(cuid())
-  tenantId   String
-  tenant     Tenant   @relation(fields: [tenantId], references: [id])
-  email      String
-  givenName  String
-  familyName String
-  roles      RoleKey[]
-  mfaEnabled Boolean  @default(false)
+  id          String     @id @default(cuid())
+  tenantId    String
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+  email       String
+  givenName   String
+  familyName  String
+  roles       RoleKey[]
+  mfaEnabled  Boolean    @default(false)
   lastLoginAt DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  employees   Employee[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-  @@index([tenantId, email])
   @@unique([tenantId, email], name: "email_tenantId")
+  @@index([tenantId, email])
 }
 
 model AuditEvent {
@@ -84,260 +173,706 @@ model AuditEvent {
 }
 
 model Department {
-  id        String    @id @default(cuid())
-  tenantId  String
-  tenant    Tenant    @relation(fields: [tenantId], references: [id])
-  name      String
-  description String?
-  managerId String?
-  employees Employee[]
-  positions Position[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id                 String             @id @default(cuid())
+  tenantId           String
+  tenant             Tenant             @relation(fields: [tenantId], references: [id])
+  name               String
+  description        String?
+  codePrefix         String             @default("")
+  parentDepartmentId String?
+  parent             Department?        @relation("DepartmentParent", fields: [parentDepartmentId], references: [id])
+  children           Department[]       @relation("DepartmentParent")
+  status             DepartmentStatus   @default(ACTIVE)
+  managerId          String?
+  employees          Employee[]
+  positions          Position[]
+  positionIdCounter  PositionIdCounter?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
   @@index([tenantId, name])
 }
 
 model Location {
-  id        String   @id @default(cuid())
+  id                String             @id @default(cuid())
+  tenantId          String
+  tenant            Tenant             @relation(fields: [tenantId], references: [id])
+  name              String
+  state             String
+  country           String             @default("Australia")
+  timezone          String             @default("Australia/Sydney")
+  employees         Employee[]
+  // Rostering
+  rosterAssignments RosterAssignment[]
+  shifts            Shift[]
+  // Accommodation
+  rooms             Room[]
+}
+
+enum DepartmentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PositionStatus {
+  PENDING
+  ACTIVE
+  ARCHIVED
+}
+
+enum BudgetStatus {
+  BUDGETED
+  UNBUDGETED
+}
+
+model OrgUnit {
+  id        String     @id @default(cuid())
   tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
   name      String
-  state     String
-  country   String   @default("Australia")
-  timezone  String   @default("Australia/Sydney")
-  employees Employee[]
+  parentId  String?
+  parent    OrgUnit?   @relation("OrgUnitParent", fields: [parentId], references: [id])
+  children  OrgUnit[]  @relation("OrgUnitParent")
+  positions Position[]
 }
 
 model Position {
-  id          String    @id @default(cuid())
-  tenantId    String
-  tenant      Tenant    @relation(fields: [tenantId], references: [id])
-  title       String
-  departmentId String?
-  department  Department? @relation(fields: [departmentId], references: [id])
-  reportsToId String?
-  reportsTo   Position?  @relation("PositionReports", fields: [reportsToId], references: [id])
-  directReports Position[] @relation("PositionReports")
-  employees   Employee[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                  String             @id @default(cuid())
+  tenantId            String
+  tenant              Tenant             @relation(fields: [tenantId], references: [id])
+  title               String
+  positionHumanId     String             @unique
+  departmentId        String
+  department          Department         @relation(fields: [departmentId], references: [id])
+  orgUnitId           String
+  orgUnit             OrgUnit            @relation(fields: [orgUnitId], references: [id])
+  employmentType      String
+  workType            String
+  fte                 Float              @default(1)
+  location            String?
+  reportsToId         String?
+  reportsTo           Position?          @relation("PositionReports", fields: [reportsToId], references: [id])
+  directReports       Position[]         @relation("PositionReports")
+  budgetStatus        BudgetStatus
+  status              PositionStatus     @default(PENDING)
+  effectiveFrom       DateTime
+  effectiveTo         DateTime?
+  justification       String?
+  createdByEmployeeId String?
+  approvalsAudit      Json?
+  approvals           PositionApproval[]
+  requisitions        Requisition[]
+  employees           Employee[]
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+}
+
+model ApprovalStep {
+  id           String             @id @default(cuid())
+  tenantId     String
+  tenant       Tenant             @relation(fields: [tenantId], references: [id])
+  name         String
+  roleRequired String
+  sequence     Int
+  slaDays      Int                @default(3)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  approvals    PositionApproval[]
+}
+
+enum ApprovalAction {
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model PositionApproval {
+  id                 String         @id @default(cuid())
+  tenantId           String
+  tenant             Tenant         @relation(fields: [tenantId], references: [id])
+  positionId         String
+  position           Position       @relation(fields: [positionId], references: [id])
+  stepId             String
+  step               ApprovalStep   @relation(fields: [stepId], references: [id])
+  approverEmployeeId String?
+  action             ApprovalAction @default(SUBMITTED)
+  comment            String?
+  actedAt            DateTime?
+  createdAt          DateTime       @default(now())
+}
+
+// Per-department position id counters
+model PositionIdCounter {
+  id           String     @id @default(cuid())
+  tenantId     String
+  tenant       Tenant     @relation(fields: [tenantId], references: [id])
+  departmentId String     @unique
+  department   Department @relation(fields: [departmentId], references: [id])
+  nextNumber   Int        @default(1)
+  width        Int        @default(3)
+  hyphenStyle  Boolean    @default(false)
+}
+
+// Recruitment
+enum RequisitionStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  POSTED
+  CLOSED
+}
+
+model Requisition {
+  id                      String            @id @default(cuid())
+  tenantId                String
+  tenant                  Tenant            @relation(fields: [tenantId], references: [id])
+  positionId              String
+  position                Position          @relation(fields: [positionId], references: [id])
+  title                   String
+  hiringManagerEmployeeId String?
+  recruiterEmployeeId     String?
+  panelMemberIds          String[]
+  vacancyCount            Int               @default(1)
+  employmentType          String
+  workType                String
+  salaryRange             String?
+  location                String?
+  closingDate             DateTime?
+  description             String?
+  selectionCriteria       Json?
+  approvalsAudit          Json?
+  status                  RequisitionStatus @default(DRAFT)
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  postings                JobPosting[]
+  applications            Application[]
+}
+
+model JobPosting {
+  id            String      @id @default(cuid())
+  tenantId      String
+  tenant        Tenant      @relation(fields: [tenantId], references: [id])
+  requisitionId String
+  requisition   Requisition @relation(fields: [requisitionId], references: [id])
+  externalSlug  String      @unique
+  visibility    String      @default("public")
+  channels      String[]
+  status        String      @default("active")
+  createdAt     DateTime    @default(now())
+}
+
+model Candidate {
+  id            String            @id @default(cuid())
+  tenantId      String
+  tenant        Tenant            @relation(fields: [tenantId], references: [id])
+  email         String            @unique
+  firstName     String
+  lastName      String
+  phone         String?
+  passwordHash  String?
+  profileStatus String            @default("NEW")
+  createdAt     DateTime          @default(now())
+  lastLoginAt   DateTime?
+  profile       CandidateProfile?
+  applications  Application[]
+}
+
+model CandidateProfile {
+  candidateId    String    @id
+  candidate      Candidate @relation(fields: [candidateId], references: [id])
+  address        String?
+  workRights     String?
+  diversityOptIn Boolean   @default(false)
+  resumeUrl      String?
+  coverLetterUrl String?
+  otherDocs      Json?
+  consents       Json?
+  preferences    Json?
+}
+
+enum ApplicationStage {
+  APPLICATION
+  INTERVIEW
+  OFFER
+  ONBOARDING
+  UNSUCCESSFUL
+}
+
+model Application {
+  id                         String                 @id @default(cuid())
+  tenantId                   String
+  tenant                     Tenant                 @relation(fields: [tenantId], references: [id])
+  candidateId                String
+  candidate                  Candidate              @relation(fields: [candidateId], references: [id])
+  requisitionId              String
+  requisition                Requisition            @relation(fields: [requisitionId], references: [id])
+  currentStage               ApplicationStage       @default(APPLICATION)
+  subStatus                  String?
+  appliedAt                  DateTime               @default(now())
+  withdrawnAt                DateTime?
+  internalNotes              Json?
+  candidateVisibleStatusText String?
+  interviews                 Interview[]
+  offers                     Offer[]
+  onboardingTasks            OnboardingTask[]
+  rejections                 ApplicationRejection[]
+}
+
+model Interview {
+  id            String      @id @default(cuid())
+  tenantId      String
+  tenant        Tenant      @relation(fields: [tenantId], references: [id])
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id])
+  type          String
+  scheduledAt   DateTime
+  interviewers  String[]
+  venueOrLink   String?
+  outcome       String?
+  notes         String?
+}
+
+model Offer {
+  id            String      @id @default(cuid())
+  tenantId      String
+  tenant        Tenant      @relation(fields: [tenantId], references: [id])
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id])
+  salary        String?
+  benefits      String?
+  contractUrl   String?
+  issuedAt      DateTime?
+  acceptedAt    DateTime?
+  declinedAt    DateTime?
+}
+
+model OnboardingTask {
+  id            String      @id @default(cuid())
+  tenantId      String
+  tenant        Tenant      @relation(fields: [tenantId], references: [id])
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id])
+  name          String
+  dueAt         DateTime?
+  completedAt   DateTime?
+  assignee      String
+  attachments   Json?
+}
+
+model RejectionReason {
+  id                 String                 @id @default(cuid())
+  tenantId           String
+  tenant             Tenant                 @relation(fields: [tenantId], references: [id])
+  code               String                 @unique
+  label              String
+  visibleToCandidate Boolean                @default(false)
+  createdAt          DateTime               @default(now())
+  rejections         ApplicationRejection[]
+}
+
+model ApplicationRejection {
+  id                       String          @id @default(cuid())
+  tenantId                 String
+  tenant                   Tenant          @relation(fields: [tenantId], references: [id])
+  applicationId            String
+  application              Application     @relation(fields: [applicationId], references: [id])
+  reasonId                 String
+  reason                   RejectionReason @relation(fields: [reasonId], references: [id])
+  internalNotes            String?
+  candidateMessageOverride String?
+  createdAt                DateTime        @default(now())
 }
 
 model Employee {
-  id           String      @id @default(cuid())
-  tenantId     String
-  tenant       Tenant      @relation(fields: [tenantId], references: [id])
-  userId       String?
-  user         User?       @relation(fields: [userId], references: [id])
-  givenName    String
-  familyName   String
-  email        String
-  startDate    DateTime
-  terminatedAt DateTime?
-  managerId    String?
-  manager      Employee?   @relation("EmployeeManager", fields: [managerId], references: [id])
-  directReports Employee[] @relation("EmployeeManager")
-  positionId   String?
-  position     Position?   @relation(fields: [positionId], references: [id])
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id])
-  locationId   String?
-  location     Location?   @relation(fields: [locationId], references: [id])
-  employments  Employment[]
-  goals        Goal[]      @relation("GoalOwner")
-  reviews      Review[]    @relation("EmployeeReviews")
-  feedbackGiven Feedback[] @relation("FeedbackAuthor")
-  feedbackReceived Feedback[] @relation("FeedbackRecipient")
-  leaveBalances LeaveBalance[]
-  leaveRequests LeaveRequest[]
-  enrolments   Enrolment[]
-  notifications Notification[]
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id                    String              @id @default(cuid())
+  tenantId              String
+  tenant                Tenant              @relation(fields: [tenantId], references: [id])
+  userId                String?
+  user                  User?               @relation(fields: [userId], references: [id])
+  employeeNumber        String?
+  givenName             String
+  middleName            String?
+  familyName            String
+  nameSuffix            String?
+  preferredName         String?
+  pronouns              String?
+  email                 String
+  personalEmail         String?
+  workPhone             String?
+  mobilePhone           String?
+  dateOfBirth           DateTime?
+  status                EmployeeStatus      @default(ACTIVE)
+  maritalStatus         String?
+  nationalIdentifiers   Json?
+  citizenships          String[]            @default([])
+  languages             String[]            @default([])
+  veteranStatus         String?
+  startDate             DateTime
+  terminatedAt          DateTime?
+  serviceDate           DateTime?
+  probationEndDate      DateTime?
+  contractEndDate       DateTime?
+  managerId             String?
+  manager               Employee?           @relation("EmployeeManager", fields: [managerId], references: [id])
+  directReports         Employee[]          @relation("EmployeeManager")
+  jobTitle              String?
+  positionId            String?
+  position              Position?           @relation(fields: [positionId], references: [id])
+  departmentId          String?
+  department            Department?         @relation(fields: [departmentId], references: [id])
+  locationId            String?
+  location              Location?           @relation(fields: [locationId], references: [id])
+  employments           Employment[]
+  addresses             EmployeeAddress[]
+  emergencyContacts     EmployeeEmergencyContact[]
+  costSplits            EmployeeCostSplit[]
+  employmentEvents      EmploymentEvent[]
+  generatedDocuments    GeneratedDocument[]
+  communicationPreferences String[]        @default([])
+  timezone              String?
+  workSchedule          String?
+  badgeId               String?
+  overtimeEligible      Boolean            @default(false)
+  benefitsEligible      Boolean            @default(true)
+  exempt                Boolean            @default(false)
+  goals                 Goal[]              @relation("GoalOwner")
+  reviews               Review[]            @relation("EmployeeReviews")
+  feedbackGiven         Feedback[]          @relation("FeedbackAuthor")
+  feedbackReceived      Feedback[]          @relation("FeedbackRecipient")
+  reviewParticipations  ReviewParticipant[] @relation("ReviewParticipantEmployee")
+  approvalsToAction     LeaveApproval[]     @relation("LeaveApprover")
+  leaveBalances         LeaveBalance[]
+  leaveRequests         LeaveRequest[]
+  enrolments            Enrolment[]
+  // Rostering
+  rosterAssignments     RosterAssignment[]
+  shifts                Shift[]
+  swapRequestsRequested SwapRequest[]       @relation("SwapRequester")
+  swapRequestsTarget    SwapRequest[]       @relation("SwapTarget")
+  // Travel & Accommodation
+  roomBookings          RoomBooking[]
+  flightBookings        FlightBooking[]
+  // Payroll
+  payProfile            PayProfile?
+  payrollLines          PayrollLine[]
+  notifications         Notification[]
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
 
   @@index([tenantId, email])
+  @@unique([tenantId, employeeNumber])
 }
 
-model Employment {
+model EmployeeAddress {
+  id         String      @id @default(cuid())
+  tenantId   String
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  employeeId String
+  employee   Employee    @relation(fields: [employeeId], references: [id])
+  type       AddressType @default(PRIMARY)
+  line1      String
+  line2      String?
+  suburb     String
+  state      String
+  postcode   String
+  country    String      @default("Australia")
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([tenantId, employeeId, type])
+  @@unique([tenantId, employeeId, type])
+}
+
+model EmployeeEmergencyContact {
   id           String   @id @default(cuid())
   tenantId     String
   tenant       Tenant   @relation(fields: [tenantId], references: [id])
   employeeId   String
   employee     Employee @relation(fields: [employeeId], references: [id])
-  startDate    DateTime
-  endDate      DateTime?
-  contractType String
-  fte          Float    @default(1)
-  payType      String
-  payRate      Decimal? @db.Numeric(12,2)
+  name         String
+  relationship String
+  phone        String
+  email        String?
+  address      Json?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@index([tenantId, employeeId])
 }
 
-model Goal {
+model CostCode {
+  id          String            @id @default(cuid())
+  tenantId    String
+  tenant      Tenant            @relation(fields: [tenantId], references: [id])
+  code        String
+  description String?
+  type        CostCodeType
+  costSplits  EmployeeCostSplit[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([tenantId, code])
+}
+
+model EmployeeCostSplit {
   id          String    @id @default(cuid())
   tenantId    String
   tenant      Tenant    @relation(fields: [tenantId], references: [id])
-  title       String
-  description String?
-  dueDate     DateTime
-  weighting   Float     @default(0.1)
-  status      String    @default("in-progress")
-  ownerId     String
-  owner       Employee  @relation("GoalOwner", fields: [ownerId], references: [id])
-  parentGoalId String?
-  parentGoal   Goal?     @relation("GoalHierarchy", fields: [parentGoalId], references: [id])
-  alignedGoals Goal[]    @relation("GoalHierarchy")
-  alignmentsParent GoalAlignment[] @relation("ParentAlignment")
-  alignmentsChild  GoalAlignment[] @relation("ChildAlignment")
-  progressUpdates ProgressUpdate[]
+  employeeId  String
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+  costCodeId  String
+  costCode    CostCode  @relation(fields: [costCodeId], references: [id])
+  percentage  Decimal   @db.Decimal(5, 2)
+  startDate   DateTime
+  endDate     DateTime?
+  createdBy   String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId, employeeId, startDate])
+}
+
+model EmploymentEvent {
+  id            String              @id @default(cuid())
+  tenantId      String
+  tenant        Tenant              @relation(fields: [tenantId], references: [id])
+  employeeId    String
+  employee      Employee            @relation(fields: [employeeId], references: [id])
+  type          EmploymentEventType
+  effectiveDate DateTime
+  payload       Json
+  actorId       String?
+  source        String              @default("UI")
+  createdAt     DateTime            @default(now())
+  createdBy     String?
+
+  @@index([tenantId, employeeId, effectiveDate])
+  @@index([tenantId, type])
+}
+
+model DocumentTemplate {
+  id          String          @id @default(cuid())
+  tenantId    String
+  tenant      Tenant          @relation(fields: [tenantId], references: [id])
+  name        String
+  description String?
+  format      DocumentFormat
+  body        String
+  createdBy   String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  documents   GeneratedDocument[]
+
+  @@unique([tenantId, name])
+}
+
+model GeneratedDocument {
+  id          String          @id @default(cuid())
+  tenantId    String
+  tenant      Tenant          @relation(fields: [tenantId], references: [id])
+  employeeId  String
+  employee    Employee        @relation(fields: [employeeId], references: [id])
+  templateId  String?
+  template    DocumentTemplate? @relation(fields: [templateId], references: [id])
+  format      DocumentFormat
+  filename    String
+  storageUrl  String
+  payload     Json
+  createdBy   String?
+  createdAt   DateTime        @default(now())
+
+  @@index([tenantId, employeeId])
+}
+
+model Employment {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  employeeId   String
+  employee     Employee  @relation(fields: [employeeId], references: [id])
+  startDate    DateTime
+  endDate      DateTime?
+  contractType String
+  fte          Float     @default(1)
+  payType      String
+  payRate      Decimal?  @db.Decimal(12, 2)
+  currency     String    @default("AUD")
+  payFrequency String    @default("ANNUAL")
+  grade        String?
+  workerType   String    @default("Employee")
+  employmentType String  @default("Full-time")
+  standardHours Float?
+  schedule     String?
+  bonusTarget  Float?
+  allowances   Json?
+  stockPlan    String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Goal {
+  id               String           @id @default(cuid())
+  tenantId         String
+  tenant           Tenant           @relation(fields: [tenantId], references: [id])
+  title            String
+  description      String?
+  dueDate          DateTime
+  weighting        Float            @default(0.1)
+  status           String           @default("in-progress")
+  ownerId          String
+  owner            Employee         @relation("GoalOwner", fields: [ownerId], references: [id])
+  parentGoalId     String?
+  parentGoal       Goal?            @relation("GoalHierarchy", fields: [parentGoalId], references: [id])
+  alignedGoals     Goal[]           @relation("GoalHierarchy")
+  alignmentsParent GoalAlignment[]  @relation("ParentAlignment")
+  alignmentsChild  GoalAlignment[]  @relation("ChildAlignment")
+  progressUpdates  ProgressUpdate[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   @@index([tenantId, ownerId])
 }
 
 model GoalAlignment {
-  id          String   @id @default(cuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  parentId    String
-  childId     String
-  parent      Goal     @relation("ParentAlignment", fields: [parentId], references: [id])
-  child       Goal     @relation("ChildAlignment", fields: [childId], references: [id])
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  parentId  String
+  childId   String
+  parent    Goal     @relation("ParentAlignment", fields: [parentId], references: [id])
+  child     Goal     @relation("ChildAlignment", fields: [childId], references: [id])
+  createdAt DateTime @default(now())
 
   @@unique([tenantId, parentId, childId])
 }
 
 model ProgressUpdate {
-  id        String   @id @default(cuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  goalId    String
-  goal      Goal     @relation(fields: [goalId], references: [id])
-  value     Float
-  comment   String?
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  goalId     String
+  goal       Goal     @relation(fields: [goalId], references: [id])
+  value      Float
+  comment    String?
   recordedAt DateTime @default(now())
 }
 
 model ReviewCycle {
-  id        String   @id @default(cuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  name      String
-  startDate DateTime
-  endDate   DateTime
-  status    ReviewStatus @default(NOT_STARTED)
+  id           String              @id @default(cuid())
+  tenantId     String
+  tenant       Tenant              @relation(fields: [tenantId], references: [id])
+  name         String
+  startDate    DateTime
+  endDate      DateTime
+  status       ReviewStatus        @default(NOT_STARTED)
   participants ReviewParticipant[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 }
 
 model ReviewParticipant {
-  id           String   @id @default(cuid())
-  tenantId     String
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  id            String      @id @default(cuid())
+  tenantId      String
+  tenant        Tenant      @relation(fields: [tenantId], references: [id])
   reviewCycleId String
-  reviewCycle  ReviewCycle @relation(fields: [reviewCycleId], references: [id])
+  reviewCycle   ReviewCycle @relation(fields: [reviewCycleId], references: [id])
   participantId String
-  participant  Employee   @relation(fields: [participantId], references: [id])
-  order        Int        @default(0)
-  reviews      Review[]
+  participant   Employee    @relation("ReviewParticipantEmployee", fields: [participantId], references: [id])
+  order         Int         @default(0)
+  reviews       Review[]
 
-  @@index([tenantId, reviewCycleId])
   @@unique([tenantId, reviewCycleId, participantId])
+  @@index([tenantId, reviewCycleId])
 }
 
 model Review {
-  id            String   @id @default(cuid())
-  tenantId      String
-  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  id                  String            @id @default(cuid())
+  tenantId            String
+  tenant              Tenant            @relation(fields: [tenantId], references: [id])
   reviewParticipantId String
-  reviewParticipant ReviewParticipant @relation(fields: [reviewParticipantId], references: [id])
-  reviewerId    String
-  reviewer      Employee @relation("EmployeeReviews", fields: [reviewerId], references: [id])
-  status        ReviewStatus @default(NOT_STARTED)
-  overallRating Float?
-  summary       String?
-  feedback      Feedback[]
-  submittedAt   DateTime?
+  reviewParticipant   ReviewParticipant @relation(fields: [reviewParticipantId], references: [id])
+  reviewerId          String
+  reviewer            Employee          @relation("EmployeeReviews", fields: [reviewerId], references: [id])
+  status              ReviewStatus      @default(NOT_STARTED)
+  overallRating       Float?
+  summary             String?
+  feedback            Feedback[]
+  submittedAt         DateTime?
 }
 
 model Feedback {
-  id           String   @id @default(cuid())
-  tenantId     String
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
-  reviewId     String
-  review       Review   @relation(fields: [reviewId], references: [id])
-  authorId     String
-  author       Employee @relation("FeedbackAuthor", fields: [authorId], references: [id])
-  recipientId  String
-  recipient    Employee @relation("FeedbackRecipient", fields: [recipientId], references: [id])
-  content      String
-  rating       Int?
-  createdAt    DateTime @default(now())
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  reviewId    String
+  review      Review   @relation(fields: [reviewId], references: [id])
+  authorId    String
+  author      Employee @relation("FeedbackAuthor", fields: [authorId], references: [id])
+  recipientId String
+  recipient   Employee @relation("FeedbackRecipient", fields: [recipientId], references: [id])
+  content     String
+  rating      Int?
+  createdAt   DateTime @default(now())
 }
 
 model LeavePolicy {
-  id          String   @id @default(cuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  name        String
-  code        String
-  accrualRule Json
-  maxBalance  Float?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String         @id @default(cuid())
+  tenantId      String
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  name          String
+  code          String
+  accrualRule   Json
+  maxBalance    Float?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   leaveRequests LeaveRequest[]
-  balances    LeaveBalance[]
+  balances      LeaveBalance[]
 }
 
 model LeaveBalance {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
   employeeId  String
-  employee    Employee @relation(fields: [employeeId], references: [id])
+  employee    Employee    @relation(fields: [employeeId], references: [id])
   leaveTypeId String
   leaveType   LeavePolicy @relation(fields: [leaveTypeId], references: [id])
-  balance     Float   @default(0)
-  asAt        DateTime @default(now())
+  balance     Float       @default(0)
+  asAt        DateTime    @default(now())
 
-  @@index([tenantId, employeeId, leaveTypeId], name: "leave_balance_employee_type")
   @@unique([tenantId, employeeId, leaveTypeId])
+  @@index([tenantId, employeeId, leaveTypeId], name: "leave_balance_employee_type")
 }
 
 model LeaveRequest {
-  id           String   @id @default(cuid())
-  tenantId     String
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
-  employeeId   String
-  employee     Employee @relation(fields: [employeeId], references: [id])
-  leaveTypeId  String
-  leaveType    LeavePolicy @relation(fields: [leaveTypeId], references: [id])
-  startDate    DateTime
-  endDate      DateTime
-  status       LeaveStatus @default(PENDING)
-  notes        String?
-  approvers    LeaveApproval[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String          @id @default(cuid())
+  tenantId    String
+  tenant      Tenant          @relation(fields: [tenantId], references: [id])
+  employeeId  String
+  employee    Employee        @relation(fields: [employeeId], references: [id])
+  leaveTypeId String
+  leaveType   LeavePolicy     @relation(fields: [leaveTypeId], references: [id])
+  startDate   DateTime
+  endDate     DateTime
+  status      LeaveStatus     @default(PENDING)
+  notes       String?
+  approvers   LeaveApproval[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 }
 
 model LeaveApproval {
-  id           String   @id @default(cuid())
-  tenantId     String
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  id             String       @id @default(cuid())
+  tenantId       String
+  tenant         Tenant       @relation(fields: [tenantId], references: [id])
   leaveRequestId String
-  leaveRequest LeaveRequest @relation(fields: [leaveRequestId], references: [id])
-  approverId   String
-  approver     Employee @relation(fields: [approverId], references: [id])
-  stepOrder    Int
-  status       LeaveStatus @default(PENDING)
-  comment      String?
-  actedAt      DateTime?
+  leaveRequest   LeaveRequest @relation(fields: [leaveRequestId], references: [id])
+  approverId     String
+  approver       Employee     @relation("LeaveApprover", fields: [approverId], references: [id])
+  stepOrder      Int
+  status         LeaveStatus  @default(PENDING)
+  comment        String?
+  actedAt        DateTime?
 
   @@unique([tenantId, leaveRequestId, stepOrder])
 }
@@ -355,89 +890,240 @@ model Holiday {
 }
 
 model Course {
-  id        String   @id @default(cuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  title     String
-  summary   String?
-  deliveryType String @default("Self-paced")
-  modules   Module[]
-  enrolments Enrolment[]
-  completions Completion[]
+  id           String      @id @default(cuid())
+  tenantId     String
+  tenant       Tenant      @relation(fields: [tenantId], references: [id])
+  title        String
+  summary      String?
+  deliveryType String      @default("Self-paced")
+  modules      Module[]
+  enrolments   Enrolment[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Module {
-  id        String   @id @default(cuid())
-  tenantId  String
-  tenant    Tenant   @relation(fields: [tenantId], references: [id])
-  courseId  String
-  course    Course   @relation(fields: [courseId], references: [id])
-  title     String
-  content   String?
-  order     Int      @default(0)
+  id       String  @id @default(cuid())
+  tenantId String
+  tenant   Tenant  @relation(fields: [tenantId], references: [id])
+  courseId String
+  course   Course  @relation(fields: [courseId], references: [id])
+  title    String
+  content  String?
+  order    Int     @default(0)
 }
 
 model Enrolment {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
   courseId    String
-  course      Course   @relation(fields: [courseId], references: [id])
+  course      Course       @relation(fields: [courseId], references: [id])
   assigneeId  String
-  assignee    Employee @relation(fields: [assigneeId], references: [id])
+  assignee    Employee     @relation(fields: [assigneeId], references: [id])
   dueDate     DateTime?
-  status      String   @default("assigned")
+  status      String       @default("assigned")
   completions Completion[]
-  createdAt   DateTime @default(now())
+
+  createdAt DateTime @default(now())
+}
+
+// Payroll minimal
+model PayProfile {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  employeeId    String   @unique
+  employee      Employee @relation(fields: [employeeId], references: [id])
+  baseRateCents Int      @default(5000) // $50/hr
+}
+
+model PayrollRun {
+  id          String        @id @default(cuid())
+  tenantId    String
+  tenant      Tenant        @relation(fields: [tenantId], references: [id])
+  periodStart DateTime
+  periodEnd   DateTime
+  totalCents  Int           @default(0)
+  createdAt   DateTime      @default(now())
+  lines       PayrollLine[]
+}
+
+model PayrollLine {
+  id          String     @id @default(cuid())
+  tenantId    String
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+  runId       String
+  run         PayrollRun @relation(fields: [runId], references: [id])
+  employeeId  String
+  employee    Employee   @relation(fields: [employeeId], references: [id])
+  hours       Float      @default(0)
+  amountCents Int        @default(0)
+  details     Json?
 }
 
 model Completion {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
   enrolmentId String
   enrolment   Enrolment @relation(fields: [enrolmentId], references: [id])
-  completedAt DateTime @default(now())
+  completedAt DateTime  @default(now())
   score       Float?
   evidenceUrl String?
 }
 
 model Notification {
-  id          String   @id @default(cuid())
-  tenantId    String
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  employeeId  String
-  employee    Employee @relation(fields: [employeeId], references: [id])
-  type        String
-  payload     Json
-  readAt      DateTime?
-  createdAt   DateTime @default(now())
+  id         String    @id @default(cuid())
+  tenantId   String
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+  employeeId String
+  employee   Employee  @relation(fields: [employeeId], references: [id])
+  type       String
+  payload    Json
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
 
   @@index([tenantId, employeeId, readAt])
 }
 
 model WebhookEndpoint {
-  id         String   @id @default(cuid())
+  id         String            @id @default(cuid())
   tenantId   String
-  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  tenant     Tenant            @relation(fields: [tenantId], references: [id])
   event      String
   targetUrl  String
   signingKey String
   deliveries WebhookDelivery[]
-  createdAt  DateTime @default(now())
+  createdAt  DateTime          @default(now())
 }
 
 model WebhookDelivery {
+  id              String          @id @default(cuid())
+  tenantId        String
+  tenant          Tenant          @relation(fields: [tenantId], references: [id])
+  endpointId      String
+  endpoint        WebhookEndpoint @relation(fields: [endpointId], references: [id])
+  payload         Json
+  status          String
+  attempts        Int             @default(0)
+  lastAttemptedAt DateTime?
+  createdAt       DateTime        @default(now())
+}
+
+// Rostering models
+model RosterTemplate {
+  id          String             @id @default(cuid())
+  tenantId    String
+  tenant      Tenant             @relation(fields: [tenantId], references: [id])
+  name        String
+  code        String?
+  seedDate    DateTime
+  pattern     Json // e.g. ["D","D","D","D","D","D","D","D","R","R","R","R","R","R"]
+  shiftConfig Json?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  assignments RosterAssignment[]
+  shifts      Shift[]
+}
+
+model RosterAssignment {
+  id            String         @id @default(cuid())
+  tenantId      String
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  templateId    String
+  template      RosterTemplate @relation(fields: [templateId], references: [id])
+  employeeId    String
+  employee      Employee       @relation(fields: [employeeId], references: [id])
+  locationId    String?
+  location      Location?      @relation(fields: [locationId], references: [id])
+  effectiveFrom DateTime
+  effectiveTo   DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Shift {
+  id                    String          @id @default(cuid())
+  tenantId              String
+  tenant                Tenant          @relation(fields: [tenantId], references: [id])
+  employeeId            String
+  employee              Employee        @relation(fields: [employeeId], references: [id])
+  date                  DateTime
+  shiftType             String
+  start                 DateTime?
+  end                   DateTime?
+  locationId            String?
+  location              Location?       @relation(fields: [locationId], references: [id])
+  generatedByTemplateId String?
+  generatedByTemplate   RosterTemplate? @relation(fields: [generatedByTemplateId], references: [id])
+  source                String          @default("template")
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  swapRequests          SwapRequest[]
+}
+
+model SwapRequest {
+  id               String    @id @default(cuid())
+  tenantId         String
+  tenant           Tenant    @relation(fields: [tenantId], references: [id])
+  shiftId          String
+  shift            Shift     @relation(fields: [shiftId], references: [id])
+  requesterId      String
+  requester        Employee  @relation("SwapRequester", fields: [requesterId], references: [id])
+  targetEmployeeId String?
+  targetEmployee   Employee? @relation("SwapTarget", fields: [targetEmployeeId], references: [id])
+  status           String    @default("pending")
+  createdAt        DateTime  @default(now())
+  decidedAt        DateTime?
+}
+
+// Travel & Accommodation
+model Room {
+  id         String        @id @default(cuid())
+  tenantId   String
+  tenant     Tenant        @relation(fields: [tenantId], references: [id])
+  locationId String
+  location   Location      @relation(fields: [locationId], references: [id])
+  name       String
+  capacity   Int           @default(1)
+  bookings   RoomBooking[]
+}
+
+model RoomBooking {
   id         String   @id @default(cuid())
   tenantId   String
   tenant     Tenant   @relation(fields: [tenantId], references: [id])
-  endpointId String
-  endpoint   WebhookEndpoint @relation(fields: [endpointId], references: [id])
-  payload    Json
-  status     String
-  attempts   Int      @default(0)
-  lastAttemptedAt DateTime?
-  createdAt  DateTime @default(now())
+  roomId     String
+  room       Room     @relation(fields: [roomId], references: [id])
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  startDate  DateTime
+  endDate    DateTime
+  status     String   @default("booked")
+}
+
+model Flight {
+  id           String          @id @default(cuid())
+  tenantId     String
+  tenant       Tenant          @relation(fields: [tenantId], references: [id])
+  carrier      String
+  flightNumber String
+  depAirport   String
+  arrAirport   String
+  bookings     FlightBooking[]
+}
+
+model FlightBooking {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id])
+  flightId   String
+  flight     Flight   @relation(fields: [flightId], references: [id])
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+  depTime    DateTime
+  arrTime    DateTime
+  status     String   @default("booked")
 }

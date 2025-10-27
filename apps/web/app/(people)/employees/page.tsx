@@ -1,44 +1,82 @@
-import { Card, CardHeader, CardTitle, CardDescription, Badge } from '@workright/ui';
+import { Card } from '@workright/ui';
 import Link from 'next/link';
-import { sampleEmployees } from '../../../lib/sample-data';
+import { fetchEmployees, type DirectoryEmployee } from '@/lib/directory';
 
-export default function EmployeesPage() {
+type TreeNode = DirectoryEmployee & { children: TreeNode[] };
+
+function buildOrgRoots(employees: DirectoryEmployee[]): TreeNode[] {
+  if (employees.length === 0) return [];
+  const byManager = new Map<string, DirectoryEmployee[]>();
+  employees.forEach((emp) => {
+    const managerId = emp.managerId ?? emp.manager?.id ?? null;
+    if (managerId) {
+      if (!byManager.has(managerId)) byManager.set(managerId, []);
+      byManager.get(managerId)!.push(emp);
+    }
+  });
+  const roots = employees.filter((e) => {
+    const managerId = e.managerId ?? e.manager?.id ?? null;
+    return !managerId;
+  });
+
+  function attach(emp: DirectoryEmployee): TreeNode {
+    const kids = byManager.get(emp.id) ?? [];
+    return { ...emp, children: kids.map(attach) };
+  }
+
+  return roots.map(attach);
+}
+
+function displayName(emp: Pick<DirectoryEmployee, 'givenName' | 'familyName' | 'email'>) {
+  const parts = [emp.givenName, emp.familyName].filter(Boolean);
+  return parts.length ? parts.join(' ') : emp.email;
+}
+
+function Node({ node }: { node: TreeNode }) {
   return (
-    <div className="space-y-6" aria-label="Employee directory">
+    <li>
+      <Card className="p-4">
+        <Link href={`/employees/${node.id}`} className="font-medium text-brand hover:underline">
+          {displayName(node)}
+        </Link>
+        <p className="text-sm text-slate-600">
+          {node.position?.title ?? 'Unknown role'}
+          {node.department?.name ? ` • ${node.department?.name}` : ''}
+        </p>
+      </Card>
+      {node.children.length > 0 && (
+        <ul className="mt-4 grid gap-4 md:grid-cols-2">
+          {node.children.map((child: TreeNode) => (
+            <Node key={child.id} node={child} />
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
+export default async function EmployeesPage() {
+  const employees = await fetchEmployees();
+  const roots = buildOrgRoots(employees);
+
+  return (
+    <div className="space-y-6" aria-label="Employee directory (org structure)">
       <header className="space-y-1">
         <h1 className="text-3xl font-semibold text-slate-900">People directory</h1>
-        <p className="text-slate-600">Search and explore your organisation structure.</p>
+        <p className="text-slate-600">Org structure generated from manager assignments.</p>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {sampleEmployees.map((employee) => (
-          <Card key={employee.id} className="focus-within:ring-brand">
-            <CardHeader>
-              <div>
-                <CardTitle className="text-xl">{employee.name}</CardTitle>
-                <CardDescription>{employee.role}</CardDescription>
-              </div>
-              <Badge>{employee.department}</Badge>
-            </CardHeader>
-            <dl className="space-y-2 text-sm text-slate-600">
-              <div className="flex items-center justify-between">
-                <dt className="font-medium text-slate-500">Location</dt>
-                <dd>{employee.location}</dd>
-              </div>
-              <div className="flex items-center justify-between">
-                <dt className="font-medium text-slate-500">Direct reports</dt>
-                <dd>{employee.reports}</dd>
-              </div>
-            </dl>
-            <Link
-              href={`/people/employees/${employee.id}`}
-              className="mt-4 inline-flex items-center text-sm font-medium text-brand hover:underline"
-            >
-              View profile<span className="sr-only"> for {employee.name}</span>
-            </Link>
-          </Card>
-        ))}
-      </div>
+      {roots.length === 0 ? (
+        <p className="text-sm text-slate-500">No employees found for this tenant.</p>
+      ) : (
+        <ul className="space-y-6">
+          {roots.map((root) => (
+            <Node key={root.id} node={root} />
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
+
+

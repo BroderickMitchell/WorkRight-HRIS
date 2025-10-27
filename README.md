@@ -27,47 +27,64 @@ WorkRight HRIS is a modern, multi-tenant HR platform tailored for Australian org
 └── docs             # Architecture decision records and product documentation
 ```
 
-## Quick start
+## Step-by-step local testing guide
 
-> Prerequisites: Node.js 20+, pnpm 8+, Docker, and Terraform.
+1. **Confirm prerequisites.** Install Node.js 20 or newer, pnpm 8+, Docker Desktop (or Docker Engine + Compose v2), and Terraform. Authenticate to any private registries or package feeds before proceeding.
+2. **Install workspace dependencies.** From the repository root run:
 
-```bash
-pnpm install
-pnpm run build
-pnpm run test
-```
+   ```bash
+   pnpm install
+   ```
 
-To spin up the local stack:
+   This bootstraps the pnpm workspaces (`apps/*` and `packages/*`).
+3. **Configure environment variables.** Copy each `.env.example` to `.env` within `apps/api` and `apps/web`, then fill in secrets (Postgres, Redis, Auth.js secret, S3 bucket, API URL). The API enforces the `X-Tenant-Id` header for every authenticated request.
+4. **Bring services online.** Choose one of the following approaches:
+   - **Docker Compose (recommended for parity).**
 
-```bash
-docker-compose up --build
-```
+     ```bash
+     docker-compose up --build
+     ```
 
-This will start PostgreSQL (with row-level security), Redis, Mailhog, the NestJS API, and Next.js web.
+     Compose provisions PostgreSQL with row-level security, Redis for BullMQ, Mailhog, the NestJS API, and the Next.js frontend.
+     It reads environment variables from `apps/api/.env` and `apps/web/.env`, so make sure you have copied the respective
+     `.env.example` files beforehand.
+   - **Local processes (advanced).** Run `pnpm --filter api run start:dev` and `pnpm --filter web dev` in separate terminals after starting Postgres/Redis manually.
+5. **Apply database migrations and seed demo tenants.** With the API dependencies running:
+
+   ```bash
+   cd apps/api
+   pnpm prisma migrate deploy
+   pnpm prisma db seed
+   cd ../..
+   ```
+
+   This creates the `acme` and `demo` tenants and sample Australian data (dates in `dd/MM/yyyy`).
+6. **Execute the automated test suites.** From the repo root run:
+
+   ```bash
+   pnpm run build
+   pnpm run test
+   ```
+
+   These commands compile the workspaces and execute the aggregated Jest/Vitest/Playwright entrypoints. For faster feedback you can run targeted checks:
+
+   ```bash
+   pnpm run lint
+   pnpm run typecheck
+   pnpm run format
+   ```
+7. **Walk through the demo workflow.** Follow `scripts/demo-flow.md` to exercise tenant provisioning, goal alignment, leave approvals, learning assignments, and reporting end-to-end. Validate audit logs and webhook deliveries as you progress.
 
 ### Developer tooling
 
-Run linting, type checks, and targeted builds from the repository root:
+For day-to-day development, the following scripts are available from the repository root:
 
-```bash
-pnpm run lint
-pnpm run typecheck
-pnpm run build
-```
+- `pnpm run lint` – ESLint across all workspaces.
+- `pnpm run typecheck` – TypeScript project references via `tsc --build`.
+- `pnpm run build` – Production builds for the API, web app, and shared packages.
+- `pnpm run format` – Prettier check/format.
 
-Formatting is handled via Prettier:
-
-```bash
-pnpm run format
-```
-
-Run database migrations and seed demo tenants:
-
-```bash
-cd apps/api
-pnpm prisma migrate deploy
-pnpm prisma db seed
-```
+Individual packages expose additional scripts (for example, `pnpm --filter api test:e2e`), and Vitest/Playwright configs live alongside each app for focused runs.
 
 ### Environment variables
 
@@ -120,6 +137,34 @@ Copy `.env.example` into each app and adjust as required.
 - **Containerisation** via Dockerfiles for web and API services.
 - **Infrastructure as code** with Terraform provisioning AWS VPC, RDS (PostgreSQL 15 with RLS), ECS/Fargate services, Redis (Elasticache), S3, CloudFront, and ACM certificates.
 - **CI/CD** pipelines on GitHub Actions for linting, testing, Prisma migrations, and deployment with manual approvals for production.
+
+### Building and pushing the API Docker image
+
+Use the production `Dockerfile` in the repository root to create the API image that Azure App Service (or any other container runtime) consumes. The lockfile is now included in the build context, so the image is pinned to the workspace dependency graph.
+
+The high-level workflow is:
+
+1. Authenticate to your registry (Azure Container Registry in this example):
+
+   ```bash
+   az acr login --name <acr-name>
+   ```
+
+2. Build the API image from the monorepo root, tagging it for the `workright/api` repository within your registry:
+
+   ```bash
+   docker build -t <acr-name>.azurecr.io/workright/api:<tag> .
+   ```
+
+   The build runs `pnpm install --frozen-lockfile`, compiles the shared packages, generates Prisma client code, and prunes development-only dependencies before the runtime image is assembled.
+
+3. Push the image so the deployment script (or Azure App Service) can pull it:
+
+   ```bash
+   docker push <acr-name>.azurecr.io/workright/api:<tag>
+   ```
+
+For a more detailed walkthrough—including troubleshooting tips for air-gapped environments—see [`docs/docker/api-image.md`](docs/docker/api-image.md).
 
 ## Testing strategy
 
