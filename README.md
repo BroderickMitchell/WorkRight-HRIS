@@ -46,6 +46,8 @@ WorkRight HRIS is a modern, multi-tenant HR platform tailored for Australian org
      ```
 
      Compose provisions PostgreSQL with row-level security, Redis for BullMQ, Mailhog, the NestJS API, and the Next.js frontend.
+     It reads environment variables from `apps/api/.env` and `apps/web/.env`, so make sure you have copied the respective
+     `.env.example` files beforehand.
    - **Local processes (advanced).** Run `pnpm --filter api run start:dev` and `pnpm --filter web dev` in separate terminals after starting Postgres/Redis manually.
 5. **Apply database migrations and seed demo tenants.** With the API dependencies running:
 
