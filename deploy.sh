@@ -69,7 +69,7 @@ echo ">> Creating Key Vault: $KV"
 az keyvault create -g "$RG" -n "$KV" -l "$LOC" >/dev/null
 
 # Database URL (Prisma-compatible). Database 'workright' will be created on first migration.
-DATABASE_URL="postgresql://${PG_ADMIN}:${PG_PASS}@${PG_FQDN}:5432/workright?schema=public"
+DATABASE_URL="postgresql://${PG_ADMIN}:${PG_PASS}@${PG_FQDN}:5432/workright?schema=public&sslmode=require"
 echo ">> Storing DATABASE_URL in Key Vault"
 KV_DB_SECRET_URI="$(az keyvault secret set --vault-name "$KV" -n DATABASE-URL --value "$DATABASE_URL" --query id -o tsv)"
 

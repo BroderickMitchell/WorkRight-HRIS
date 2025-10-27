@@ -6,6 +6,8 @@ WORKDIR /app
 
 ENV PNPM_HOME="/usr/local/share/pnpm"
 ENV PATH="${PNPM_HOME}:$PATH"
+ENV NODE_ENV=development
+ENV NPM_CONFIG_PRODUCTION=false
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
@@ -25,26 +27,12 @@ COPY packages/config/package.json packages/config/
 COPY packages/profile-schema/package.json packages/profile-schema/
 COPY packages/ui/package.json packages/ui/
 
-RUN if [ -f pnpm-lock.yaml ]; then \
-      pnpm install \
-        --filter @workright/web... \
-        --filter @workright/config... \
-        --filter @workright/profile-schema... \
-        --filter @workright/ui... \
-        --frozen-lockfile \
-        --include-dev-deps \
-        --include-workspace-root \
-        --workspace-root; \
+RUN set -eux; \
+    INSTALL_FLAGS="--filter @workright/web... --filter @workright/config... --filter @workright/profile-schema... --filter @workright/ui... --workspace-root"; \
+    if [ -f pnpm-lock.yaml ]; then \
+      pnpm install ${INSTALL_FLAGS} --frozen-lockfile --prod=false; \
     else \
-      pnpm install \
-        --filter @workright/web... \
-        --filter @workright/config... \
-        --filter @workright/profile-schema... \
-        --filter @workright/ui... \
-        --include-dev-deps \
-        --include-workspace-root \
-        --no-frozen-lockfile \
-        --workspace-root; \
+      pnpm install ${INSTALL_FLAGS} --no-frozen-lockfile --prod=false; \
     fi
 
 FROM base AS builder
