@@ -6,6 +6,8 @@ WORKDIR /app
 
 ENV PNPM_HOME="/usr/local/share/pnpm"
 ENV PATH="${PNPM_HOME}:$PATH"
+ENV NODE_ENV=development
+ENV NPM_CONFIG_PRODUCTION=false
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
