@@ -30,9 +30,9 @@ COPY packages/ui/package.json packages/ui/
 RUN set -eux; \
   INSTALL_FLAGS="--filter @workright/web... --filter @workright/api... --filter @workright/config... --filter @workright/profile-schema... --filter @workright/ui... --workspace-root"; \
   if [ -f pnpm-lock.yaml ]; then \
-    pnpm install ${INSTALL_FLAGS} --frozen-lockfile --prod=false; \
+    pnpm install --frozen-lockfile --prod=false; \
   else \
-    pnpm install ${INSTALL_FLAGS} --no-frozen-lockfile --prod=false; \
+    pnpm install --no-frozen-lockfile --prod=false; \
   fi
 
 COPY . .
