@@ -38,8 +38,7 @@ COPY . .
 RUN pnpm --filter @workright/profile-schema run build \
   && pnpm --filter @workright/config run build \
   && pnpm --filter @workright/api run prisma:generate \
-  && pnpm --filter @workright/api run build \
-  && pnpm prune --prod --filter @workright/api...
+  && pnpm --filter @workright/api run build
 
 FROM node:20-bullseye-slim AS runner
 

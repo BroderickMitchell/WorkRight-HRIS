@@ -57,8 +57,7 @@ COPY . .
 RUN pnpm --filter @workright/profile-schema run build \
   && pnpm --filter @workright/config run build \
   && pnpm --filter @workright/ui run build \
-  && pnpm --filter @workright/web run build \
-  && pnpm prune --prod --filter @workright/web...
+  && pnpm --filter @workright/web run build
 
 FROM node:20-bullseye-slim AS runner
 
