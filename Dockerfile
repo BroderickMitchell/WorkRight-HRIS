@@ -25,6 +25,8 @@ COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
 COPY pnpm-lock.yaml* ./
 COPY apps/api/package.json apps/api/
 COPY apps/api/tsconfig.json apps/api/
+COPY apps/web/package.json apps/web/
+COPY apps/web/tsconfig.json apps/web/
 COPY packages/config/package.json packages/config/
 COPY packages/profile-schema/package.json packages/profile-schema/
 COPY packages/ui/package.json packages/ui/
@@ -36,7 +38,7 @@ RUN pnpm install --filter @workright/web... \
                  --filter @workright/profile-schema... \
                  --filter @workright/ui... \
                  --workspace-root \
-                 --frozen-lockfile --prod=false
+                 --no-frozen-lockfile --prod=false
 
 # Debug tsup installation
 RUN pnpm list tsup
