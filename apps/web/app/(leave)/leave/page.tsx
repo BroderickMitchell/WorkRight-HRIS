@@ -12,7 +12,7 @@ interface LeaveListItem {
 
 function formatRange(item: LeaveListItem) {
   const fmt = new Intl.DateTimeFormat('en-AU', { dateStyle: 'medium' });
-  return `${fmt.format(new Date(item.startDate))} – ${fmt.format(new Date(item.endDate))}`;
+  return `${fmt.format(new Date(item.startDate))} â€“ ${fmt.format(new Date(item.endDate))}`;
 }
 
 export default async function LeavePage() {

@@ -54,7 +54,7 @@ export default async function EmployeeLeavePage({ params }: Props) {
             requests.map((request) => (
               <div key={request.id} className="rounded-lg border border-slate-200 p-4">
                 <p className="font-medium text-slate-900">{request.leaveType?.name ?? 'Leave'}</p>
-                <p className="text-sm text-slate-600">{format(request.startDate)} – {format(request.endDate)}</p>
+                <p className="text-sm text-slate-600">{format(request.startDate)} â€“ {format(request.endDate)}</p>
                 <p className="text-sm text-brand">{request.status}</p>
               </div>
             ))

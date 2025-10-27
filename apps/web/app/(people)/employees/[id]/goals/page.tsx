@@ -35,7 +35,7 @@ export default async function EmployeeGoalsPage({ params }: Props) {
             goals.map((goal) => (
               <div key={goal.id} className="rounded-lg border border-slate-200 p-4">
                 <p className="font-medium text-slate-900">{goal.title}</p>
-                <p className="text-sm text-slate-600">Due {format(goal.dueDate)} • {goal.status}</p>
+                <p className="text-sm text-slate-600">Due {format(goal.dueDate)} â€¢ {goal.status}</p>
                 <p className="text-xs text-slate-500">Weighting {(goal.weighting * 100).toFixed(0)}%</p>
               </div>
             ))
