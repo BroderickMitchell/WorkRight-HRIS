@@ -1,0 +1,60 @@
+# syntax=docker/dockerfile:1
+
+FROM node:20-bullseye-slim AS base
+
+WORKDIR /app
+
+ENV PNPM_HOME="/usr/local/share/pnpm"
+ENV PATH="${PNPM_HOME}:$PATH"
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    python3 \
+    build-essential \
+    openssl \
+  && rm -rf /var/lib/apt/lists/* \
+  && corepack enable
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/api/tsconfig.json apps/api/
+COPY packages/config/package.json packages/config/
+COPY packages/profile-schema/package.json packages/profile-schema/
+COPY packages/ui/package.json packages/ui/
+
+RUN pnpm install \
+  --filter @workright/api... \
+  --filter @workright/profile-schema... \
+  --filter @workright/config... \
+  --include-dev-deps \
+  --include-workspace-root \
+  --workspace-root
+
+COPY . .
+
+RUN pnpm --filter @workright/profile-schema run build \
+  && pnpm --filter @workright/config run build \
+  && pnpm --filter @workright/api run prisma:generate \
+  && pnpm --filter @workright/api run build
+
+FROM node:20-bullseye-slim AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PNPM_HOME="/usr/local/share/pnpm"
+ENV PATH="${PNPM_HOME}:$PATH"
+
+RUN corepack enable
+
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=base /app/apps/api ./apps/api
+COPY --from=base /app/packages ./packages
+COPY --from=base /app/tsconfig.base.json ./tsconfig.base.json
+COPY package.json pnpm-workspace.yaml ./
+
+EXPOSE 3001
+
+CMD ["node", "apps/api/dist/main.js"]
