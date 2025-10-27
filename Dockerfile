@@ -21,7 +21,7 @@ COPY packages/profile-schema/package.json packages/profile-schema/
 COPY packages/ui/package.json packages/ui/
 
 # Install ALL deps (incl. dev) across the workspace
-RUN pnpm install --frozen-lockfile
+RUN pnpm -w install --no-frozen-lockfile
 
 # Now copy sources
 COPY . .
