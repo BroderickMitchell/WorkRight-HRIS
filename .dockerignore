@@ -1,25 +1,86 @@
-# Git and editor files
+# ---------------------------------------------------------
+# General ignores
+# ---------------------------------------------------------
 .git
 .gitignore
-
-# Node / package manager artifacts
-node_modules
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+*.log
 npm-debug.log*
+pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# ---------------------------------------------------------
+# Node / Build artefacts
+# ---------------------------------------------------------
+node_modules
+**/node_modules
+dist
+build
+.cache
+coverage
+*.tsbuildinfo
+
+# ---------------------------------------------------------
+# Environment / Config
+# ---------------------------------------------------------
+.env
+.env.*
+!.env.example
+
+# ---------------------------------------------------------
+# Framework / Tooling caches
+# ---------------------------------------------------------
+.next/cache
+apps/web/.next/cache
+apps/web/.turbo
+apps/api/.turbo
+packages/**/.turbo
+turbo
+.cache-loader
+.storybook
+cypress/videos
+cypress/screenshots
+
+# ---------------------------------------------------------
+# Local and OS junk
+# ---------------------------------------------------------
+*.swp
+*.swo
+*~
+*.tmp
+*.bak
+*.old
+
+# ---------------------------------------------------------
+# Output / build artefacts (handled by Docker COPY --from=build)
+# ---------------------------------------------------------
+apps/web/.next/cache
+apps/web/out
+apps/web/.next/server/**/*.map
+apps/web/.next/static/**/*.map
+apps/web/public/static/**/*.map
+
+# ---------------------------------------------------------
+# pnpm store (optional, speeds up builds if cached explicitly)
+# ---------------------------------------------------------
 .pnpm-store
 
-# Build outputs
-apps/api/dist
-apps/web/.next
-apps/web/out
-coverage
+# ---------------------------------------------------------
+# Ignore test files (optional if not needed in image)
+# ---------------------------------------------------------
+**/__tests__/
+**/*.spec.ts
+**/*.test.ts
+**/*.spec.js
+**/*.test.js
 
-# Local environment files
-.env
-*.local
-apps/api/.env*
-apps/web/.env*
-
-# Docker
-Dockerfile.dev
+# ---------------------------------------------------------
+# Local scripts and docs
+# ---------------------------------------------------------
+scripts/local/*
+docs
+README.md
