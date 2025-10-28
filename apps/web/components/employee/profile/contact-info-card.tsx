@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Controller, Path, useFieldArray, useForm, UseFormReturn } from 'react-hook-form';
+import { Controller, useFieldArray, useForm, UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EmployeeProfilePayload } from '@workright/profile-schema';
