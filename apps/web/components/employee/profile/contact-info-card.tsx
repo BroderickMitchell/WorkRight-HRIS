@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Controller, FieldPath, useFieldArray, useForm, UseFormReturn } from 'react-hook-form';
+import { Controller, useFieldArray, useForm, UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EmployeeProfilePayload } from '@workright/profile-schema';
@@ -276,7 +276,7 @@ function normaliseAddress(address: ContactFormValues['primaryAddress']) {
 
 interface ControlledInputProps {
   label: string;
-  name: FieldPath<ContactFormValues>;
+  name: Path<ContactFormValues>;
   form: UseFormReturn<ContactFormValues>;
   type?: string;
   disabled: boolean;
