@@ -276,7 +276,7 @@ function normaliseAddress(address: ContactFormValues['primaryAddress']) {
 
 interface ControlledInputProps {
   label: string;
-  name: keyof ContactFormValues | `emergencyContacts.${number}.name` | `emergencyContacts.${number}.relationship` | `emergencyContacts.${number}.phone` | `emergencyContacts.${number}.email`;
+  name: Path<ContactFormValues>;
   form: UseFormReturn<ContactFormValues>;
   type?: string;
   disabled: boolean;
@@ -295,7 +295,7 @@ function ControlledInput({ label, name, form, type = 'text', disabled, placehold
       <span className="font-medium text-slate-700">{label}</span>
       <input
         type={type}
-        {...register(name as any)}
+        {...register(name)}
         disabled={disabled}
         placeholder={placeholder}
         className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:cursor-not-allowed disabled:bg-slate-100"
