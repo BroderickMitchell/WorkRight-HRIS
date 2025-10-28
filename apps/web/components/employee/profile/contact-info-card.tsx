@@ -1,12 +1,11 @@
 'use client';
 
-import { Fragment, useEffect } from 'react';
-import { Controller, useFieldArray, useForm, UseFormReturn } from 'react-hook-form';
+import { useEffect } from 'react';
+import { Controller, Path, useFieldArray, useForm, UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EmployeeProfilePayload } from '@workright/profile-schema';
 import { ProfileCard } from './profile-card';
-import clsx from 'clsx';
 
 const addressSchema = z.object({
   line1: z.string().optional().nullable(),
@@ -64,11 +63,6 @@ export function ContactInfoCard({ data, canEdit, onSave, isSaving }: ContactInfo
   return (
     <ProfileCard title="Contact & Address" section="contact" canEdit={canEdit} description="Contact details, addresses and emergency contacts">
       {({ isEditing, markDirty, stopEditing }) => {
-        useEffect(() => {
-          const subscription = form.watch(() => markDirty(form.formState.isDirty));
-          return () => subscription.unsubscribe();
-        }, [form, markDirty]);
-
         const handleCancel = () => {
           form.reset(mapContactToForm(data));
           markDirty(false);
@@ -83,6 +77,7 @@ export function ContactInfoCard({ data, canEdit, onSave, isSaving }: ContactInfo
 
         return (
           <form onSubmit={handleSubmit} className="space-y-4">
+            <FormDirtyTracker form={form} onDirtyChange={markDirty} />
             <div className="grid gap-4 md:grid-cols-2">
               <InputField label="Work email" value={data.workEmail} disabled helper="Managed in identity" />
               <ControlledInput label="Personal email" name="personalEmail" form={form} disabled={!isEditing} type="email" />
@@ -242,6 +237,21 @@ function mapFormToContact(values: ContactFormValues, previous: EmployeeProfilePa
   };
 }
 
+function FormDirtyTracker({
+  form,
+  onDirtyChange
+}: {
+  form: UseFormReturn<ContactFormValues>;
+  onDirtyChange: (dirty: boolean) => void;
+}) {
+  useEffect(() => {
+    const subscription = form.watch(() => onDirtyChange(form.formState.isDirty));
+    return () => subscription.unsubscribe();
+  }, [form, onDirtyChange]);
+
+  return null;
+}
+
 function safeRandomId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -266,7 +276,7 @@ function normaliseAddress(address: ContactFormValues['primaryAddress']) {
 
 interface ControlledInputProps {
   label: string;
-  name: keyof ContactFormValues | `emergencyContacts.${number}.name` | `emergencyContacts.${number}.relationship` | `emergencyContacts.${number}.phone` | `emergencyContacts.${number}.email`;
+  name: Path<ContactFormValues>;
   form: UseFormReturn<ContactFormValues>;
   type?: string;
   disabled: boolean;
@@ -285,7 +295,7 @@ function ControlledInput({ label, name, form, type = 'text', disabled, placehold
       <span className="font-medium text-slate-700">{label}</span>
       <input
         type={type}
-        {...register(name as any)}
+        {...register(name)}
         disabled={disabled}
         placeholder={placeholder}
         className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand disabled:cursor-not-allowed disabled:bg-slate-100"
