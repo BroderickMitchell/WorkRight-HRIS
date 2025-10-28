@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription } from '@workright/ui';
 import { apiFetch, apiPost } from '../../../lib/api';
 
@@ -7,10 +7,16 @@ type Counter = { departmentId: string; department: string; prefix: string; width
 
 export default function PositionIdSettingsPage() {
   const [rows, setRows] = useState<Counter[]>([]);
-  async function load() {
-    try { setRows(await apiFetch<any[]>(`/v1/admin/position_id_settings`, { roles: 'HR_ADMIN' })); } catch { setRows([]); }
-  }
-  useEffect(() => { load(); }, []);
+  const load = useCallback(async () => {
+    try {
+      setRows(await apiFetch<any[]>(`/v1/admin/position_id_settings`, { roles: 'HR_ADMIN' }));
+    } catch {
+      setRows([]);
+    }
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
   async function update(idx: number, patch: Partial<{ width: number; hyphenStyle: boolean }>) {
     const c = rows[idx];
     const body: any = {};
