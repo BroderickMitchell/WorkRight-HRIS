@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
-import { PassThrough } from 'stream';
+import type PDFKit from 'pdfkit';
+import { Buffer } from 'node:buffer';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import { randomUUID } from 'node:crypto';
 import type { DocumentFormat } from '@workright/profile-schema';
@@ -48,9 +49,8 @@ export class DocumentGenerationService {
   private generatePdf(content: string, templateName: string): Promise<GeneratedArtifact> {
     return new Promise((resolve, reject) => {
       try {
-        const doc = new PDFDocument({ size: 'A4', margin: 72 });
-        const stream = new PassThrough();
-        doc.pipe(stream);
+        const doc = new PDFDocument({ size: 'A4', margin: 72 }) as PDFKit.PDFDocument &
+          NodeJS.EventEmitter;
         const chunks: Buffer[] = [];
         stream.on('data', (chunk: Buffer) => chunks.push(chunk));
         stream.on('end', () => {
