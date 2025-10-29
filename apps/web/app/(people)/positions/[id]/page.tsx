@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, Button, Badge } from '@workright/ui';
 import { apiFetch, apiPost } from '../../../../lib/api';
@@ -21,11 +21,13 @@ export default function PositionDetailPage() {
   const id = String(params?.id ?? '');
   const [pos, setPos] = useState<Position | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     const data = await apiFetch<Position>(`/v1/positions/${id}`);
     setPos(data);
-  }
-  useEffect(() => { if (id) load(); }, [id]);
+  }, [id]);
+  useEffect(() => {
+    if (id) load();
+  }, [id, load]);
 
   async function submit() {
     await apiPost(`/v1/positions/${id}/submit`, {}, { roles: 'HR_ADMIN,HRBP' });
