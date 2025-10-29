@@ -1,4 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams()
+}));
 import { render, screen } from '@testing-library/react';
 
 // Stub fetch for client pages that use apiFetch/useEffect
@@ -24,12 +28,6 @@ describe('App pages render', () => {
     expect(screen.getByRole('heading', { name: /Travel & accommodation/i })).toBeInTheDocument();
   });
 
-  it('Rosters page renders heading', () => {
-    const RostersPage = require('../rosters/page').default as () => JSX.Element;
-    render(<RostersPage />);
-    expect(screen.getByRole('heading', { name: /Rosters/i })).toBeInTheDocument();
-  });
-
   it('Payroll page renders heading', () => {
     const PayrollPage = require('../payroll/page').default as () => JSX.Element;
     render(<PayrollPage />);
@@ -40,6 +38,13 @@ describe('App pages render', () => {
     const SettingsPage = require('../settings/page').default as () => JSX.Element;
     render(<SettingsPage />);
     expect(screen.getByRole('heading', { name: /Settings/i })).toBeInTheDocument();
+  });
+
+  it('Settings roster tab renders heading', () => {
+    const SettingsRostersPage = require('../settings/rosters/page').default as () => JSX.Element;
+    render(<SettingsRostersPage />);
+    expect(screen.getByRole('heading', { name: /Settings/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Roster templates/i })).toHaveAttribute('aria-pressed', 'true');
   });
 });
 

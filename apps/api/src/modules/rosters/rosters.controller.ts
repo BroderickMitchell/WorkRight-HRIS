@@ -17,7 +17,9 @@ export class RostersController {
 
   @Get('assignments')
   @Roles('HR_ADMIN', 'MANAGER', 'PAYROLL', 'AUDITOR')
-  listAssignments(): any { return this.rosters.listAssignments(); }
+  listAssignments(@Query('employeeId') employeeId?: string): any {
+    return this.rosters.listAssignments(employeeId);
+  }
 
   @Post('assignments')
   @Roles('HR_ADMIN', 'MANAGER')
