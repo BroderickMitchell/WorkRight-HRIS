@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "packageManager": "pnpm@8.15.5",
   "scripts": {
+    "postinstall": "node scripts/bootstrap-env.mjs",
     "lint": "pnpm -r lint",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
