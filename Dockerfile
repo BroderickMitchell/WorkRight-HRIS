@@ -66,7 +66,7 @@ COPY --from=build /app/apps/api/dist apps/api/dist
 COPY --from=build /app/apps/api/prisma apps/api/prisma
 
 ENV NODE_ENV=production
-EXPOSE 3000
+EXPOSE 3001
 CMD ["node", "apps/api/dist/main.js"]
 
 # ---------- runtime-web ----------
