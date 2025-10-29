@@ -36,7 +36,7 @@ RUN pnpm --filter ./packages/profile-schema run build \
  && pnpm --filter ./packages/config run build
 
 # API: prisma + build
-RUN pnpm --filter @workright/api run prisma:generate \
+RUN pnpm --filter @workright/api exec prisma generate --schema prisma/schema.prisma \
  && pnpm --filter ./apps/api run build
 
 # Web: Next.js build (expects output: 'standalone' in apps/web/next.config.js)
