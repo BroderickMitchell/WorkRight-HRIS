@@ -58,9 +58,6 @@ COPY --from=build /app/packages/config/package.json packages/config/
 COPY --from=build /app/packages/profile-schema/package.json packages/profile-schema/
 COPY --from=build /app/packages/ui/package.json packages/ui/
 COPY --from=build /app/scripts scripts/
-COPY --from=build /app/packages/config packages/config
-COPY --from=build /app/packages/profile-schema packages/profile-schema
-COPY --from=build /app/packages/ui packages/ui
 
 # Prod-only install for API and deps
 RUN pnpm -w --filter ./apps/api... install --prod --no-frozen-lockfile
