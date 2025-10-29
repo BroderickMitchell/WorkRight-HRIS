@@ -22,6 +22,7 @@ import { PrismaModule } from '../common/prisma.module.js';
 import { TenantGuard } from '../common/tenant.guard.js';
 import { RolesGuard } from '../common/auth/roles.guard.js';
 import { AuditModule } from '../common/audit.module.js';
+import { AuthModule } from '../common/auth/auth.module.js';
 import configuration from '../common/configuration.js';
 import { HealthController } from '../common/health.controller.js';
 import { RedactionInterceptor } from '../common/security/redaction.interceptor.js';
@@ -35,6 +36,7 @@ import { RedactionInterceptor } from '../common/security/redaction.interceptor.j
     }),
     PrismaModule,
     AuditModule,
+    AuthModule,
     IdentityModule,
     DirectoryModule,
     PerformanceModule,

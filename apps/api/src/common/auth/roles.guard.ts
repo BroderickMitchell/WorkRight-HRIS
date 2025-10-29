@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY, AppRole } from './roles.decorator.js';
-import { mergeRoles, appRolesToRoleKeys } from './role-mapping.js';
+import { appRolesToRoleKeys, isAppRole } from './role-mapping.js';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -14,21 +14,13 @@ export class RolesGuard implements CanActivate {
     ]);
 
     const req = context.switchToHttp().getRequest();
-    const existingRoles: AppRole[] = req.appRoles ?? [];
-    const userRoles = Array.isArray(req.user?.roles)
-      ? (req.user.roles as (string | undefined)[]).filter((role): role is string => typeof role === 'string' && role.length > 0)
-      : undefined;
-    const headerRolesRaw = Array.isArray(req.headers['x-roles'])
-      ? req.headers['x-roles'].join(',')
-      : (req.headers['x-roles'] as string | undefined);
-
-    const { appRoles } = mergeRoles(
-      [
-        existingRoles.length ? existingRoles.join(',') : undefined,
-        userRoles?.length ? userRoles.join(',') : undefined,
-        headerRolesRaw
-      ]
-    );
+    const appRoles: AppRole[] = Array.isArray(req.appRoles)
+      ? req.appRoles
+      : Array.isArray(req.user?.roles)
+        ? (req.user.roles as (string | undefined)[]).filter(
+            (role): role is AppRole => typeof role === 'string' && isAppRole(role)
+          )
+        : [];
 
     req.appRoles = appRoles;
     if (!req.roleKeys || req.roleKeys.length === 0) {
@@ -39,8 +31,8 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    if (!appRoles.length) throw new UnauthorizedException('Missing roles');
-    const ok = required.some((role) => appRoles.includes(role));
+    if (!req.appRoles.length) throw new UnauthorizedException('Missing roles');
+    const ok = required.some((role) => req.appRoles.includes(role));
     if (!ok) throw new ForbiddenException('Insufficient role');
     return true;
   }

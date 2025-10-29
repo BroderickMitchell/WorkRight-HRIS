@@ -5,6 +5,18 @@ declare module 'express-serve-static-core' {
   interface Request {
     appRoles?: AppRole[];
     roleKeys?: RoleKey[];
+    tenantId?: string;
+  }
+}
+
+declare global {
+  namespace Express {
+    interface User {
+      id?: string;
+      email?: string;
+      tenantId?: string;
+      roles?: string[] | AppRole[];
+    }
   }
 }
 
