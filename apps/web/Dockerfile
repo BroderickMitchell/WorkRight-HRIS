@@ -26,6 +26,7 @@ COPY apps/web/package.json apps/web/
 COPY packages/config/package.json packages/config/
 COPY packages/profile-schema/package.json packages/profile-schema/
 COPY packages/ui/package.json packages/ui/
+COPY scripts/bootstrap-env.mjs scripts/
 
 RUN set -eux; \
     INSTALL_FLAGS="--filter @workright/web... --filter @workright/config... --filter @workright/profile-schema... --filter @workright/ui... --workspace-root"; \
