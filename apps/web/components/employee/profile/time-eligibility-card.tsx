@@ -208,7 +208,7 @@ function ToggleField({
           <input
             type="checkbox"
             className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
-            checked={field.value}
+            checked={Boolean(field.value)}
             onChange={(event) => field.onChange(event.target.checked)}
             disabled={disabled}
           />
