@@ -88,7 +88,11 @@ Individual packages expose additional scripts (for example, `pnpm --filter api t
 
 ### Environment variables
 
-Copy `.env.example` into each app and adjust as required.
+Copy `.env.example` into each app and adjust as required. For the API workspace this ensures Prisma can read `DATABASE_URL` when running migrations:
+
+```bash
+cp apps/api/.env.example apps/api/.env
+```
 
 - `DATABASE_URL` – Postgres connection string (RLS enabled)
 - `REDIS_URL` – Redis for BullMQ queues
