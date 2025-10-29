@@ -2,14 +2,22 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { ButtonHTMLAttributes, forwardRef } from 'react';
 import { cn } from '../utils/cn';
 
+/**
+ * WorkRight button primitive built on the semantic design tokens.
+ *
+ * Example:
+ * ```tsx
+ * <Button variant="secondary" size="sm">View details</Button>
+ * ```
+ */
 const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-md border text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-60',
+  'inline-flex items-center justify-center rounded-md border text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-60',
   {
     variants: {
       variant: {
-        primary: 'bg-brand text-white border-transparent hover:bg-brand/90',
-        secondary: 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
-        ghost: 'text-brand hover:bg-brand/10 border-transparent'
+        primary: 'bg-primary text-primary-foreground border-transparent hover:bg-primary/90',
+        secondary: 'border-border bg-panel text-foreground hover:bg-panel/80',
+        ghost: 'border-transparent text-primary hover:bg-primary/10'
       },
       size: {
         sm: 'h-8 px-3',

@@ -1,87 +1,103 @@
-﻿import Link from 'next/link';
-import { Card, CardDescription, CardHeader, CardTitle, Badge, Button } from '@workright/ui';
+import Link from 'next/link';
 import {
-  sampleReports,
-  sampleLeave,
-  sampleGoals,
-  sampleTasks,
-  sampleWorkflows
-} from '../../../lib/sample-data';
+  Badge,
+  Button,
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  EmptyState,
+  KpiCard,
+  PageActions,
+  PageHeader,
+  StatGrid
+} from '@workright/ui';
+import { sampleEmployees, sampleLeave, sampleReports, sampleTasks, sampleWorkflows } from '../../../lib/sample-data';
 
-const quickLinks = [
+const anniversaries = sampleEmployees.slice(0, 3).map((employee, index) => ({
+  id: `anniv-${employee.id}`,
+  name: employee.name,
+  role: employee.role,
+  date: index === 0 ? '12 Aug' : index === 1 ? '23 Aug' : '1 Sep'
+}));
+
+const expiringDocuments = [
   {
-    href: '/employees',
-    label: 'People directory',
-    description: 'Maintain employee central records and reporting lines.',
-    badge: 'Directory'
+    id: 'doc-1',
+    title: 'High risk work licence',
+    owner: 'Sienna Surveyor',
+    due: 'Due in 14 days'
   },
   {
-    href: '/goals',
-    label: 'Performance & goals',
-    description: 'Set OKRs, track progress, and gather feedback.',
-    badge: 'Performance'
-  },
-  {
-    href: '/leave',
-    label: 'Leave & time off',
-    description: 'Review balances, approvals, and calendars.',
-    badge: 'Leave'
-  },
-  {
-    href: '/reports',
-    label: 'Reports & exports',
-    description: 'Headcount, attrition, and compliance insights.',
-    badge: 'Reporting'
+    id: 'doc-2',
+    title: 'Working at heights certification',
+    owner: 'Noah Navigator',
+    due: 'Due in 30 days'
   }
 ];
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-10" aria-label="Dashboard overview">
-      <section aria-label="Quick links" className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-900">Jump back in</h2>
-          <p className="text-sm text-slate-500">Tailored shortcuts for your organisation</p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {quickLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="group flex h-full flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-brand/50 hover:shadow-md"
-            >
-              <span className="inline-flex items-center self-start rounded-full bg-brand/10 px-3 py-1 text-xs font-medium uppercase tracking-wide text-brand">
-                {link.badge}
-              </span>
-              <div className="mt-4 space-y-2">
-                <p className="text-lg font-semibold text-slate-900">{link.label}</p>
-                <p className="text-sm text-slate-600">{link.description}</p>
-              </div>
-              <span className="mt-8 inline-flex items-center text-sm font-medium text-brand">
-                Explore
-                <span className="ml-1 transition group-hover:translate-x-1">?</span>
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
+    <div className="space-y-8">
+      <PageHeader
+        title="Executive dashboard"
+        subtitle="Monitor key workforce metrics and outstanding approvals across the enterprise."
+        breadcrumb={<span>Overview · Dashboard</span>}
+        actions={
+          <PageActions>
+            <Button variant="ghost" asChild>
+              <Link href="/reports">View reports</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/workflows/instances?create=workflow">Start workflow</Link>
+            </Button>
+          </PageActions>
+        }
+      />
 
-      <section className="grid gap-6 lg:grid-cols-2" aria-label="Tasks and workflows">
+      <StatGrid columns={4}>
+        <KpiCard
+          label="Headcount"
+          value={sampleReports.headcount}
+          delta="▲ 6% vs last quarter"
+          trend="up"
+        />
+        <KpiCard
+          label="Open requisitions"
+          value={12}
+          delta="3 requiring approval"
+          trend="flat"
+        />
+        <KpiCard
+          label="Pending leave"
+          value={sampleLeave.filter((leave) => leave.status.toLowerCase().includes('pending')).length}
+          delta="1 urgent request"
+          trend="down"
+        />
+        <KpiCard
+          label="Overdue training"
+          value={4}
+          delta="▲ 1 this week"
+          trend="up"
+        />
+      </StatGrid>
+
+      <div className="grid gap-6 xl:grid-cols-2">
         <Card>
           <CardHeader className="flex items-center justify-between">
             <div>
-              <CardTitle>Tasks awaiting you</CardTitle>
-              <CardDescription>Prioritise what needs your attention today.</CardDescription>
+              <CardTitle>My approvals</CardTitle>
+              <CardDescription>Approve leave, job requisitions and workflow steps.</CardDescription>
             </div>
-            <Button variant="ghost" size="sm">
-              View all
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/workflows/instances">View inbox</Link>
             </Button>
           </CardHeader>
-          <div className="space-y-4 p-6 pt-0">
+          <div className="space-y-3 p-6 pt-0">
             {sampleTasks.map((task) => (
-              <div key={task.id} className="rounded-xl border border-slate-200 bg-white p-4">
-                <p className="font-medium text-slate-900">{task.title}</p>
-                <p className="text-sm text-slate-600">Due {task.dueDate} Â· {task.context}</p>
+              <div key={task.id} className="rounded-xl border border-border bg-panel/60 p-4">
+                <p className="font-medium text-foreground">{task.title}</p>
+                <p className="text-sm text-muted-foreground">Due {task.dueDate} · {task.context}</p>
               </div>
             ))}
           </div>
@@ -89,105 +105,76 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex items-center justify-between">
             <div>
-              <CardTitle>Pending workflows</CardTitle>
-              <CardDescription>Track approvals and reviews in flight.</CardDescription>
+              <CardTitle>Workflow instances</CardTitle>
+              <CardDescription>Keep onboarding, change and compliance moving.</CardDescription>
             </div>
-            <Button variant="ghost" size="sm">
-              Manage
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/workflows">Manage library</Link>
             </Button>
           </CardHeader>
-          <div className="space-y-4 p-6 pt-0">
+          <div className="space-y-3 p-6 pt-0">
             {sampleWorkflows.map((workflow) => (
-              <div key={workflow.id} className="rounded-xl border border-slate-200 bg-white p-4">
-                <p className="font-medium text-slate-900">{workflow.title}</p>
-                <p className="text-sm text-slate-600">{workflow.currentStep}</p>
-                <p className="text-xs text-slate-400">Submitted {workflow.submitted}</p>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label="Snapshot">
-        <Card>
-          <CardHeader>
-            <CardTitle>Headcount</CardTitle>
-          </CardHeader>
-          <p className="text-3xl font-semibold">{sampleReports.headcount}</p>
-          <CardDescription>Team members employed across all sites.</CardDescription>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Attrition</CardTitle>
-          </CardHeader>
-          <p className="text-3xl font-semibold">{sampleReports.attritionRate}</p>
-          <CardDescription>Rolling twelve-month turnover.</CardDescription>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Leave balance</CardTitle>
-          </CardHeader>
-          <p className="text-3xl font-semibold">{sampleReports.leaveBalance}</p>
-          <CardDescription>Annual leave owing as at today.</CardDescription>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Reviews</CardTitle>
-          </CardHeader>
-          <p className="text-3xl font-semibold">{sampleReports.reviewCompletion}</p>
-          <CardDescription>FY24 performance cycle progress.</CardDescription>
-        </Card>
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-2" aria-label="Priority panels">
-        <Card>
-          <CardHeader>
-            <CardTitle>Upcoming goals</CardTitle>
-            <Button variant="ghost" size="sm">
-              View board
-            </Button>
-          </CardHeader>
-          <div className="space-y-4">
-            {sampleGoals.map((goal) => (
-              <div key={goal.id} className="rounded-lg border border-slate-200 p-4">
+              <div key={workflow.id} className="rounded-xl border border-border bg-panel/60 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="font-medium text-slate-900">{goal.title}</p>
-                    <p className="text-sm text-slate-600">
-                      Owner: {goal.owner} · Due {goal.dueDate}
-                    </p>
+                    <p className="font-medium text-foreground">{workflow.title}</p>
+                    <p className="text-sm text-muted-foreground">{workflow.currentStep}</p>
                   </div>
-                  <Badge>{Math.round(goal.progress * 100)}% complete</Badge>
+                  <Badge>{workflow.submitted}</Badge>
                 </div>
-                <p className="mt-2 text-sm text-slate-500">Alignment: {goal.alignment}</p>
               </div>
             ))}
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="flex items-center justify-between">
+            <div>
+              <CardTitle>Upcoming anniversaries</CardTitle>
+              <CardDescription>Celebrate tenure milestones over the next 60 days.</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm">Download CSV</Button>
+          </CardHeader>
+          <div className="space-y-4 p-6 pt-0">
+            {anniversaries.length === 0 ? (
+              <EmptyState
+                title="No anniversaries"
+                description="We'll surface upcoming work anniversaries once employee start dates are captured."
+              />
+            ) : (
+              anniversaries.map((anniversary) => (
+                <div key={anniversary.id} className="flex items-center justify-between rounded-xl border border-border p-4">
+                  <div>
+                    <p className="font-medium text-foreground">{anniversary.name}</p>
+                    <p className="text-sm text-muted-foreground">{anniversary.role}</p>
+                  </div>
+                  <span className="text-sm font-semibold text-primary">{anniversary.date}</span>
+                </div>
+              ))
+            )}
           </div>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle>Leave requests</CardTitle>
-            <Button variant="ghost" size="sm">
-              View calendar
-            </Button>
+          <CardHeader className="flex items-center justify-between">
+            <div>
+              <CardTitle>Expiring compliance</CardTitle>
+              <CardDescription>Licences and inductions approaching expiry.</CardDescription>
+            </div>
+            <Button variant="ghost" size="sm">View compliance hub</Button>
           </CardHeader>
-          <div className="space-y-3">
-            {sampleLeave.map((request) => (
-              <div key={request.id} className="rounded-lg border border-slate-200 p-4">
-                <p className="font-medium text-slate-900">{request.employee}</p>
-                <p className="text-sm text-slate-600">
-                  {request.type} · {request.period}
-                </p>
-                <p className="text-sm text-brand">{request.status}</p>
+          <div className="space-y-4 p-6 pt-0">
+            {expiringDocuments.map((doc) => (
+              <div key={doc.id} className="rounded-xl border border-border p-4">
+                <p className="font-medium text-foreground">{doc.title}</p>
+                <p className="text-sm text-muted-foreground">Owned by {doc.owner}</p>
+                <p className="text-xs text-warning">{doc.due}</p>
               </div>
             ))}
           </div>
         </Card>
-      </section>
+      </div>
     </div>
   );
 }
-
-
-
-
