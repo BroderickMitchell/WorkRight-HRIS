@@ -40,18 +40,19 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: runtime-api
     env_file: ./apps/api/.env
     depends_on:
       - db
       - redis
     ports:
       - "3001:3001"
-    command: pnpm start:dev
 
   web:
     build:
       context: .
-      dockerfile: apps/web/Dockerfile
+      dockerfile: Dockerfile
+      target: runtime-web
     env_file: ./apps/web/.env
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3001
@@ -59,7 +60,6 @@ services:
       - api
     ports:
       - "3000:3000"
-    command: pnpm dev
 
 volumes:
   pgdata:
