@@ -9,6 +9,8 @@ import { AppChrome } from '../components/app-chrome';
 import { getNavigationSections } from '../lib/navigation';
 import { getTenantCssVariables, getTenantSettings } from '../lib/tenant';
 
+export const dynamic = 'force-dynamic';
+
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
