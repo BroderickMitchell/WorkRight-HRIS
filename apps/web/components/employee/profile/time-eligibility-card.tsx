@@ -188,6 +188,10 @@ function InputField({
   );
 }
 
+type BooleanFieldName = {
+  [K in keyof TimeEligibilityFormValues]: TimeEligibilityFormValues[K] extends boolean ? K : never;
+}[keyof TimeEligibilityFormValues];
+
 function ToggleField({
   label,
   control,
@@ -196,7 +200,7 @@ function ToggleField({
 }: {
   label: string;
   control: Control<TimeEligibilityFormValues>;
-  name: keyof TimeEligibilityFormValues;
+  name: BooleanFieldName;
   disabled: boolean;
 }) {
   return (
@@ -208,7 +212,7 @@ function ToggleField({
           <input
             type="checkbox"
             className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
-            checked={field.value}
+            checked={Boolean(field.value)}
             onChange={(event) => field.onChange(event.target.checked)}
             disabled={disabled}
           />
