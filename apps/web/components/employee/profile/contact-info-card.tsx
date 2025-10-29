@@ -36,6 +36,16 @@ const contactFormSchema = z.object({
 
 type ContactFormValues = z.infer<typeof contactFormSchema>;
 
+type AddressFieldPath = keyof ContactFormValues['primaryAddress'] & string;
+type EmergencyContactFieldPath = keyof ContactFormValues['emergencyContacts'][number] & string;
+type ContactFieldPath =
+  | 'personalEmail'
+  | 'workPhone'
+  | 'mobilePhone'
+  | `primaryAddress.${AddressFieldPath}`
+  | `mailingAddress.${AddressFieldPath}`
+  | `emergencyContacts.${number}.${EmergencyContactFieldPath}`;
+
 interface ContactInfoCardProps {
   data: EmployeeProfilePayload['contact'];
   canEdit: boolean;
