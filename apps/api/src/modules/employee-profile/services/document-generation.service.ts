@@ -52,8 +52,8 @@ export class DocumentGenerationService {
         const doc = new PDFDocument({ size: 'A4', margin: 72 }) as PDFKit.PDFDocument &
           NodeJS.EventEmitter;
         const chunks: Buffer[] = [];
-        doc.on('data', (chunk: Buffer) => chunks.push(chunk));
-        doc.on('end', () => {
+        stream.on('data', (chunk: Buffer) => chunks.push(chunk));
+        stream.on('end', () => {
           const buffer = Buffer.concat(chunks);
           resolve({
             buffer,
@@ -61,7 +61,7 @@ export class DocumentGenerationService {
             filename: `${this.normaliseFilename(templateName)}-${randomUUID()}.pdf`
           });
         });
-        doc.on('error', (err: unknown) => reject(err));
+        stream.on('error', (err: unknown) => reject(err));
         doc.fontSize(18).text(templateName, { underline: true });
         doc.moveDown();
         doc.fontSize(12).text(content, { lineGap: 6 });
