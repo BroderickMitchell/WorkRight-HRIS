@@ -11,6 +11,10 @@
     "resolveJsonModule": true,
     "allowJs": false,
     "types": ["node"],
+    "typeRoots": [
+      "./types", // Local stub packages keep the workspace compiling without a registry.
+      "./node_modules/@types"
+    ],
     "baseUrl": "."
   }
 }
