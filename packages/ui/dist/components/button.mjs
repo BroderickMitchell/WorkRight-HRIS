@@ -1,5 +1,5 @@
 import { cva } from 'class-variance-authority';
-import { forwardRef } from 'react';
+import { cloneElement, forwardRef, isValidElement } from 'react';
 import { jsx } from 'react/jsx-runtime';
 import { cn } from '../utils/cn.mjs';
 
@@ -25,8 +25,24 @@ export const buttonVariants = cva(
   }
 );
 
-export const Button = forwardRef(function Button({ className, variant, size, ...props }, ref) {
-  return jsx('button', { ref, className: cn(buttonVariants({ variant, size }), className), ...props });
+export const Button = forwardRef(function Button(
+  { className, variant, size, asChild = false, children, ...props },
+  ref
+) {
+  const composedClassName = cn(buttonVariants({ variant, size }), className);
+  if (asChild && isValidElement(children)) {
+    return cloneElement(children, {
+      ref,
+      className: cn(composedClassName, children.props?.className),
+      ...props
+    });
+  }
+  return jsx('button', {
+    ref,
+    className: composedClassName,
+    ...props,
+    children
+  });
 });
 
 Button.displayName = 'Button';
