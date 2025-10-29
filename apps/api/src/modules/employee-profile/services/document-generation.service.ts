@@ -3,7 +3,7 @@ import PDFDocument from 'pdfkit';
 import type PDFKit from 'pdfkit';
 import { PassThrough } from 'node:stream';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
-import { randomUUID } from 'node:crypto';
+import { randomUUID } from 'crypto';
 import type { DocumentFormat } from '@workright/profile-schema';
 
 interface GeneratedArtifact {
