@@ -48,11 +48,13 @@ export function hexToRgbString(hex: string) {
   return `${r} ${g} ${b}`;
 }
 
-export function getTenantCssVariables(settings = getTenantSettings()): CSSProperties {
+type CSSVariableProperties = CSSProperties & Record<`--${string}`, string>;
+
+export function getTenantCssVariables(settings = getTenantSettings()): CSSVariableProperties {
   const cssVariables = {
     '--wr-primary': hexToRgbString(settings.brandingPrimaryColor ?? '#004c97'),
     '--wr-accent': hexToRgbString(settings.brandingAccentColor ?? '#5046e5')
-  } satisfies CSSProperties;
+  } satisfies CSSVariableProperties;
 
   return cssVariables;
 }
