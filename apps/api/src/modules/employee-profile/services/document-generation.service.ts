@@ -49,7 +49,7 @@ export class DocumentGenerationService {
       try {
         const doc = new PDFDocument({ size: 'A4', margin: 72 });
         const chunks: Buffer[] = [];
-        doc.on('data', (chunk) => chunks.push(chunk as Buffer));
+        doc.on('data', (chunk: unknown) => chunks.push(chunk as Buffer));
         doc.on('end', () => {
           const buffer = Buffer.concat(chunks);
           resolve({
@@ -58,7 +58,7 @@ export class DocumentGenerationService {
             filename: `${this.normaliseFilename(templateName)}-${randomUUID()}.pdf`
           });
         });
-        doc.on('error', (err) => reject(err));
+        doc.on('error', (err: unknown) => reject(err));
         doc.fontSize(18).text(templateName, { underline: true });
         doc.moveDown();
         doc.fontSize(12).text(content, { lineGap: 6 });
