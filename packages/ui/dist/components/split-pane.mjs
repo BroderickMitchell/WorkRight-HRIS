@@ -1,3 +1,5 @@
+"use client";
+
 import { jsxs, jsx } from 'react/jsx-runtime';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { PanelRightClose, PanelRightOpen } from 'lucide-react';
