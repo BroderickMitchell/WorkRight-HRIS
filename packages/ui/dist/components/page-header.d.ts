@@ -18,4 +18,4 @@ declare function PageActions({ children, className }: {
     className?: string;
 }): react_jsx_runtime.JSX.Element;
 
-export { PageActions, PageHeader, PageHeaderProps };
+export { PageActions, PageHeader, type PageHeaderProps };

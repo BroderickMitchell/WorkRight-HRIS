@@ -54,8 +54,8 @@ RUN pnpm --filter ./apps/web run build
 # the NestJS packages required by the API bundle which leads to runtime
 # failures (e.g. `Cannot find module '@nestjs/common'`). By scoping the prune
 # command to the API workspace we retain the dependencies it needs while still
-# discarding unnecessary dev dependencies. The Docker image pins pnpm to the
-# workspace version (8.15.5) so that the CLI behaviour remains stable.
+# discarding unnecessary dev dependencies. (The filter flag must precede the
+# command when used with pnpm 9+.)
 RUN pnpm --filter @workright/api... prune --prod
 
 # ---------- runtime-api ----------
