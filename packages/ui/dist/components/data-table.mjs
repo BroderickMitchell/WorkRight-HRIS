@@ -1,3 +1,5 @@
+"use client";
+
 import { jsxs, jsx, Fragment } from 'react/jsx-runtime';
 import { useMemo, useState } from 'react';
 import {
