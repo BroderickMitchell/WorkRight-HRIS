@@ -266,8 +266,12 @@ export function EmployeeProfileShell({ employeeId }: EmployeeProfileShellProps) 
           <CostSplitsCard
             splits={currentCostSplits}
             canManage={profile.permissions.canManageCostSplits}
-            onSave={(splits) => costSplitMutation.mutateAsync(splits)}
-            onDelete={(splitId) => costSplitDeleteMutation.mutateAsync(splitId)}
+            onSave={async (splits) => {
+              await costSplitMutation.mutateAsync(splits);
+            }}
+            onDelete={async (splitId) => {
+              await costSplitDeleteMutation.mutateAsync(splitId);
+            }}
             isMutating={costSplitMutation.isPending || costSplitDeleteMutation.isPending || isCostSplitLoading}
           />
           <DocumentsCard
