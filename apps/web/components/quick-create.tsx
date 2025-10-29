@@ -1,7 +1,7 @@
 'use client';
 
 import { Menu } from '@headlessui/react';
-import { Plus, UserPlus, BriefcasePlus, PlaneTakeoff, Workflow } from 'lucide-react';
+import { Plus, UserPlus, Briefcase, PlaneTakeoff, Workflow } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { ReactNode } from 'react';
 import { Button, cn } from '@workright/ui';
@@ -26,7 +26,7 @@ const QUICK_ACTIONS: QuickCreateAction[] = [
     id: 'job',
     label: 'Job Requisition',
     description: 'Start a requisition for a new role',
-    icon: <BriefcasePlus className="h-4 w-4" aria-hidden />,
+    icon: <Briefcase className="h-4 w-4" aria-hidden />,
     href: '/jobs?create=requisition'
   },
   {

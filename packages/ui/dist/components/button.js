@@ -1,5 +1,5 @@
 const { cva } = require('class-variance-authority');
-const { forwardRef } = require('react');
+const { cloneElement, forwardRef, isValidElement } = require('react');
 const { jsx } = require('react/jsx-runtime');
 const { cn } = require('../utils/cn');
 
@@ -25,8 +25,24 @@ const buttonVariants = cva(
   }
 );
 
-const Button = forwardRef(function Button({ className, variant, size, ...props }, ref) {
-  return jsx('button', { ref, className: cn(buttonVariants({ variant, size }), className), ...props });
+const Button = forwardRef(function Button(
+  { className, variant, size, asChild = false, children, ...props },
+  ref
+) {
+  const composedClassName = cn(buttonVariants({ variant, size }), className);
+  if (asChild && isValidElement(children)) {
+    return cloneElement(children, {
+      ref,
+      className: cn(composedClassName, children.props?.className),
+      ...props
+    });
+  }
+  return jsx('button', {
+    ref,
+    className: composedClassName,
+    ...props,
+    children
+  });
 });
 
 Button.displayName = 'Button';
