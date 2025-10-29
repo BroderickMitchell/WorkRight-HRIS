@@ -40,6 +40,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: runtime-api
     env_file: ./apps/api/.env
     depends_on:
       - db
@@ -51,7 +52,8 @@ services:
   web:
     build:
       context: .
-      dockerfile: apps/web/Dockerfile
+      dockerfile: Dockerfile
+      target: runtime-web
     env_file: ./apps/web/.env
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3001
