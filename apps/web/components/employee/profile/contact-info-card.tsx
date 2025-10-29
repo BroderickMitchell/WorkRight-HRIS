@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Controller, useFieldArray, useForm } from 'react-hook-form';
-import type { FieldPath, UseFormReturn } from 'react-hook-form';
+import { Controller, useFieldArray, useForm, UseFormReturn } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EmployeeProfilePayload } from '@workright/profile-schema';
@@ -39,15 +38,13 @@ type ContactFormValues = z.infer<typeof contactFormSchema>;
 
 type AddressFieldPath = keyof ContactFormValues['primaryAddress'] & string;
 type EmergencyContactFieldPath = keyof ContactFormValues['emergencyContacts'][number] & string;
-type BaseContactFieldPath =
+type ContactFieldPath =
   | 'personalEmail'
   | 'workPhone'
   | 'mobilePhone'
   | `primaryAddress.${AddressFieldPath}`
   | `mailingAddress.${AddressFieldPath}`
   | `emergencyContacts.${number}.${EmergencyContactFieldPath}`;
-
-type ContactFieldPath = Extract<FieldPath<ContactFormValues>, BaseContactFieldPath>;
 
 interface ContactInfoCardProps {
   data: EmployeeProfilePayload['contact'];
@@ -289,7 +286,7 @@ function normaliseAddress(address: ContactFormValues['primaryAddress']) {
 
 interface ControlledInputProps {
   label: string;
-  name: ContactFieldPath;
+  name: Path<ContactFormValues>;
   form: UseFormReturn<ContactFormValues>;
   type?: string;
   disabled: boolean;
