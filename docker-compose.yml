@@ -47,6 +47,7 @@ services:
       - redis
     ports:
       - "3001:3001"
+    command: ["node", "apps/api/dist/main.js"]
 
   web:
     build:
@@ -60,6 +61,7 @@ services:
       - api
     ports:
       - "3000:3000"
+    command: ["node", "apps/web/server.js"]
 
 volumes:
   pgdata:
