@@ -36,37 +36,34 @@ RUN pnpm --filter ./packages/profile-schema run build \
  && pnpm --filter ./packages/config run build
 
 # API: prisma + build
-RUN pnpm --filter ./apps/api run prisma:generate \
+RUN pnpm --filter @workright/api exec prisma generate --schema apps/api/prisma/schema.prisma \
  && pnpm --filter ./apps/api run build
 
 # Web: Next.js build (expects output: 'standalone' in apps/web/next.config.js)
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter ./apps/web run build
 
+# Drop dev-only dependencies prior to packaging runtime images
+RUN pnpm prune --prod
+
 # ---------- runtime-api ----------
-FROM node:20-alpine AS runtime-api
+FROM node:20-bullseye-slim AS runtime-api
 WORKDIR /app
 
-ENV PNPM_HOME=/usr/local/share/pnpm
-ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Minimal manifests so pnpm can install prod deps only for API and its graph
-COPY --from=build /app/pnpm-workspace.yaml /app/pnpm-lock.yaml /app/package.json ./
-COPY --from=build /app/apps/api/package.json apps/api/
-COPY --from=build /app/packages/config/package.json packages/config/
-COPY --from=build /app/packages/profile-schema/package.json packages/profile-schema/
-COPY --from=build /app/packages/profile-schema/dist packages/profile-schema/dist
-COPY --from=build /app/packages/config/dist packages/config/dist
-COPY --from=build /app/packages/ui/package.json packages/ui/
-COPY --from=build /app/scripts scripts/
-
-# Prod-only install for API and deps
-RUN pnpm -w --filter ./apps/api... install --prod --no-frozen-lockfile
-
-# Bring built artefacts
+# Bring built artefacts and dependencies produced during the build stage
 COPY --from=build /app/apps/api/dist apps/api/dist
 COPY --from=build /app/apps/api/prisma apps/api/prisma
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=build /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=build /app/apps/api/package.json apps/api/
+COPY --from=build /app/packages/config/dist packages/config/dist
+COPY --from=build /app/packages/config/package.json packages/config/
+COPY --from=build /app/packages/profile-schema/dist packages/profile-schema/dist
+COPY --from=build /app/packages/profile-schema/package.json packages/profile-schema/
+COPY --from=build /app/packages/ui/package.json packages/ui/
+COPY --from=build /app/scripts scripts/
 
 ENV NODE_ENV=production
 EXPOSE 3001
