@@ -4,7 +4,10 @@ WORKDIR /app
 
 ENV PNPM_HOME=/usr/local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Align pnpm with the workspace's declared package manager version to avoid
+# unexpected CLI differences during Docker builds (e.g. `pnpm prune` changes in
+# pnpm@9).
+RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates python3 build-essential openssl \
@@ -51,8 +54,9 @@ RUN pnpm --filter ./apps/web run build
 # the NestJS packages required by the API bundle which leads to runtime
 # failures (e.g. `Cannot find module '@nestjs/common'`). By scoping the prune
 # command to the API workspace we retain the dependencies it needs while still
-# discarding unnecessary dev dependencies.
-RUN pnpm prune --prod --filter @workright/api...
+# discarding unnecessary dev dependencies. The Docker image pins pnpm to the
+# workspace version (8.15.5) so that the CLI behaviour remains stable.
+RUN pnpm --filter @workright/api... prune --prod
 
 # ---------- runtime-api ----------
 FROM node:20-bullseye-slim AS runtime-api
@@ -83,7 +87,7 @@ WORKDIR /app
 
 ENV PNPM_HOME=/usr/local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
