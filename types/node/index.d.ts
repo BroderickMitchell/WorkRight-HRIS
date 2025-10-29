@@ -33,9 +33,20 @@ declare namespace NodeJS {
 declare const process: NodeJS.Process;
 
 declare module 'node:fs' {
+  interface Dirent {
+    name: string;
+    isDirectory(): boolean;
+    isFile(): boolean;
+  }
+
   export function createReadStream(...args: any[]): any;
   export function existsSync(path: string): boolean;
   export function mkdirSync(path: string, options?: any): any;
+  export function statSync(path: string): { isDirectory(): boolean };
+  export function readdirSync(
+    path: string,
+    options: { withFileTypes: true }
+  ): Dirent[];
   export const promises: {
     readFile(path: string, options?: any): Promise<string | Buffer>;
     writeFile(path: string, data: any, options?: any): Promise<void>;
