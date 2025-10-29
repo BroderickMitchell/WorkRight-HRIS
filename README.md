@@ -37,7 +37,7 @@ WorkRight HRIS is a modern, multi-tenant HR platform tailored for Australian org
    ```
 
    This bootstraps the pnpm workspaces (`apps/*` and `packages/*`).
-3. **Configure environment variables.** Copy each `.env.example` to `.env` within `apps/api` and `apps/web`, then fill in secrets (Postgres, Redis, Auth.js secret, S3 bucket, API URL). The API enforces the `X-Tenant-Id` header for every authenticated request.
+3. **Configure environment variables.** The postinstall script copies each `.env.example` to `.env` within `apps/api` and `apps/web` when missing, so you only need to update the generated files with secrets (Postgres, Redis, Auth.js secret, S3 bucket, API URL). The API enforces the `X-Tenant-Id` header for every authenticated request.
 4. **Bring services online.** Choose one of the following approaches:
    - **Docker Compose (recommended for parity).**
 
@@ -46,8 +46,7 @@ WorkRight HRIS is a modern, multi-tenant HR platform tailored for Australian org
      ```
 
      Compose provisions PostgreSQL with row-level security, Redis for BullMQ, Mailhog, the NestJS API, and the Next.js frontend.
-     It reads environment variables from `apps/api/.env` and `apps/web/.env`, so make sure you have copied the respective
-     `.env.example` files beforehand.
+    It reads environment variables from `apps/api/.env` and `apps/web/.env`; the postinstall script creates them from the bundled `.env.example` files on first install.
    - **Local processes (advanced).** Run `pnpm --filter api run start:dev` and `pnpm --filter web dev` in separate terminals after starting Postgres/Redis manually.
 5. **Apply database migrations and seed demo tenants.** With the API dependencies running:
 
@@ -88,7 +87,11 @@ Individual packages expose additional scripts (for example, `pnpm --filter api t
 
 ### Environment variables
 
-Copy `.env.example` into each app and adjust as required.
+Copy `.env.example` into each app and adjust as required. For the API workspace this ensures Prisma can read `DATABASE_URL` when running migrations:
+
+```bash
+cp apps/api/.env.example apps/api/.env
+```
 
 - `DATABASE_URL` – Postgres connection string (RLS enabled)
 - `REDIS_URL` – Redis for BullMQ queues
