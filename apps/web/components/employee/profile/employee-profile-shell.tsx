@@ -278,7 +278,9 @@ export function EmployeeProfileShell({ employeeId }: EmployeeProfileShellProps) 
             generated={currentDocuments}
             templates={profile.documents.templates}
             canGenerate={profile.permissions.canGenerateDocuments}
-            onGenerate={(input) => documentMutation.mutateAsync(input)}
+            onGenerate={async (input) => {
+              await documentMutation.mutateAsync(input);
+            }}
             isGenerating={documentMutation.isPending || isDocumentsLoading}
             isDialogOpen={documentsOpen}
             onDialogChange={setDocumentsOpen}
