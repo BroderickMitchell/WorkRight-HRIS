@@ -4,6 +4,7 @@ type Buffer = Uint8Array & { toString(encoding?: string): string };
 
 declare const Buffer: {
   from(input: string | Buffer, encoding?: string): Buffer;
+  concat(list: readonly Buffer[], totalLength?: number): Buffer;
 };
 
 declare namespace NodeJS {
@@ -14,6 +15,18 @@ declare namespace NodeJS {
   interface Process {
     env: ProcessEnv;
     cwd(): string;
+  }
+
+  interface WritableStream {
+    write(chunk: any, encoding?: string, callback?: () => void): boolean;
+    end(chunk?: any, encoding?: string, callback?: () => void): void;
+  }
+
+  interface ReadableStream {
+    on(event: 'data', listener: (chunk: any) => void): this;
+    on(event: 'end', listener: () => void): this;
+    on(event: 'error', listener: (err: any) => void): this;
+    pipe<T extends WritableStream>(destination: T, options?: { end?: boolean }): T;
   }
 }
 
@@ -30,6 +43,21 @@ declare module 'node:fs' {
     mkdir(path: string, options?: any): Promise<void>;
     stat(path: string): Promise<any>;
   };
+}
+
+declare module 'node:stream' {
+  class PassThrough implements NodeJS.ReadableStream, NodeJS.WritableStream {
+    on(event: 'data', listener: (chunk: any) => void): this;
+    on(event: 'end', listener: () => void): this;
+    on(event: 'error', listener: (err: any) => void): this;
+    pipe<T extends NodeJS.WritableStream>(destination: T, options?: { end?: boolean }): T;
+  }
+
+  export { PassThrough };
+}
+
+declare module 'stream' {
+  export * from 'node:stream';
 }
 
 declare module 'node:path' {
