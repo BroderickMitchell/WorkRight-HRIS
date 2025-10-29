@@ -43,13 +43,6 @@ export function PersonalInfoCard({ data, canEdit, onSave, isSaving }: PersonalIn
   return (
     <ProfileCard title="Personal Information" section="personal" canEdit={canEdit} description="Legal name, identity and demographic details">
       {({ isEditing, markDirty, stopEditing }) => {
-        useEffect(() => {
-          const subscription = form.watch(() => {
-            markDirty(form.formState.isDirty);
-          });
-          return () => subscription.unsubscribe();
-        }, [form, markDirty]);
-
         const handleCancel = () => {
           form.reset(mapPersonalToForm(data));
           markDirty(false);
@@ -64,6 +57,7 @@ export function PersonalInfoCard({ data, canEdit, onSave, isSaving }: PersonalIn
 
         return (
           <form onSubmit={handleSubmit} className="space-y-4">
+            <FormDirtyTracker form={form} onDirtyChange={markDirty} />
             <div className="grid gap-4 md:grid-cols-2">
               <InputField label="First name" name="firstName" form={form} disabled={!isEditing} />
               <InputField label="Middle name" name="middleName" form={form} disabled={!isEditing} />
@@ -160,6 +154,23 @@ function mapFormToPersonal(values: PersonalFormValues, previous: EmployeeProfile
     maritalStatus: values.maritalStatus ? values.maritalStatus : null,
     veteranStatus: values.veteranStatus ? values.veteranStatus : null
   };
+}
+
+function FormDirtyTracker({
+  form,
+  onDirtyChange
+}: {
+  form: UseFormReturn<PersonalFormValues>;
+  onDirtyChange: (dirty: boolean) => void;
+}) {
+  useEffect(() => {
+    const subscription = form.watch(() => {
+      onDirtyChange(form.formState.isDirty);
+    });
+    return () => subscription.unsubscribe();
+  }, [form, onDirtyChange]);
+
+  return null;
 }
 
 function normaliseList(value?: string | null) {
