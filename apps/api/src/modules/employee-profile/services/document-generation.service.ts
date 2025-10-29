@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
 import type PDFKit from 'pdfkit';
-import { PassThrough } from 'node:stream';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import { randomUUID } from 'crypto';
 import type { DocumentFormat } from '@workright/profile-schema';
@@ -50,10 +49,9 @@ export class DocumentGenerationService {
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ size: 'A4', margin: 72 }) as PDFKit.PDFDocument;
-        const stream = doc.pipe(new PassThrough());
         const chunks: Buffer[] = [];
-        stream.on('data', (chunk: Buffer) => chunks.push(chunk));
-        stream.on('end', () => {
+        doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+        doc.on('end', () => {
           const buffer = Buffer.concat(chunks);
           resolve({
             buffer,
@@ -61,7 +59,7 @@ export class DocumentGenerationService {
             filename: `${this.normaliseFilename(templateName)}-${randomUUID()}.pdf`
           });
         });
-        stream.on('error', (err: unknown) => reject(err));
+        doc.on('error', (err: unknown) => reject(err));
         doc.fontSize(18).text(templateName, { underline: true });
         doc.moveDown();
         doc.fontSize(12).text(content, { lineGap: 6 });
