@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 import { parseTenantSettings } from '@workright/config';
 
 type TenantSettingsBaseInput = Partial<Parameters<typeof parseTenantSettings>[0]>;
@@ -46,9 +48,11 @@ export function hexToRgbString(hex: string) {
   return `${r} ${g} ${b}`;
 }
 
-export function getTenantCssVariables(settings = getTenantSettings()) {
-  return {
+export function getTenantCssVariables(settings = getTenantSettings()): CSSProperties {
+  const cssVariables = {
     '--wr-primary': hexToRgbString(settings.brandingPrimaryColor ?? '#004c97'),
     '--wr-accent': hexToRgbString(settings.brandingAccentColor ?? '#5046e5')
-  };
+  } satisfies CSSProperties;
+
+  return cssVariables;
 }
