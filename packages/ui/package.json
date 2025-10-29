@@ -6,7 +6,7 @@
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "build": "tsup --config tsup.config.ts",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
