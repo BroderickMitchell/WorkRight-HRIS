@@ -4,7 +4,10 @@ WORKDIR /app
 
 ENV PNPM_HOME=/usr/local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Align pnpm with the workspace's declared package manager version to avoid
+# unexpected CLI differences during Docker builds (e.g. `pnpm prune` changes in
+# pnpm@9).
+RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates python3 build-essential openssl \
@@ -84,7 +87,7 @@ WORKDIR /app
 
 ENV PNPM_HOME=/usr/local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
