@@ -1,3 +1,5 @@
+'use client';
+
 const { Dialog, Transition } = require('@headlessui/react');
 const { Fragment } = require('react');
 const { jsx, jsxs } = require('react/jsx-runtime');
