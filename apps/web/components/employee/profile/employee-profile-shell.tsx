@@ -26,6 +26,13 @@ import {
   updateEmployeeSection,
   upsertCostSplits
 } from '@/lib/employee-profile';
+import {
+  assignRoster,
+  fetchRosterAssignments,
+  fetchRosterTemplates,
+  rosterAssignmentsKey,
+  rosterTemplatesKey
+} from '@/lib/rosters';
 import { ProfileHeader } from './profile-header';
 import { ProfileSkeleton } from './profile-skeleton';
 import { PersonalInfoCard } from './personal-info-card';
@@ -38,6 +45,7 @@ import { DocumentsCard } from './documents-card';
 import { HistoryCard } from './history-card';
 import { useHasUnsavedChanges, useProfileEditingStore } from './use-profile-editing';
 import { Card } from '@workright/ui';
+import { RosterAssignmentsCard } from './roster-assignments-card';
 
 interface EmployeeProfileShellProps {
   employeeId: string;
@@ -94,6 +102,18 @@ export function EmployeeProfileShell({ employeeId }: EmployeeProfileShellProps) 
     queryFn: () => fetchHistory(employeeId, historyFilters),
     enabled: Boolean(profile),
     placeholderData: (previousData) => previousData
+  });
+
+  const { data: rosterTemplates = [], isFetching: isRosterTemplatesLoading } = useQuery({
+    queryKey: rosterTemplatesKey(),
+    queryFn: () => fetchRosterTemplates(),
+    enabled: Boolean(profile?.permissions.canEditJob)
+  });
+
+  const { data: rosterAssignments = [], isFetching: isRosterAssignmentsLoading } = useQuery({
+    queryKey: rosterAssignmentsKey(employeeId),
+    queryFn: () => fetchRosterAssignments({ employeeId }),
+    enabled: Boolean(profile)
   });
 
   const updateMutation = useMutation({
@@ -162,6 +182,16 @@ export function EmployeeProfileShell({ employeeId }: EmployeeProfileShellProps) 
     onError: () => setBanner('Unable to export history right now.')
   });
 
+  const rosterAssignMutation = useMutation({
+    mutationFn: (input: { templateId: string; locationId?: string; effectiveFrom: string; effectiveTo?: string }) =>
+      assignRoster({ employeeId, ...input }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: rosterAssignmentsKey(employeeId) });
+      setBanner('Roster assignment saved.');
+    },
+    onError: () => setBanner('Unable to assign roster. Check details and try again.')
+  });
+
   useEffect(() => {
     if (!documentsOpen) return;
     refetchDocuments();
@@ -188,6 +218,8 @@ export function EmployeeProfileShell({ employeeId }: EmployeeProfileShellProps) 
   const currentDocuments: GeneratedDocument[] = useMemo(() => documents, [documents]);
   const currentHistory: EmploymentEvent[] = useMemo(() => history, [history]);
   const currentCostSplits: CostSplit[] = useMemo(() => costSplits, [costSplits]);
+  const currentRosterAssignments = useMemo(() => rosterAssignments, [rosterAssignments]);
+  const currentRosterTemplates = useMemo(() => rosterTemplates, [rosterTemplates]);
 
   if (isProfileLoading) {
     return <ProfileSkeleton />;
@@ -252,6 +284,17 @@ export function EmployeeProfileShell({ employeeId }: EmployeeProfileShellProps) 
               await updateMutation.mutateAsync({ section: 'timeAndEligibility', payload });
             }}
             isSaving={updateMutation.isPending}
+          />
+          <RosterAssignmentsCard
+            assignments={currentRosterAssignments}
+            templates={currentRosterTemplates}
+            canManage={profile.permissions.canEditJob}
+            defaultLocationId={profile.job.location?.id}
+            isLoading={isRosterAssignmentsLoading || isRosterTemplatesLoading}
+            isAssigning={rosterAssignMutation.isPending}
+            onAssign={async (input) => {
+              await rosterAssignMutation.mutateAsync(input);
+            }}
           />
         </div>
         <div className="space-y-6 lg:col-span-2">

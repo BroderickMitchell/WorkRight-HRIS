@@ -20,8 +20,10 @@ export class RostersService {
     });
   }
 
-  async listAssignments() {
+  async listAssignments(employeeId?: string) {
+    const where = employeeId ? { employeeId } : undefined;
     const items = await this.prisma.rosterAssignment.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
       include: { template: true, employee: true, location: true }
     });

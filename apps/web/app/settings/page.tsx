@@ -1,6 +1,16 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, Button } from '@workright/ui';
+import {
+  assignRoster,
+  createRosterTemplate,
+  fetchRosterAssignments,
+  fetchRosterShifts,
+  fetchRosterTemplates,
+  RosterAssignment,
+  RosterTemplate
+} from '../../lib/rosters';
 import { apiFetch, apiPost } from '../../lib/api';
 
 type SiteSettings = {
@@ -11,9 +21,27 @@ const DEFAULT_SETTINGS: SiteSettings = {
   brandingPrimaryColor: '#004c97'
 };
 
-export default function SettingsPage() {
+type SettingsTab = 'branding' | 'rosters' | 'pay';
+
+interface SettingsPageProps {
+  initialTab?: SettingsTab;
+}
+
+export default function SettingsPage({ initialTab = 'branding' }: SettingsPageProps = {}) {
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
-  const [tab, setTab] = useState<'branding' | 'rosters' | 'pay'>('branding');
+  const searchParams = useSearchParams();
+  const paramTab = searchParams?.get('tab');
+  const resolvedInitialTab = useMemo<SettingsTab>(() => {
+    if (paramTab === 'rosters' || paramTab === 'pay' || paramTab === 'branding') {
+      return paramTab;
+    }
+    return initialTab;
+  }, [initialTab, paramTab]);
+  const [tab, setTab] = useState<SettingsTab>(resolvedInitialTab);
+
+  useEffect(() => {
+    setTab(resolvedInitialTab);
+  }, [resolvedInitialTab]);
 
   useEffect(() => {
     try {
@@ -31,40 +59,23 @@ export default function SettingsPage() {
   }
 
   // Roster templates
-  const [templates, setTemplates] = useState<{ id: string; name: string; seedDate: string; pattern: string[] }[]>([]);
-  const [assignments, setAssignments] = useState<{ id: string; employeeId: string; employeeName?: string; templateId: string; templateName?: string; locationId?: string; locationName?: string; effectiveFrom: string; effectiveTo?: string }[]>([]);
+  const [templates, setTemplates] = useState<RosterTemplate[]>([]);
+  const [assignments, setAssignments] = useState<RosterAssignment[]>([]);
   const [tmplName, setTmplName] = useState('8/6 Day Shifts');
   const [tmplSeed, setTmplSeed] = useState('2024-11-04');
   const [tmplPattern, setTmplPattern] = useState('D,D,D,D,D,D,D,D,R,R,R,R,R,R');
   async function loadTemplates() {
     try {
-      const data = await apiFetch<any[]>(`/v1/rosters/templates`);
-      const norm = (data || []).map((t) => ({
-        id: t.id,
-        name: t.name,
-        seedDate: typeof t.seedDate === 'string' ? t.seedDate : new Date(t.seedDate).toISOString(),
-        pattern: Array.isArray(t.pattern) ? t.pattern : []
-      }));
-      setTemplates(norm);
+      const data = await fetchRosterTemplates();
+      setTemplates(data);
     } catch {
       setTemplates([]);
     }
   }
   async function loadAssignments() {
     try {
-      const data = await apiFetch<any[]>(`/v1/rosters/assignments`);
-      const norm = (data || []).map((a) => ({
-        id: a.id,
-        employeeId: a.employeeId,
-        employeeName: a.employeeName,
-        templateId: a.templateId,
-        templateName: a.templateName,
-        locationId: a.locationId,
-        locationName: a.locationName,
-        effectiveFrom: typeof a.effectiveFrom === 'string' ? a.effectiveFrom : new Date(a.effectiveFrom).toISOString(),
-        effectiveTo: a.effectiveTo ? (typeof a.effectiveTo === 'string' ? a.effectiveTo : new Date(a.effectiveTo).toISOString()) : undefined
-      }));
-      setAssignments(norm);
+      const data = await fetchRosterAssignments();
+      setAssignments(data);
     } catch {
       setAssignments([]);
     }
@@ -74,7 +85,7 @@ export default function SettingsPage() {
       .split(',')
       .map((x) => x.trim().toUpperCase())
       .filter(Boolean);
-    await apiPost(`/v1/rosters/templates`, { name: tmplName, seedDate: tmplSeed, pattern }, { roles: 'HR_ADMIN,MANAGER' });
+    await createRosterTemplate({ name: tmplName, seedDate: tmplSeed, pattern });
     await loadTemplates();
   }
   useEffect(() => { if (tab === 'rosters') { loadTemplates(); loadAssignments(); } }, [tab]);
@@ -88,7 +99,7 @@ export default function SettingsPage() {
   async function assignTemplate() {
     const body: any = { employeeId: assignEmpId, templateId: assignTmplId, locationId: assignLocId, effectiveFrom: assignFrom };
     if (assignTo) body.effectiveTo = assignTo;
-    await apiPost(`/v1/rosters/assignments`, body, { roles: 'HR_ADMIN,MANAGER' });
+    await assignRoster(body);
     alert('Roster assigned');
     await loadAssignments();
   }
@@ -99,7 +110,7 @@ export default function SettingsPage() {
   const [prevTo, setPrevTo] = useState('2024-11-30');
   const [preview, setPreview] = useState<{ date: string; shiftType: string }[]>([]);
   async function loadPreview() {
-    const data = await apiFetch<any[]>(`/v1/rosters/shifts?from=${prevFrom}&to=${prevTo}&employeeId=${prevEmpId}`);
+    const data = await fetchRosterShifts({ employeeId: prevEmpId, from: prevFrom, to: prevTo });
     setPreview((data || []).map((d) => ({ date: d.date, shiftType: d.shiftType })));
   }
 
@@ -126,9 +137,23 @@ export default function SettingsPage() {
       <header className="space-y-2">
         <h1 className="text-3xl font-semibold text-slate-900">Settings</h1>
         <div className="flex gap-2">
-          <Button variant={tab === 'branding' ? 'primary' : 'secondary'} onClick={() => setTab('branding')}>Branding</Button>
-          <Button variant={tab === 'rosters' ? 'primary' : 'secondary'} onClick={() => setTab('rosters')}>Roster templates</Button>
-          <Button variant={tab === 'pay' ? 'primary' : 'secondary'} onClick={() => setTab('pay')}>Pay profiles</Button>
+          <Button
+            variant={tab === 'branding' ? 'primary' : 'secondary'}
+            aria-pressed={tab === 'branding'}
+            onClick={() => setTab('branding')}
+          >
+            Branding
+          </Button>
+          <Button
+            variant={tab === 'rosters' ? 'primary' : 'secondary'}
+            aria-pressed={tab === 'rosters'}
+            onClick={() => setTab('rosters')}
+          >
+            Roster templates
+          </Button>
+          <Button variant={tab === 'pay' ? 'primary' : 'secondary'} aria-pressed={tab === 'pay'} onClick={() => setTab('pay')}>
+            Pay profiles
+          </Button>
         </div>
       </header>
 

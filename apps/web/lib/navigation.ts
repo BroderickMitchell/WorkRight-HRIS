@@ -10,7 +10,7 @@ const GROUPS: Array<{ name: string; match: (href: string) => boolean }> = [
   { name: 'Overview', match: (href) => href === '/dashboard' },
   { name: 'Profile', match: (href) => href === '/employees' || href.startsWith('/org-chart') },
   { name: 'Recruitment', match: (href) => href.startsWith('/jobs') || href.startsWith('/positions') || href.startsWith('/workflows') },
-  { name: 'Payroll', match: (href) => href.startsWith('/payroll') || href.startsWith('/rosters') },
+  { name: 'Payroll', match: (href) => href.startsWith('/payroll') },
   { name: 'Learning', match: (href) => href.startsWith('/courses') },
   { name: 'Performance', match: (href) => href.startsWith('/goals') },
   { name: 'Operations', match: (href) => href.startsWith('/leave') || href.startsWith('/travel') || href.startsWith('/accommodation') },

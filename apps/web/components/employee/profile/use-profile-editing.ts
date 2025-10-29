@@ -8,6 +8,7 @@ export type ProfileSectionKey =
   | 'timeAndEligibility'
   | 'costSplits'
   | 'documents'
+  | 'rosters'
   | 'history';
 
 interface ProfileEditingState {
