@@ -37,7 +37,7 @@ WorkRight HRIS is a modern, multi-tenant HR platform tailored for Australian org
    ```
 
    This bootstraps the pnpm workspaces (`apps/*` and `packages/*`).
-3. **Configure environment variables.** The postinstall script copies `.env.docker.example` to `.env.docker` in the repository root for Compose-managed services and each `.env.example` to `.env` within `apps/api` and `apps/web` when missing. Update the generated files with secrets (for example, set a strong `POSTGRES_PASSWORD` in `.env.docker`, adjust Redis, Auth.js secret, S3 bucket, API URL). If you skipped `pnpm install`, manually create the file by running `pnpm run bootstrap:env` or `cp .env.docker.example .env.docker`. The API enforces the `X-Tenant-Id` header for every authenticated request.
+3. **Configure environment variables.** The postinstall script copies `.env.docker.example` to `.env.docker` for Compose-managed services and each `.env.example` to `.env` within `apps/api` and `apps/web` when missing. Update the generated files with secrets (for example, set a strong `POSTGRES_PASSWORD` in `.env.docker`, adjust Redis, Auth.js secret, S3 bucket, API URL). The API enforces the `X-Tenant-Id` header for every authenticated request.
 4. **Bring services online.** Choose one of the following approaches:
    - **Docker Compose (recommended for parity).**
 
