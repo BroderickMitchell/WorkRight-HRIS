@@ -3,6 +3,9 @@ import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { AppModule } from '../src/modules/app.module.js';
 
+process.env.DEMO_MODE = process.env.DEMO_MODE ?? 'true';
+process.env.AUTH_SECRET = process.env.AUTH_SECRET ?? 'test-secret';
+
 // This e2e spec exercises: seed -> roster shifts -> travel plan/manifests -> payroll run
 // Requires Postgres available per DATABASE_URL and migrations applied.
 

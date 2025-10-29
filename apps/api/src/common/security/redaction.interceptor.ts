@@ -49,9 +49,12 @@ function redactValue(value: unknown, roles: string[]): unknown {
 export class RedactionInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const req = context.switchToHttp().getRequest();
-    const headerRoles = (req.headers['x-roles'] as string | undefined)?.split(',').map((r) => r.trim());
-    const userRoles: string[] = req.user?.roles ?? headerRoles ?? [];
-    return next.handle().pipe(map((data) => redactValue(data, userRoles)));
+    const roles = Array.isArray(req.appRoles)
+      ? req.appRoles
+      : Array.isArray(req.user?.roles)
+        ? (req.user.roles as string[])
+        : [];
+    return next.handle().pipe(map((data) => redactValue(data, roles)));
   }
 }
 
