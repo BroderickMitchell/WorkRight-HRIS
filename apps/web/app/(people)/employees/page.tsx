@@ -56,8 +56,17 @@ function Node({ node }: { node: TreeNode }) {
 }
 
 export default async function EmployeesPage() {
-  const employees = await fetchEmployees();
-  const roots = buildOrgRoots(employees);
+  let employees: DirectoryEmployee[] = [];
+  let loadError = false;
+
+  try {
+    employees = await fetchEmployees();
+  } catch (error) {
+    loadError = true;
+    console.error('Failed to load employees directory', error);
+  }
+
+  const roots = loadError ? [] : buildOrgRoots(employees);
 
   return (
     <div className="space-y-6" aria-label="Employee directory (org structure)">
@@ -66,7 +75,9 @@ export default async function EmployeesPage() {
         <p className="text-slate-600">Org structure generated from manager assignments.</p>
       </header>
 
-      {roots.length === 0 ? (
+      {loadError ? (
+        <p className="text-sm text-red-600">Unable to load the employee directory right now. Please try again later.</p>
+      ) : roots.length === 0 ? (
         <p className="text-sm text-slate-500">No employees found for this tenant.</p>
       ) : (
         <ul className="space-y-6">
