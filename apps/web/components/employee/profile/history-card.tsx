@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { EmploymentEvent, EmploymentEventType } from '@workright/profile-schema';
+import { type HistoryCsvResponse, EmploymentEvent, EmploymentEventType } from '@workright/profile-schema';
 import { ProfileCard } from './profile-card';
 
 const typeOptions: Array<{ value: EmploymentEventType | 'ALL'; label: string }> = [
@@ -19,7 +19,9 @@ const typeOptions: Array<{ value: EmploymentEventType | 'ALL'; label: string }> 
 interface HistoryCardProps {
   events: EmploymentEvent[];
   onFiltersChange: (filters: { type?: EmploymentEventType; from?: string; to?: string }) => void;
-  onExport: (filters: { type?: EmploymentEventType; from?: string; to?: string }) => Promise<void>;
+  onExport: (
+    filters: { type?: EmploymentEventType; from?: string; to?: string }
+  ) => Promise<HistoryCsvResponse>;
   isLoading: boolean;
   isExporting: boolean;
 }
