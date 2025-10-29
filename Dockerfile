@@ -46,17 +46,11 @@ RUN pnpm --filter @workright/api exec prisma generate --schema prisma/schema.pri
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter ./apps/web run build
 
-# Drop dev-only dependencies prior to packaging runtime images.
-#
-# For workspaces, `pnpm prune --prod` without a filter removes every package
-# that is not a production dependency of the root workspace. Since the root
-# workspace does not declare runtime dependencies, the command would wipe out
-# the NestJS packages required by the API bundle which leads to runtime
-# failures (e.g. `Cannot find module '@nestjs/common'`). By scoping the prune
-# command to the API workspace we retain the dependencies it needs while still
-# discarding unnecessary dev dependencies. (The filter flag must precede the
-# command when used with pnpm 9+.)
-RUN pnpm --filter @workright/api... prune --prod
+# Drop dev-only dependencies prior to packaging runtime images. Prune removes
+# development dependencies across the workspace and we then reinstall only the
+# production dependencies required by the API package.
+RUN pnpm prune --prod \
+ && pnpm --filter @workright/api... install --prod
 
 # ---------- runtime-api ----------
 FROM node:20-bullseye-slim AS runtime-api
