@@ -75,4 +75,4 @@ declare const tailwindTheme: {
 };
 type TailwindTheme = typeof tailwindTheme;
 
-export { TailwindTheme, tailwindColorVariables, tailwindTheme };
+export { type TailwindTheme, tailwindColorVariables, tailwindTheme };

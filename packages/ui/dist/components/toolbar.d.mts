@@ -17,4 +17,4 @@ interface ToolbarProps {
  */
 declare function Toolbar({ searchValue, onSearchChange, searchPlaceholder, filters, actions, density, onDensityChange, className }: ToolbarProps): react_jsx_runtime.JSX.Element;
 
-export { Density, Toolbar, ToolbarProps };
+export { type Density, Toolbar, type ToolbarProps };
