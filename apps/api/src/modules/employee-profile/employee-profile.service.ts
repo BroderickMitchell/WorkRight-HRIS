@@ -94,7 +94,7 @@ export class EmployeeProfileService {
     }
 
     const templates = await this.prisma.documentTemplate.findMany({ orderBy: { name: 'asc' } });
-    const employment = employee.employments.at(0);
+    const employment = employee.employments[0];
     const primaryAddress = employee.addresses.find((addr) => addr.type === 'PRIMARY');
     const mailingAddress = employee.addresses.find((addr) => addr.type === 'MAILING');
 
