@@ -2,10 +2,8 @@ services:
   db:
     image: postgres:15
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: workright
+    env_file:
+      - .env.docker
     ports:
       - "5432:5432"
     volumes:
