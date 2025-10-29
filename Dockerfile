@@ -19,6 +19,7 @@ COPY apps/web/package.json apps/web/
 COPY packages/config/package.json packages/config/
 COPY packages/profile-schema/package.json packages/profile-schema/
 COPY packages/ui/package.json packages/ui/
+COPY scripts/bootstrap-env.mjs scripts/
 
 # Full install incl. dev deps (allow lockfile updates if not committed)
 RUN pnpm -w install --no-frozen-lockfile
