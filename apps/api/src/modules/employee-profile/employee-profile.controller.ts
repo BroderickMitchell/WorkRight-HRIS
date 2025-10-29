@@ -86,8 +86,8 @@ export class EmployeeProfileController {
   @Roles('HR_ADMIN', 'HRBP', 'MANAGER', 'EMPLOYEE')
   async downloadDocument(@Param('docId') docId: string, @Res() res: Response) {
     const download = await this.service.getDownloadStream(docId);
-    res.setHeader('Content-Type', download.mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${download.filename}"`);
+    res.set('Content-Type', download.mimeType);
+    res.set('Content-Disposition', `attachment; filename="${download.filename}"`);
     download.stream.pipe(res);
   }
 }
