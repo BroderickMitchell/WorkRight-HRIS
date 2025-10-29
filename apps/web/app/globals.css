@@ -2,17 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: light;
-}
+@layer base {
+  :root {
+    color-scheme: light;
+    --wr-bg: 249 250 251;
+    --wr-panel: 255 255 255;
+    --wr-text: 15 23 42;
+    --wr-muted: 100 116 139;
+    --wr-primary: 0 76 151;
+    --wr-primary-contrast: 255 255 255;
+    --wr-accent: 80 70 229;
+    --wr-danger: 220 38 38;
+    --wr-warning: 234 179 8;
+    --wr-success: 34 197 94;
+    --wr-border: 226 232 240;
+    --wr-ring: 59 130 246;
+    --tenant-logo: '';
+  }
 
-body {
-  font-feature-settings: 'liga' 1, 'kern' 1;
-}
+  .dark {
+    color-scheme: dark;
+    --wr-bg: 15 23 42;
+    --wr-panel: 30 41 59;
+    --wr-text: 226 232 240;
+    --wr-muted: 148 163 184;
+    --wr-primary: 56 189 248;
+    --wr-primary-contrast: 15 23 42;
+    --wr-accent: 165 180 252;
+    --wr-danger: 248 113 113;
+    --wr-warning: 252 211 77;
+    --wr-success: 134 239 172;
+    --wr-border: 51 65 85;
+    --wr-ring: 94 234 212;
+  }
 
-button:focus-visible,
-[role='button']:focus-visible,
-a:focus-visible {
-  outline: 3px solid theme('colors.brand.DEFAULT');
-  outline-offset: 2px;
+  body {
+    background-color: rgb(var(--wr-bg));
+    color: rgb(var(--wr-text));
+    font-feature-settings: 'liga' 1, 'kern' 1;
+    min-height: 100vh;
+  }
+
+  button:focus-visible,
+  [role='button']:focus-visible,
+  a:focus-visible {
+    outline: 3px solid rgb(var(--wr-ring));
+    outline-offset: 2px;
+  }
 }

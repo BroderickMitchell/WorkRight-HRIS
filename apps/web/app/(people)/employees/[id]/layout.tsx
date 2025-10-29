@@ -3,6 +3,13 @@ import { notFound } from 'next/navigation';
 import { Badge, Button } from '@workright/ui';
 import Link from 'next/link';
 import { getEmployeeWithOverrides } from '../../../../lib/overrides';
+import { EmployeeProfileTabs } from '../../../../components/employee/profile-tabs';
+
+const PROFILE_TABS = ['Profile', 'Job Info', 'Compensation', 'Documents', 'History'] as const;
+
+type ProfileTab = typeof PROFILE_TABS[number];
+
+type TabConfig = Record<ProfileTab, string>;
 
 export default function EmployeeLayout({
   children,
@@ -16,50 +23,73 @@ export default function EmployeeLayout({
     notFound();
   }
 
-  const tabs = [
-    { href: `/employees/${employee.id}`, label: 'Overview' },
-    { href: `/employees/${employee.id}/goals`, label: 'Goals' },
-    { href: `/employees/${employee.id}/leave`, label: 'Leave' },
-    { href: `/employees/${employee.id}/documents`, label: 'Documents' },
-    { href: `/employees/${employee.id}/remuneration`, label: 'Remuneration' },
-    { href: `/employees/${employee.id}/history`, label: 'History' },
-    { href: `/employees/${employee.id}/reviews`, label: 'Reviews' },
-    { href: `/employees/${employee.id}/discipline`, label: 'Discipline' },
-    { href: `/employees/${employee.id}/settings`, label: 'Settings' }
-  ];
+  const tabRoutes: TabConfig = {
+    Profile: `/employees/${employee.id}`,
+    'Job Info': `/employees/${employee.id}/goals`,
+    Compensation: `/employees/${employee.id}/remuneration`,
+    Documents: `/employees/${employee.id}/documents`,
+    History: `/employees/${employee.id}/history`
+  };
+
+  const tabs = PROFILE_TABS.map((tab) => ({ href: tabRoutes[tab], label: tab }));
 
   return (
-    <div className="space-y-6" aria-label="Employee profile">
-      <header className="space-y-2">
-        <Badge className="w-max">{employee.department}</Badge>
-        <h1 className="text-3xl font-semibold text-slate-900">{employee.name}</h1>
-        <p className="text-slate-600">{employee.role} · {employee.location}</p>
-        <p className="text-sm text-slate-500">{employee.email}</p>
-      </header>
-
-      <div className="flex items-center justify-between">
-        <nav className="-mb-px flex gap-4 border-b">
-          {tabs.map((tab) => (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className="border-b-2 border-transparent px-1 pb-2 text-sm font-medium text-slate-600 hover:border-brand hover:text-brand"
-            >
-              {tab.label}
-            </Link>
-          ))}
-        </nav>
-        <Link href={`/employees/${employee.id}/settings`}>
-          <Button size="sm" variant="secondary">Edit profile</Button>
-        </Link>
+    <div className="space-y-8" aria-label="Employee profile">
+      <div className="sticky top-24 z-20 rounded-3xl border border-border bg-panel/95 px-6 py-6 shadow-xl backdrop-blur supports-[backdrop-filter]:bg-panel/80">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-4">
+            <ProfileAvatar name={employee.name} src={employee.avatarUrl} />
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-semibold text-foreground lg:text-3xl">{employee.name}</h1>
+                <Badge className="bg-success/15 text-success">Active</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {employee.role} · {employee.department}
+              </p>
+              <p className="text-xs text-muted-foreground">{employee.location}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{employee.email}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="ghost" size="sm" asChild>
+              <Link href={`/employees/${employee.id}/leave`}>View leave</Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href={`/employees/${employee.id}/reviews`}>Performance</Link>
+            </Button>
+            <Button size="sm" asChild>
+              <Link href={`/employees/${employee.id}/settings`}>Edit profile</Link>
+            </Button>
+          </div>
+        </div>
+        <div className="mt-6 overflow-x-auto">
+          <EmployeeProfileTabs tabs={tabs} />
+        </div>
       </div>
-
-      <div>{children}</div>
+      <div className="space-y-6">{children}</div>
     </div>
   );
 }
 
-
-
-
-
+function ProfileAvatar({ name, src }: { name: string; src?: string }) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className="h-16 w-16 rounded-2xl object-cover shadow-md ring-2 ring-border"
+      />
+    );
+  }
+  const initials = name
+    .split(' ')
+    .map((part) => part.charAt(0))
+    .slice(0, 2)
+    .join('');
+  return (
+    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-lg font-semibold text-primary ring-2 ring-border">
+      {initials || 'WR'}
+    </div>
+  );
+}
