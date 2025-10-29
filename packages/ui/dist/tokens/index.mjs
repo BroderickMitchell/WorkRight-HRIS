@@ -1,1 +1,1 @@
-export * from './tailwind-theme.mjs';
+export * from "./tailwind-theme";
