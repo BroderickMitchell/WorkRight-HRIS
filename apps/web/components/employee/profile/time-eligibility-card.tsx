@@ -188,9 +188,7 @@ function InputField({
   );
 }
 
-type BooleanFieldName = {
-  [K in keyof TimeEligibilityFormValues]: TimeEligibilityFormValues[K] extends boolean ? K : never;
-}[keyof TimeEligibilityFormValues];
+type BooleanFieldName = 'overtimeEligible' | 'exempt' | 'benefitsEligible';
 
 function ToggleField({
   label,
@@ -204,7 +202,7 @@ function ToggleField({
   disabled: boolean;
 }) {
   return (
-    <Controller
+    <Controller<TimeEligibilityFormValues, BooleanFieldName>
       control={control}
       name={name}
       render={({ field }) => (
