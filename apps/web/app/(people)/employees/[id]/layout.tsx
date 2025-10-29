@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { Badge, Button } from '@workright/ui';
+import Image from 'next/image';
 import Link from 'next/link';
 import { getEmployeeWithOverrides } from '../../../../lib/overrides';
 import { EmployeeProfileTabs } from '../../../../components/employee/profile-tabs';
@@ -75,9 +76,12 @@ export default function EmployeeLayout({
 function ProfileAvatar({ name, src }: { name: string; src?: string }) {
   if (src) {
     return (
-      <img
+      <Image
         src={src}
         alt={name}
+        width={64}
+        height={64}
+        sizes="64px"
         className="h-16 w-16 rounded-2xl object-cover shadow-md ring-2 ring-border"
       />
     );

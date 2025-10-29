@@ -1,4 +1,5 @@
 "use client";
+import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -18,9 +19,15 @@ function OrgNode({ emp, dottedLabel, onRef }: { emp: Employee; dottedLabel?: str
     <div ref={(el) => onRef?.(emp.id, el)} className="flex flex-col items-center gap-1">
       <div className="flex items-center gap-3">
         {emp.avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={emp.avatarUrl} alt="" className="h-12 w-12 rounded-full object-cover ring-1 ring-slate-200" />
-      ) : (
+          <Image
+            src={emp.avatarUrl}
+            alt={`${emp.name}'s avatar`}
+            width={48}
+            height={48}
+            sizes="48px"
+            className="h-12 w-12 rounded-full object-cover ring-1 ring-slate-200"
+          />
+        ) : (
         <div className="h-12 w-12 rounded-full bg-slate-200" />
       )}
       <div>
