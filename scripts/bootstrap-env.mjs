@@ -7,6 +7,7 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 
 const envTargets = [
+  path.join(repoRoot, '.env.docker'),
   path.join(repoRoot, 'apps', 'api', '.env'),
   path.join(repoRoot, 'apps', 'web', '.env'),
 ];
