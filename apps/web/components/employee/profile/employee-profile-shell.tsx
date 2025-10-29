@@ -224,25 +224,33 @@ export function EmployeeProfileShell({ employeeId }: EmployeeProfileShellProps) 
           <PersonalInfoCard
             data={profile.personal}
             canEdit={profile.permissions.canEditPersonal}
-            onSave={(payload) => updateMutation.mutateAsync({ section: 'personal', payload })}
+            onSave={async (payload) => {
+              await updateMutation.mutateAsync({ section: 'personal', payload });
+            }}
             isSaving={updateMutation.isPending}
           />
           <ContactInfoCard
             data={profile.contact}
             canEdit={profile.permissions.canEditPersonal}
-            onSave={(payload) => updateMutation.mutateAsync({ section: 'contact', payload })}
+            onSave={async (payload) => {
+              await updateMutation.mutateAsync({ section: 'contact', payload });
+            }}
             isSaving={updateMutation.isPending}
           />
           <JobInfoCard
             data={profile.job}
             canEdit={profile.permissions.canEditJob}
-            onSave={(payload) => updateMutation.mutateAsync({ section: 'job', payload })}
+            onSave={async (payload) => {
+              await updateMutation.mutateAsync({ section: 'job', payload });
+            }}
             isSaving={updateMutation.isPending}
           />
           <TimeEligibilityCard
             data={profile.timeAndEligibility}
             canEdit={profile.permissions.canEditJob}
-            onSave={(payload) => updateMutation.mutateAsync({ section: 'timeAndEligibility', payload })}
+            onSave={async (payload) => {
+              await updateMutation.mutateAsync({ section: 'timeAndEligibility', payload });
+            }}
             isSaving={updateMutation.isPending}
           />
         </div>
@@ -250,7 +258,9 @@ export function EmployeeProfileShell({ employeeId }: EmployeeProfileShellProps) 
           <CompensationCard
             data={profile.compensation}
             canEdit={profile.permissions.canEditCompensation}
-            onSave={(payload) => updateMutation.mutateAsync({ section: 'compensation', payload })}
+            onSave={async (payload) => {
+              await updateMutation.mutateAsync({ section: 'compensation', payload });
+            }}
             isSaving={updateMutation.isPending}
           />
           <CostSplitsCard
