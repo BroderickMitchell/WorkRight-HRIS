@@ -93,7 +93,7 @@ export function EmployeeProfileShell({ employeeId }: EmployeeProfileShellProps) 
     queryKey: employeeHistoryKey(employeeId, historyFilters),
     queryFn: () => fetchHistory(employeeId, historyFilters),
     enabled: Boolean(profile),
-    keepPreviousData: true
+    placeholderData: (previousData) => previousData
   });
 
   const updateMutation = useMutation({
