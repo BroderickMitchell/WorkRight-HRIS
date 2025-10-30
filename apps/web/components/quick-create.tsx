@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { Menu } from '@headlessui/react';
 import { Plus, UserPlus, Briefcase, PlaneTakeoff, Workflow } from 'lucide-react';

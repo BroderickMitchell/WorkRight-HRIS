@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { ReactNode } from 'react';
 import { Card, CardHeader, CardTitle } from '@workright/ui';

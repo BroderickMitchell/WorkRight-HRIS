@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, Button, Badge } from '@workright/ui';
 import { apiFetch } from '../../../lib/api';

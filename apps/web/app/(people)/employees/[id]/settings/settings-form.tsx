@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, Button } from '@workright/ui';
 import { useMemo, useState } from 'react';

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from 'react';
 import { type HistoryCsvResponse, EmploymentEvent, EmploymentEventType } from '@workright/profile-schema';

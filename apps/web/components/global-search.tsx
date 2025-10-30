@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { Combobox } from '@headlessui/react';
 import { Loader2, Search, UserCircle2, Briefcase, Workflow, ArrowUpRight } from 'lucide-react';
