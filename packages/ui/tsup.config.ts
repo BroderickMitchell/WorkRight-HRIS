@@ -7,11 +7,13 @@ const entryPoints = {
 } as const;
 
 export default defineConfig({
-  entry: entryPoints,
-  format: ['esm', 'cjs'],
-  dts: {
-    entry: entryPoints
+  entry: {
+    index: 'src/index.tsx',
+    client: 'src/client.ts',
+    tailwind: 'src/tailwind.ts'
   },
+  format: ['esm', 'cjs'],
+  dts: { entry: true },
   splitting: false,
   sourcemap: true,
   clean: true,
