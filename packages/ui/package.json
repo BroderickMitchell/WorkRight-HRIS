@@ -3,22 +3,34 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./tailwind": {
+      "types": "./dist/tailwind.d.ts",
+      "import": "./dist/tailwind.mjs",
+      "require": "./dist/tailwind.cjs"
     }
   },
   "files": ["dist"],
   "sideEffects": false,
   "scripts": {
-    "build": "tsup --config tsup.config.ts",
-    "lint": "eslint src --ext .ts,.tsx",
-    "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "build": "tsup src/index.ts src/tailwind.ts --format cjs,esm --dts --clean",
+    "dev": "tsup --watch"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.18",
@@ -27,21 +39,5 @@
     "clsx": "^2.1.0",
     "lucide-react": "^0.395.0",
     "tailwind-merge": "^2.2.1"
-  },
-  "peerDependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "@types/node": "24.9.1",
-    "@types/react": "^18.2.61",
-    "@typescript-eslint/eslint-plugin": "^7.6.0",
-    "@typescript-eslint/parser": "^7.6.0",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-unused-imports": "^3.1.0",
-    "tsup": "^7.2.0",
-    "typescript": "^5.4.5",
-    "vitest": "^1.5.0"
   }
 }
