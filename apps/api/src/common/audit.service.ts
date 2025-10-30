@@ -30,7 +30,7 @@ export class AuditService {
         entity: payload.entity,
         entityId: payload.entityId,
         action: payload.action,
-        changes: payload.changes as unknown as Prisma.InputJsonValue,
+        changes: payload.changes as unknown as Prisma.JsonValue,
         metadata: {
           ip: this.cls.get('ip'),
           userAgent: this.cls.get('userAgent')

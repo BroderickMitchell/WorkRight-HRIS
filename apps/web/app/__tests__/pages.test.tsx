@@ -22,26 +22,26 @@ afterEach(() => {
 });
 
 describe('App pages render', () => {
-  it('Travel page renders heading', () => {
-    const TravelPage = require('../travel/page').default as () => JSX.Element;
+  it('Travel page renders heading', async () => {
+    const { default: TravelPage } = await import('../travel/page');
     render(<TravelPage />);
     expect(screen.getByRole('heading', { name: /Travel & accommodation/i })).toBeInTheDocument();
   });
 
-  it('Payroll page renders heading', () => {
-    const PayrollPage = require('../payroll/page').default as () => JSX.Element;
+  it('Payroll page renders heading', async () => {
+    const { default: PayrollPage } = await import('../payroll/page');
     render(<PayrollPage />);
     expect(screen.getByRole('heading', { name: /Payroll/i })).toBeInTheDocument();
   });
 
-  it('Settings page renders heading', () => {
-    const SettingsPage = require('../settings/page').default as () => JSX.Element;
+  it('Settings page renders heading', async () => {
+    const { default: SettingsPage } = await import('../settings/page');
     render(<SettingsPage />);
     expect(screen.getByRole('heading', { name: /Settings/i })).toBeInTheDocument();
   });
 
-  it('Settings roster tab renders heading', () => {
-    const SettingsRostersPage = require('../settings/rosters/page').default as () => JSX.Element;
+  it('Settings roster tab renders heading', async () => {
+    const { default: SettingsRostersPage } = await import('../settings/rosters/page');
     render(<SettingsRostersPage />);
     expect(screen.getByRole('heading', { name: /Settings/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Roster templates/i })).toHaveAttribute('aria-pressed', 'true');
