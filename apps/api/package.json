@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "prebuild": "pnpm run prisma:generate",
+    "postinstall": "prisma generate",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
     "build": "nest build",
@@ -22,7 +23,7 @@
     "@nestjs/passport": "^10.0.3",
     "@nestjs/jwt": "^10.2.0",
     "@nestjs/swagger": "^7.4.2",
-    "@prisma/client": "6.18.0",
+    "@prisma/client": "latest",
     "@trpc/server": "^10.45.1",
     "@workright/config": "workspace:*",
     "@workright/profile-schema": "workspace:*",
@@ -40,7 +41,6 @@
     "pdfkit": "^0.15.0",
     "pino": "^8.19.0",
     "pino-pretty": "^10.3.0",
-    "prisma": "6.18.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1",
     "uuid": "^9.0.1",
@@ -68,6 +68,7 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.4.5",
     "vitest": "^1.5.0",
-    "zod": "^3.22.4"
+    "zod": "^3.22.4",
+    "prisma": "latest"
   }
 }

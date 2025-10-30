@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service.js';
 import { PlanTravelDto } from './travel.dto.js';
+import type { Prisma } from '@prisma/client';
+
+type RoomRecord = Prisma.RoomGetPayload<Prisma.RoomDefaultArgs>;
 
 @Injectable()
 export class TravelService {
@@ -46,13 +49,18 @@ export class TravelService {
 
   async getOccupancy(locationId: string, dateIso: string) {
     const day = new Date(dateIso);
-    const rooms = await this.prisma.room.findMany({ where: { locationId } });
+    const rooms: RoomRecord[] = await this.prisma.room.findMany({ where: { locationId } });
     const bookings = await this.prisma.roomBooking.findMany({
       where: { room: { locationId }, startDate: { lte: day }, endDate: { gte: day } }
     });
     const byRoom = new Map<string, number>();
     for (const b of bookings) byRoom.set(b.roomId, (byRoom.get(b.roomId) ?? 0) + 1);
-    return rooms.map((r) => ({ roomId: r.id, room: r.name, occupied: byRoom.get(r.id) ?? 0, capacity: r.capacity }));
+    return rooms.map((room) => ({
+      roomId: room.id,
+      room: room.name,
+      occupied: byRoom.get(room.id) ?? 0,
+      capacity: room.capacity
+    }));
   }
 }
 
