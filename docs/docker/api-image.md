@@ -29,7 +29,7 @@ docker build \
   .
 ```
 
-Build the production image. The Dockerfile already compiles the shared packages, generates the Prisma client, and prunes dev-only dependencies while keeping the full API dependency graph (for example, `@nestjs/common`) prior to the `runtime-api` stage.
+Build the production image. The Dockerfile already compiles the shared packages, generates the Prisma client, and prunes dev-only dependencies so only the production graph required by `@workright/api` ships in the `runtime-api` stage.
 
 ```bash
 docker push <acr-name>.azurecr.io/workright/api:<tag>
