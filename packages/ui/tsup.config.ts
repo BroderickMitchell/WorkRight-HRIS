@@ -1,5 +1,11 @@
 import { defineConfig } from 'tsup';
 
+const entryPoints = {
+  index: 'src/index.tsx',
+  client: 'src/client.ts',
+  tailwind: 'src/tailwind.ts'
+} as const;
+
 export default defineConfig({
   entry: {
     index: 'src/index.tsx',
