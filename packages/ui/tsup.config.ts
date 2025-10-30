@@ -1,14 +1,14 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/tailwind.ts'],
-  format: ['cjs', 'esm'],
+  entry: ['src/index.ts', 'src/client.ts', 'src/tailwind.ts'],
+  format: ['esm'],
   dts: true,
-  clean: true,
-  outExtension({ format }) {
-    return format === 'cjs' ? { js: '.cjs' } : { js: '.mjs' };
-  },
+  splitting: false,
   sourcemap: true,
+  clean: true,
+  minify: false,
+  skipNodeModulesBundle: true,
   target: 'es2020',
   external: ['react', 'react-dom']
 });

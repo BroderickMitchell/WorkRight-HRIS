@@ -1,11 +1,11 @@
 export { Button, ButtonProps } from './components/button.js';
-export { Card, CardDescription, CardHeader, CardTitle } from './components/card.js';
+export { Card, CardDescription, CardHeader, CardTitle, CardContent, CardFooter } from './components/card.js';
 export { Badge } from './components/badge.js';
 export { PageActions, PageHeader, PageHeaderProps } from './components/page-header.js';
-export { Density, Toolbar, ToolbarProps } from './components/toolbar.js';
-export { DataTable, DataTableProps } from './components/data-table.js';
+export { Toolbar, ToolbarProps } from './components/toolbar.js';
+export type { Density } from './components/toolbar.js';
+export type { DataTableProps } from './components/data-table.js';
 export { EmptyState } from './components/empty-state.js';
-export { SplitPane } from './components/split-pane.js';
 export { KpiCard } from './components/kpi-card.js';
 export { StatGrid } from './components/stat-grid.js';
 export { FormShell } from './components/form-shell.js';
