@@ -1,4 +1,5 @@
-export * from './tailwind-theme';
+export { tailwindColorVariables, tailwindTheme } from './tailwind-theme';
+export type { TailwindTheme } from './tailwind-theme';
 
 export type SemanticToken =
   | '--wr-bg'

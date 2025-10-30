@@ -1,20 +1,12 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: [
-    'src/index.ts',
-    'src/components/**/*.{ts,tsx}',
-    'src/tokens/**/*.ts',
-    'src/utils/**/*.ts'
-  ],
-  format: ['esm', 'cjs'],
+  entry: ['src/index.ts'],
+  format: ['esm'],
   dts: true,
-  clean: true,
-  sourcemap: false,
-  bundle: false,
   splitting: false,
-  outDir: 'dist',
-  outExtension({ format }) {
-    return { js: format === 'esm' ? '.mjs' : '.js' };
-  }
+  sourcemap: true,
+  clean: true,
+  shims: true,
+  external: ['react', 'react-dom', 'next']
 });

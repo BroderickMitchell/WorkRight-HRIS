@@ -1,15 +1,30 @@
-export * from './components/button';
-export * from './components/card';
-export * from './components/badge';
-export * from './components/page-header';
-export * from './components/toolbar';
-export * from './components/data-table';
-export * from './components/empty-state';
-export * from './components/split-pane';
-export * from './components/kpi-card';
-export * from './components/stat-grid';
-export * from './components/form-shell';
-export * from './components/modal';
-export * from './components/drawer';
-export * from './tokens';
+export { Button, type ButtonProps } from './components/button';
+export {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription
+} from './components/card';
+export { Badge } from './components/badge';
+export {
+  PageHeader,
+  PageActions,
+  type PageHeaderProps
+} from './components/page-header';
+export {
+  Toolbar,
+  type ToolbarProps,
+  type Density
+} from './components/toolbar';
+export { DataTable, type DataTableProps } from './components/data-table';
+export { EmptyState } from './components/empty-state';
+export { SplitPane } from './components/split-pane';
+export { KpiCard } from './components/kpi-card';
+export { StatGrid } from './components/stat-grid';
+export { FormShell } from './components/form-shell';
+export { Modal } from './components/modal';
+export { Drawer } from './components/drawer';
+export { tailwindTheme, tailwindColorVariables } from './tokens/tailwind-theme';
+export type { TailwindTheme } from './tokens/tailwind-theme';
+export type { SemanticToken } from './tokens';
 export { cn } from './utils/cn';

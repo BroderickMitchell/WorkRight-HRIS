@@ -5,7 +5,7 @@
  * ```ts
  * import { tailwindTheme } from '@workright/ui/tokens';
  *
- * export default {
+ * export const tailwindConfig = {
  *   theme: {
  *     extend: tailwindTheme,
  *   },
