@@ -53,6 +53,7 @@ RUN pnpm --filter @workright/api exec prisma generate --schema prisma/schema.pri
 
 # Web: Next.js build (expects output: 'standalone' in apps/web/next.config.js)
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm --filter @workright/ui run build
 RUN pnpm --filter ./apps/web run build
 
 # Drop dev-only dependencies prior to packaging runtime images so the runtime
