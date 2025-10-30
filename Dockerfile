@@ -49,8 +49,9 @@ RUN pnpm --filter ./apps/web run build
 # Drop dev-only dependencies prior to packaging runtime images. Limit the
 # workspace pruning to the API package so that its runtime dependencies (e.g.
 # NestJS) remain available in the copied node_modules tree without requiring a
-# subsequent reinstall.
-RUN pnpm prune --prod --filter @workright/api...
+# subsequent reinstall. Use the global --filter flag so the command is
+# compatible with pnpm v9+, which removed the subcommand-level --filter flag.
+RUN pnpm --filter @workright/api... prune --prod
 
 # ---------- runtime-api ----------
 FROM node:20-bullseye-slim AS runtime-api
