@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
-import { Badge, Button, DataTable, Drawer, EmptyState, PageActions, SplitPane, Toolbar } from '@workright/ui';
+import { Badge, Button, Drawer, EmptyState, PageActions, Toolbar } from '@workright/ui';
+import { DataTable, SplitPane } from '@workright/ui/client';
 import type { Density } from '@workright/ui';
 import Link from 'next/link';
 import { DirectoryEmployee } from '../../lib/directory';

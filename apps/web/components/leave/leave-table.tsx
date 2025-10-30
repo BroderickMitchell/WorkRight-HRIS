@@ -3,16 +3,8 @@
 import { useMemo, useState } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { useForm } from 'react-hook-form';
-import {
-  Badge,
-  Button,
-  DataTable,
-  EmptyState,
-  FormShell,
-  Modal,
-  PageActions,
-  Toolbar
-} from '@workright/ui';
+import { Badge, Button, EmptyState, FormShell, Modal, PageActions, Toolbar } from '@workright/ui';
+import { DataTable } from '@workright/ui/client';
 import type { Density } from '@workright/ui';
 import { getItem, setItem } from '../../lib/store';
 
