@@ -72,7 +72,7 @@ WorkRight HRIS is a modern, multi-tenant HR platform tailored for Australian org
    pnpm run typecheck
    pnpm run format
    ```
-7. **Walk through the demo workflow.** Follow `scripts/demo-flow.md` to exercise tenant provisioning, goal alignment, leave approvals, learning assignments, and reporting end-to-end. Validate audit logs and webhook deliveries as you progress.
+7. **Walk through the demo workflow.** Follow `scripts/demo-flow.md` for a copy/paste-ready curl script that provisions a tenant, seeds branding and leave settings, imports employees, cascades goals, launches a review cycle, exercises leave approvals, and triggers reporting + webhooks. Validate audit logs and webhook deliveries as you progress.
 
 ### Developer tooling
 
@@ -103,11 +103,13 @@ cp apps/api/.env.example apps/api/.env
 
 ### Demo script
 
-1. Create a tenant via `POST /v1/identity/tenants` and configure branding and leave settings.
-2. Import employees using the CSV importer or `POST /v1/directory/employees/import`.
-3. Cascade goals through the Goals board, launch a review cycle, and collect 360 feedback.
-4. Submit a leave request, approve it as a manager, and observe calendar sync via ICS.
-5. Generate a headcount report and schedule a webhook to a test endpoint.
+The [`scripts/demo-flow.md`](scripts/demo-flow.md) guide includes:
+
+1. Environment setup with reusable shell variables for `BASE_URL`, bearer token, and headers.
+2. Tenant creation plus branding, leave settings, and two sample leave policies using deterministic IDs.
+3. CSV or JSON employee import, lookup helpers for employee IDs, and goal cascading down to Sam and Alex.
+4. Review cycle launch (including 360 feedback), leave submission/approval, and ICS calendar verification tips.
+5. Reporting and webhook subscription steps, impersonation tokens, goal progress updates, CSV exports, and cleanup commands.
 
 ## Architecture diagram
 
