@@ -1,0 +1,13 @@
+# Exclude development-only artefacts while keeping the build output.
+node_modules
+src
+test
+coverage
+*.log
+*.env
+prisma/*.db
+Dockerfile
+postman_collection.json
+openapi.yaml
+vitest.config.ts
+tsconfig.tsbuildinfo
