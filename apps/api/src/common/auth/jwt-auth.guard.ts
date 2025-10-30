@@ -3,13 +3,23 @@ import { AuthGuard } from '@nestjs/passport';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
-  handleRequest(err: unknown, user: Express.User | false | null, info?: Error) {
+  override handleRequest<TUser>(
+    err: unknown,
+    user: TUser,
+    info: unknown,
+    _context: ExecutionContext,
+    _status?: unknown,
+  ): TUser {
     if (err || info) {
-      throw err || new UnauthorizedException(info?.message ?? 'Invalid authentication token');
+      const message =
+        (info as { message?: string } | undefined)?.message ?? 'Invalid authentication token';
+      throw err || new UnauthorizedException(message);
     }
+
     if (!user) {
       throw new UnauthorizedException('Authentication required');
     }
+
     return user;
   }
 
