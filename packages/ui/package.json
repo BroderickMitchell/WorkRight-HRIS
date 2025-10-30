@@ -8,14 +8,18 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
     },
     "./tailwind": {
-      "types": "./dist/tailwind.d.ts",
       "import": "./dist/tailwind.mjs",
       "require": "./dist/tailwind.cjs"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "tailwind": ["./dist/tailwind.d.ts"],
+      "*": ["./dist/index.d.ts"]
     }
   },
   "files": ["dist"],
@@ -29,6 +33,7 @@
     "react-dom": ">=18"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3"
   },
