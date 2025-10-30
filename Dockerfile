@@ -24,8 +24,10 @@ COPY packages/profile-schema/package.json packages/profile-schema/
 COPY packages/ui/package.json packages/ui/
 COPY scripts/bootstrap-env.mjs scripts/
 
-# Full install incl. dev deps (allow lockfile updates if not committed)
-RUN pnpm -w install --no-frozen-lockfile
+# Full install incl. dev deps (allow lockfile updates if not committed).
+# Skip lifecycle scripts until the full workspace (including the Prisma schema)
+# has been copied to avoid failures during cached dependency installs.
+RUN pnpm -w install --no-frozen-lockfile --ignore-scripts
 
 # ---------- build ----------
 FROM base AS build
@@ -33,6 +35,12 @@ WORKDIR /app
 
 # Now copy sources
 COPY . .
+
+# Rebuild any native dependencies against the final filesystem contents and run
+# package lifecycle scripts once source files such as the Prisma schema are
+# present.
+RUN pnpm -w rebuild -r \
+ && pnpm -w -r run postinstall
 
 # Build libraries first
 RUN pnpm --filter ./packages/profile-schema run build \
