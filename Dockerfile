@@ -27,7 +27,7 @@ COPY scripts/bootstrap-env.mjs scripts/
 # Full install incl. dev deps (allow lockfile updates if not committed).
 # Skip lifecycle scripts until the full workspace (including the Prisma schema)
 # has been copied to avoid failures during cached dependency installs.
-RUN pnpm -w install --no-frozen-lockfile --ignore-scripts
+RUN pnpm -w install --frozen-lockfile --ignore-scripts
 
 # ---------- build ----------
 FROM base AS build
@@ -42,19 +42,18 @@ COPY . .
 RUN pnpm -w rebuild -r \
  && pnpm -w -r run postinstall
 
-# Build libraries first
-RUN pnpm --filter @workright/profile-schema run build \
- && pnpm --filter @workright/config run build \
- && pnpm --filter @workright/ui run build
+# Build libraries first so application bundles consume fresh artefacts.
+RUN pnpm --filter @workright/ui run build \
+ && pnpm --filter @workright/profile-schema run build \
+ && pnpm --filter @workright/config run build
 
 # API: prisma + build
 RUN pnpm --filter @workright/api exec prisma generate --schema prisma/schema.prisma \
- && pnpm --filter ./apps/api run build
+ && pnpm --filter @workright/api run build
 
 # Web: Next.js build (expects output: 'standalone' in apps/web/next.config.js)
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm --filter @workright/ui run build
-RUN pnpm --filter ./apps/web run build
+RUN pnpm --filter @workright/web run build
 
 # Drop dev-only dependencies prior to packaging runtime images so the runtime
 # layers only include production dependencies for the workspaces that are part

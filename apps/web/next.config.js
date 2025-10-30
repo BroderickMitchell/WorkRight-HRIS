@@ -5,7 +5,10 @@ const nextConfig = {
   images: {
     remotePatterns: [{ protocol: 'https', hostname: '**' }]
   },
-  transpilePackages: ['@workright/ui']
+  transpilePackages: ['@workright/ui'],
+  experimental: {
+    esmExternals: 'loose'
+  }
 };
 
 module.exports = nextConfig;
