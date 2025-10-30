@@ -32,7 +32,7 @@ import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 
 const MAX_DATE = new Date('9999-12-31T23:59:59.999Z');
-const asJson = (value: unknown): Prisma.JsonValue => value as Prisma.JsonValue;
+const asJson = (value: unknown): Prisma.InputJsonValue => value as Prisma.InputJsonValue;
 
 type EmployeeProfileRecord = Prisma.EmployeeGetPayload<{
   include: {
@@ -52,12 +52,12 @@ type EmployeeProfileRecord = Prisma.EmployeeGetPayload<{
 
 type EmployeeAddressRecord = EmployeeProfileRecord['addresses'][number];
 type EmployeeCostSplitRecord = EmployeeProfileRecord['costSplits'][number];
-type EmployeeCostSplitBase = Prisma.EmployeeCostSplit;
+type EmployeeCostSplitBase = Prisma.EmployeeCostSplitGetPayload<Prisma.EmployeeCostSplitDefaultArgs>;
 type EmploymentEventRecord = EmployeeProfileRecord['employmentEvents'][number];
 type GeneratedDocumentRecord = EmployeeProfileRecord['generatedDocuments'][number];
 type EmergencyContactRecord = EmployeeProfileRecord['emergencyContacts'][number];
 type LeaveBalanceRecord = EmployeeProfileRecord['leaveBalances'][number];
-type DocumentTemplateRecord = Prisma.DocumentTemplate;
+type DocumentTemplateRecord = Prisma.DocumentTemplateGetPayload<Prisma.DocumentTemplateDefaultArgs>;
 
 interface DownloadDescriptor {
   stream: ReturnType<typeof createReadStream>;
