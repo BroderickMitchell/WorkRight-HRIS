@@ -7,7 +7,7 @@ Usage:
      (If you get an execution policy warning:  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass)
 
 What it does:
-  - Verifies Node (>=20), pnpm (>=8), and Docker are installed and running
+  - Verifies Node (>=24.11), pnpm (>=8.15.5), and Docker are installed and running
   - Installs dependencies with pnpm
   - Starts Docker services (Postgres, Redis, Mailhog)
   - Pushes DB schema & seeds sample data
@@ -91,11 +91,11 @@ function Wait-For-Postgres {
 
 # 1) Pre-flight checks
 Write-Section "Pre-flight checks"
-if (-not (Check-Cmd "node" "--version" ([Version]"20.0.0"))) {
-  Fail "Node.js not found. Install Node 20+ and try again."
+if (-not (Check-Cmd "node" "--version" ([Version]"24.11.0"))) {
+  Fail "Node.js not found. Install Node 24.11.0+ and try again."
 }
-if (-not (Check-Cmd "pnpm" "--version" ([Version]"8.0.0"))) {
-  Fail "pnpm not found. Install pnpm 8+ (https://pnpm.io/installation) and try again."
+if (-not (Check-Cmd "pnpm" "--version" ([Version]"8.15.5"))) {
+  Fail "pnpm not found. Install pnpm 8.15.5+ (https://pnpm.io/installation) and try again."
 }
 if (-not (Check-Cmd "docker" "--version" ([Version]"20.0.0"))) {
   Fail "Docker CLI not found. Install Docker Desktop and try again."

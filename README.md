@@ -29,7 +29,7 @@ WorkRight HRIS is a modern, multi-tenant HR platform tailored for Australian org
 
 ## Step-by-step local testing guide
 
-1. **Confirm prerequisites.** Install Node.js 20 or newer, pnpm 8+, Docker Desktop (or Docker Engine + Compose v2), and Terraform. Authenticate to any private registries or package feeds before proceeding.
+1. **Confirm prerequisites.** Install Node.js 24 (validated with v24.11.0), pnpm 8.15.5 (via Corepack recommended), Docker Desktop (or Docker Engine + Compose v2), and Terraform. Authenticate to any private registries or package feeds before proceeding.
 2. **Install workspace dependencies.** From the repository root run:
 
    ```bash
