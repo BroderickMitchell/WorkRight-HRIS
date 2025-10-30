@@ -23,7 +23,7 @@
     "@nestjs/passport": "^10.0.3",
     "@nestjs/jwt": "^10.2.0",
     "@nestjs/swagger": "^7.4.2",
-    "@prisma/client": "latest",
+    "@prisma/client": "6.18.0",
     "@trpc/server": "^10.45.1",
     "@workright/config": "workspace:*",
     "@workright/profile-schema": "workspace:*",
@@ -69,6 +69,6 @@
     "typescript": "^5.4.5",
     "vitest": "^1.5.0",
     "zod": "^3.22.4",
-    "prisma": "latest"
+    "prisma": "6.18.0"
   }
 }
