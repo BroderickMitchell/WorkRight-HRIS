@@ -46,11 +46,11 @@ RUN pnpm --filter @workright/api exec prisma generate --schema prisma/schema.pri
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter ./apps/web run build
 
-# Drop dev-only dependencies prior to packaging runtime images. Prune removes
-# development dependencies across the workspace and we then reinstall only the
-# production dependencies required by the API package.
-RUN pnpm prune --prod \
- && pnpm --filter @workright/api... install --prod
+# Drop dev-only dependencies prior to packaging runtime images. Limit the
+# workspace pruning to the API package so that its runtime dependencies (e.g.
+# NestJS) remain available in the copied node_modules tree without requiring a
+# subsequent reinstall.
+RUN pnpm prune --prod --filter @workright/api...
 
 # ---------- runtime-api ----------
 FROM node:20-bullseye-slim AS runtime-api
