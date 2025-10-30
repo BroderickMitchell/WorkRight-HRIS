@@ -7,6 +7,9 @@
     "packages/*"
   ],
   "packageManager": "pnpm@8.15.5",
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
     "@workright/api": "workspace:*"
   },
