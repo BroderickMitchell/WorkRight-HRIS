@@ -14,7 +14,8 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 # Workspace metadata (cache-friendly)
-COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY pnpm-workspace.yaml package.json ./
+COPY pnpm-lock.yaml* ./
 
 # Package manifests only (so pnpm can resolve deps per package)
 COPY apps/api/package.json apps/api/
@@ -24,10 +25,17 @@ COPY packages/profile-schema/package.json packages/profile-schema/
 COPY packages/ui/package.json packages/ui/
 COPY scripts/bootstrap-env.mjs scripts/
 
-# Full install incl. dev deps (allow lockfile updates if not committed).
+# Full install incl. dev deps. When the lockfile is present, keep installs
+# reproducible with --frozen-lockfile; otherwise fall back to the latest
+# dependency graph to avoid failing the build when the lockfile is intentionally
+# excluded from the workspace (common for private monorepos).
 # Skip lifecycle scripts until the full workspace (including the Prisma schema)
 # has been copied to avoid failures during cached dependency installs.
-RUN pnpm -w install --frozen-lockfile --ignore-scripts
+RUN if [ -f pnpm-lock.yaml ]; then \
+    pnpm -w install --frozen-lockfile --ignore-scripts; \
+  else \
+    pnpm -w install --ignore-scripts; \
+  fi
 
 # ---------- build ----------
 FROM base AS build
