@@ -161,7 +161,7 @@ The high-level workflow is:
    docker build -t <acr-name>.azurecr.io/workright/api:<tag> .
    ```
 
-   The build runs `pnpm install --frozen-lockfile`, compiles the shared packages, generates Prisma client code, and prunes development-only dependencies before the runtime image is assembled.
+   The build runs `pnpm install --frozen-lockfile`, compiles the shared packages, generates Prisma client code, and prunes development-only dependencies scoped to the API workspace so runtime packages such as `@nestjs/common` remain available.
 
 3. Push the image so the deployment script (or Azure App Service) can pull it:
 
