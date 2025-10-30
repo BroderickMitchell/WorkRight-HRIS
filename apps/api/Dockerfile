@@ -1,11 +1,13 @@
 FROM node:20-alpine AS base
-RUN npm install -g pnpm
+ENV PNPM_HOME=/usr/local/share/pnpm
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
 
 FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install --frozen-lockfile || pnpm install
 COPY prisma ./prisma
+RUN pnpm install --frozen-lockfile --ignore-scripts || pnpm install --ignore-scripts
 RUN pnpm run prisma:generate
 
 FROM deps AS builder
