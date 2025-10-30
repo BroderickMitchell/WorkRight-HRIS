@@ -24,12 +24,12 @@ Authenticate the Docker CLI against your registry.
 ```bash
 docker build \
   --file Dockerfile \
-  --target runner \
+  --target runtime-api \
   --tag <acr-name>.azurecr.io/workright/api:<tag> \
   .
 ```
 
-Build the production image. The Dockerfile already compiles the shared packages, generates the Prisma client, and prunes dev-only dependencies prior to the `runner` stage.
+Build the production image. The Dockerfile already compiles the shared packages, generates the Prisma client, and prunes dev-only dependencies while keeping the full API dependency graph (for example, `@nestjs/common`) prior to the `runtime-api` stage.
 
 ```bash
 docker push <acr-name>.azurecr.io/workright/api:<tag>
@@ -43,5 +43,5 @@ Push the tagged image to your registry so your deployment automation can pull it
 | --- | --- | --- |
 | `pnpm` fails with a proxy error during `docker build` | The build environment cannot reach `registry.npmjs.org` | Run `pnpm install` locally before building so the workspace store is ready, or mirror the dependencies inside your network |
 | API fails to start because Prisma schema is missing | `pnpm prisma generate` was skipped | Run `pnpm --filter @workright/api run prisma:generate` before building or bake it into your CI pipeline |
-| Image size is larger than expected | Build was run without the `runner` target | Ensure `--target runner` (or the multi-stage default) is used |
+| Image size is larger than expected | Build was run without the `runtime-api` target | Ensure `--target runtime-api` (or the multi-stage default) is used |
 
