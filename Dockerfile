@@ -43,9 +43,9 @@ RUN pnpm -w rebuild -r \
  && pnpm -w -r run postinstall
 
 # Build libraries first
-RUN pnpm --filter ./packages/profile-schema run build \
- && pnpm --filter ./packages/config run build \
- && pnpm --filter ./packages/ui run build
+RUN pnpm --filter @workright/profile-schema run build \
+ && pnpm --filter @workright/config run build \
+ && pnpm --filter @workright/ui run build
 
 # API: prisma + build
 RUN pnpm --filter @workright/api exec prisma generate --schema prisma/schema.prisma \
