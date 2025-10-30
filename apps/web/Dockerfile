@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:20-bullseye-slim AS base
+FROM node:24.11.0-bullseye-slim AS base
 
 WORKDIR /app
 

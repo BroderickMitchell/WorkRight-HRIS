@@ -1,5 +1,5 @@
 # ---------- base: deps ----------
-FROM node:20-bullseye-slim AS base
+FROM node:24.11.0-bullseye-slim AS base
 WORKDIR /app
 
 ENV PNPM_HOME=/usr/local/share/pnpm
@@ -62,7 +62,7 @@ RUN pnpm --filter @workright/web run build
 RUN pnpm deploy --filter @workright/api --prod /app/deploy/api
 
 # ---------- runtime-api ----------
-FROM node:20-bullseye-slim AS runtime-api
+FROM node:24.11.0-bullseye-slim AS runtime-api
 WORKDIR /app
 
 # Bring the deploy output which contains the API build along with its
@@ -76,7 +76,7 @@ EXPOSE 3001
 CMD ["node", "apps/api/dist/main.js"]
 
 # ---------- runtime-web ----------
-FROM node:20-alpine AS runtime-web
+FROM node:24.11.0-alpine AS runtime-web
 WORKDIR /app
 
 ENV PNPM_HOME=/usr/local/share/pnpm

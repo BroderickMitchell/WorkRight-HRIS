@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:24.11.0-alpine AS base
 ENV PNPM_HOME=/usr/local/share/pnpm
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
@@ -14,7 +14,7 @@ FROM deps AS builder
 COPY . .
 RUN pnpm build
 
-FROM node:20-alpine AS runner
+FROM node:24.11.0-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=development
 COPY --from=builder /app/dist ./dist
