@@ -55,29 +55,21 @@ RUN pnpm --filter @workright/api exec prisma generate --schema prisma/schema.pri
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @workright/web run build
 
-# Drop dev-only dependencies prior to packaging runtime images so the runtime
-# layers only include production dependencies for the workspaces that are part
-# of the deployment graph (root -> @workright/api).
-RUN pnpm prune --prod
+# Produce an isolated production deployment for the API with only the
+# dependencies it requires at runtime. This avoids copying the entire
+# workspace's node_modules tree (which may omit packages pruned as dev-only)
+# into the final image and keeps the runtime lean and predictable.
+RUN pnpm deploy --filter @workright/api --prod /app/deploy/api
 
 # ---------- runtime-api ----------
 FROM node:20-bullseye-slim AS runtime-api
 WORKDIR /app
 
-# Bring built artefacts and dependencies produced during the build stage
-COPY --from=build /app/apps/api/dist apps/api/dist
+# Bring the deploy output which contains the API build along with its
+# production dependencies. Include Prisma assets that need to remain editable
+# (migrations, schema) in the runtime layer.
+COPY --from=build /app/deploy/api ./
 COPY --from=build /app/apps/api/prisma apps/api/prisma
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/package.json ./package.json
-COPY --from=build /app/pnpm-lock.yaml ./pnpm-lock.yaml
-COPY --from=build /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
-COPY --from=build /app/apps/api/package.json apps/api/
-COPY --from=build /app/packages/config/dist packages/config/dist
-COPY --from=build /app/packages/config/package.json packages/config/
-COPY --from=build /app/packages/profile-schema/dist packages/profile-schema/dist
-COPY --from=build /app/packages/profile-schema/package.json packages/profile-schema/
-COPY --from=build /app/packages/ui/package.json packages/ui/
-COPY --from=build /app/scripts scripts/
 
 ENV NODE_ENV=production
 EXPOSE 3001
