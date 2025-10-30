@@ -1,0 +1,38 @@
+#! web-deployment.yaml
+# Generated code, do not edit
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: web
+    namespace: workright-hris
+    labels:
+        com.docker.compose.project: workright-hris
+        com.docker.compose.service: web
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            com.docker.compose.project: workright-hris
+            com.docker.compose.service: web
+    strategy:
+        type: Recreate
+    template:
+        metadata:
+            labels:
+                com.docker.compose.project: workright-hris
+                com.docker.compose.service: web
+                com.docker.compose.network.default: "true"
+        spec:
+            containers:
+                - name: web
+                  image: workright-hris-web
+                  imagePullPolicy: IfNotPresent
+                  args:
+                    - node
+                    - apps/web/server.js
+                  env:
+                    - name: NEXT_PUBLIC_API_URL
+                      value: "http://localhost:3001"
+                  ports:
+                    - name: web-3000
+                      containerPort: 3000

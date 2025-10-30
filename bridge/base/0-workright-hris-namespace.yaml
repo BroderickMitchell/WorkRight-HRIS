@@ -1,0 +1,8 @@
+#! 0-workright-hris-namespace.yaml
+# Generated code, do not edit
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: workright-hris
+    labels:
+        com.docker.compose.project: workright-hris
