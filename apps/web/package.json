@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "prebuild": "pnpm -w --filter @workright/ui run build",
     "dev": "next dev --turbo",
     "build": "next build",
     "start": "next start",
