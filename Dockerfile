@@ -73,7 +73,7 @@ COPY --from=build /app/apps/api/prisma apps/api/prisma
 
 ENV NODE_ENV=production
 EXPOSE 3001
-CMD ["node", "apps/api/dist/main.js"]
+CMD ["node", "dist/main.js"]
 
 # ---------- runtime-web ----------
 FROM node:24.11.0-alpine AS runtime-web

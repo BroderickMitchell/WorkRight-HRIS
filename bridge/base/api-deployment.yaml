@@ -29,7 +29,7 @@ spec:
                   imagePullPolicy: IfNotPresent
                   args:
                     - node
-                    - apps/api/dist/main.js
+                    - dist/main.js
                   env:
                     - name: ALLOWED_ORIGINS
                       value: "http://localhost:3000"
