@@ -20,6 +20,12 @@
     "format": "prettier --write .",
     "typecheck": "pnpm -r typecheck"
   },
+  "pnpm": {
+    "overrides": {
+      "prisma": "latest",
+      "@prisma/client": "latest"
+    }
+  },
   "devDependencies": {
     "prettier": "^3.1.1",
     "tsup": "8.5.0",
