@@ -33,8 +33,8 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "build": "tsup src/index.ts src/tailwind.ts --format cjs,esm --dts --clean --out-extension cjs=.cjs --out-extension esm=.mjs",
-    "dev": "tsup src/index.ts src/tailwind.ts --format cjs,esm --dts --watch --out-extension cjs=.cjs --out-extension esm=.mjs"
+    "build": "tsup src/index.ts src/tailwind.ts --format cjs,esm --dts --clean",
+    "dev": "tsup src/index.ts src/tailwind.ts --format cjs,esm --dts --watch"
   },
   "peerDependencies": {
     "react": ">=18",
