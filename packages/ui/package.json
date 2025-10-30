@@ -7,7 +7,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsup --config tsup.config.ts",
-    "lint": "eslint 'src/**/*.{ts,tsx}'",
+    "lint": "eslint src --ext .ts,.tsx",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
