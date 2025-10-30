@@ -54,7 +54,7 @@ services:
       DEFAULT_LOCALE: "en-AU"
       ALLOWED_ORIGINS: "http://localhost:3000"
       AUTH_AUDIENCE: "workright-local"
-      AUTH_SECRET: "change-me"
+      AUTH_SECRET: "iKvpXgCByUBLEfeMGsMv+H2oT7uI166SKgsUsEAyXysdVpM4NudWniM1wvnTypQ1Q7JS86T3BDKGLwwd1CIBeg=="
       AUTH_ISSUER: "http://localhost:3001/"
     depends_on:
       - db
