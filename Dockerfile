@@ -32,9 +32,9 @@ COPY scripts/bootstrap-env.mjs scripts/
 # Skip lifecycle scripts until the full workspace (including the Prisma schema)
 # has been copied to avoid failures during cached dependency installs.
 RUN if [ -f pnpm-lock.yaml ]; then \
-    pnpm -w install --frozen-lockfile --ignore-scripts; \
+    pnpm -w install --frozen-lockfile; \
   else \
-    pnpm -w install --ignore-scripts; \
+    pnpm -w install; \
   fi
 
 # ---------- build ----------
