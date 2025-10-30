@@ -32,7 +32,32 @@ import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 
 const MAX_DATE = new Date('9999-12-31T23:59:59.999Z');
-const asJson = (value: unknown): Prisma.InputJsonValue => value as Prisma.InputJsonValue;
+const asJson = (value: unknown): Prisma.JsonValue => value as Prisma.JsonValue;
+
+type EmployeeProfileRecord = Prisma.EmployeeGetPayload<{
+  include: {
+    position: { include: { department: true; orgUnit: true } };
+    department: true;
+    location: true;
+    manager: true;
+    addresses: true;
+    emergencyContacts: true;
+    costSplits: { include: { costCode: true } };
+    generatedDocuments: { include: { template: true } };
+    employmentEvents: true;
+    employments: true;
+    leaveBalances: { include: { leaveType: true } };
+  };
+}>;
+
+type EmployeeAddressRecord = EmployeeProfileRecord['addresses'][number];
+type EmployeeCostSplitRecord = EmployeeProfileRecord['costSplits'][number];
+type EmployeeCostSplitBase = Prisma.EmployeeCostSplit;
+type EmploymentEventRecord = EmployeeProfileRecord['employmentEvents'][number];
+type GeneratedDocumentRecord = EmployeeProfileRecord['generatedDocuments'][number];
+type EmergencyContactRecord = EmployeeProfileRecord['emergencyContacts'][number];
+type LeaveBalanceRecord = EmployeeProfileRecord['leaveBalances'][number];
+type DocumentTemplateRecord = Prisma.DocumentTemplate;
 
 interface DownloadDescriptor {
   stream: ReturnType<typeof createReadStream>;
@@ -55,7 +80,7 @@ export class EmployeeProfileService {
   }
 
   async getEmployeeProfile(id: string): Promise<EmployeeProfilePayload> {
-    const employee = await this.prisma.employee.findFirst({
+    const employee = (await this.prisma.employee.findFirst({
       where: { id },
       include: {
         position: {
@@ -87,7 +112,7 @@ export class EmployeeProfileService {
           include: { leaveType: true }
         }
       }
-    });
+    })) as EmployeeProfileRecord | null;
 
     if (!employee) {
       throw new NotFoundException('Employee not found');
@@ -95,10 +120,14 @@ export class EmployeeProfileService {
 
     const templates = await this.prisma.documentTemplate.findMany({ orderBy: { name: 'asc' } });
     const employment = employee.employments[0];
-    const primaryAddress = employee.addresses.find((addr) => addr.type === 'PRIMARY');
-    const mailingAddress = employee.addresses.find((addr) => addr.type === 'MAILING');
+    const primaryAddress = employee.addresses.find(
+      (addr: EmployeeAddressRecord) => addr.type === 'PRIMARY'
+    );
+    const mailingAddress = employee.addresses.find(
+      (addr: EmployeeAddressRecord) => addr.type === 'MAILING'
+    );
 
-    const costSplits = employee.costSplits.map((split) => ({
+    const costSplits = employee.costSplits.map((split: EmployeeCostSplitRecord) => ({
       id: split.id,
       costCodeId: split.costCodeId,
       costCode: {
@@ -115,7 +144,7 @@ export class EmployeeProfileService {
       createdBy: split.createdBy ?? null
     }));
 
-    const history = employee.employmentEvents.map((event) => ({
+    const history = employee.employmentEvents.map((event: EmploymentEventRecord) => ({
       id: event.id,
       type: event.type,
       effectiveDate: event.effectiveDate.toISOString(),
@@ -125,7 +154,7 @@ export class EmployeeProfileService {
       source: (event.source as 'UI' | 'API' | 'INTEGRATION') ?? 'UI'
     }));
 
-    const generated = employee.generatedDocuments.map((doc) => ({
+    const generated = employee.generatedDocuments.map((doc: GeneratedDocumentRecord) => ({
       id: doc.id,
       templateId: doc.templateId ?? undefined,
       templateName: doc.template?.name ?? undefined,
@@ -200,7 +229,7 @@ export class EmployeeProfileService {
               country: mailingAddress.country
             }
           : null,
-        emergencyContacts: employee.emergencyContacts.map((contact) => ({
+        emergencyContacts: employee.emergencyContacts.map((contact: EmergencyContactRecord) => ({
           id: contact.id,
           name: contact.name,
           relationship: contact.relationship,
@@ -276,7 +305,7 @@ export class EmployeeProfileService {
         overtimeEligible: employee.overtimeEligible,
         exempt: employee.exempt,
         benefitsEligible: employee.benefitsEligible,
-        leaveBalances: employee.leaveBalances.map((balance) => ({
+        leaveBalances: employee.leaveBalances.map((balance: LeaveBalanceRecord) => ({
           id: balance.id,
           type: balance.leaveType?.name ?? 'Leave',
           balanceHours: balance.balance
@@ -286,7 +315,7 @@ export class EmployeeProfileService {
       history,
       documents: {
         generated,
-        templates: templates.map((template) => ({
+        templates: templates.map((template: DocumentTemplateRecord) => ({
           id: template.id,
           name: template.name,
           format: template.format,
@@ -323,7 +352,7 @@ export class EmployeeProfileService {
       include: { costCode: true },
       orderBy: { startDate: 'desc' }
     });
-    return splits.map((split) =>
+    return splits.map((split: EmployeeCostSplitRecord) =>
       costSplitSchema.parse({
         id: split.id,
         costCodeId: split.costCodeId,
@@ -406,7 +435,7 @@ export class EmployeeProfileService {
       where: { employeeId: existing.employeeId, NOT: { id: splitId } }
     });
     this.validateCostSplits([
-      ...otherSplits.map((item) => ({
+      ...otherSplits.map((item: EmployeeCostSplitBase) => ({
         id: item.id,
         costCodeId: item.costCodeId,
         percentage: Number(item.percentage),
@@ -462,7 +491,7 @@ export class EmployeeProfileService {
       where,
       orderBy: { effectiveDate: 'desc' }
     });
-    return history.map((event) =>
+    return history.map((event: EmploymentEventRecord) =>
       employmentEventSchema.parse({
         id: event.id,
         type: event.type,
@@ -518,7 +547,7 @@ export class EmployeeProfileService {
         jobTitle: employee.jobTitle ?? employee.position?.title ?? null,
         department: employee.position?.department?.name ?? null
       },
-      costSplits: employee.costSplits.map((split) => ({
+      costSplits: employee.costSplits.map((split: EmployeeCostSplitRecord) => ({
         code: split.costCode.code,
         description: split.costCode.description,
         percentage: Number(split.percentage),
@@ -580,7 +609,7 @@ export class EmployeeProfileService {
       include: { template: true },
       orderBy: { createdAt: 'desc' }
     });
-    return docs.map((doc) =>
+    return docs.map((doc: GeneratedDocumentRecord) =>
       generatedDocumentSchema.parse({
         id: doc.id,
         templateId: doc.templateId ?? undefined,

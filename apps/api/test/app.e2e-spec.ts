@@ -1,6 +1,8 @@
 import request from 'supertest';
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { ClsService } from 'nestjs-cls';
 import { AppModule } from '../src/modules/app.module.js';
 
 const hasDb = !!process.env.DATABASE_URL;
@@ -11,7 +13,17 @@ const hasDb = !!process.env.DATABASE_URL;
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({
       imports: [AppModule]
-    }).compile();
+    })
+      .overrideProvider(ConfigService)
+      .useValue({
+        get: <T>(_key: string) => false as unknown as T
+      })
+      .overrideProvider(ClsService)
+      .useValue({
+        get: () => undefined,
+        set: () => undefined
+      })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();

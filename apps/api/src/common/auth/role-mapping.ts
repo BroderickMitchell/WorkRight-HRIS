@@ -1,5 +1,6 @@
-import { RoleKey } from '@prisma/client';
 import { AppRole } from './roles.decorator.js';
+
+export type RoleKey = 'SYSTEM_OWNER' | 'HR_BUSINESS_PARTNER' | 'MANAGER' | 'EMPLOYEE' | 'AUDITOR';
 
 const APP_ROLES: AppRole[] = [
   'HR_ADMIN',

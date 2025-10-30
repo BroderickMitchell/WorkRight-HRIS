@@ -7,7 +7,7 @@
     "postinstall": "node scripts/bootstrap-env.mjs",
     "bootstrap:env": "node scripts/bootstrap-env.mjs",
     "dev": "./scripts/run-all.sh",
-    "lint": "pnpm -r lint",
+    "lint": "pnpm -r --workspace-concurrency=1 --if-present lint",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "format": "prettier --write .",
