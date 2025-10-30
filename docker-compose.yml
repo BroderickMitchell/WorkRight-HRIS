@@ -61,7 +61,7 @@ services:
       - redis
     ports:
       - "3001:3001"
-    command: ["node", "apps/api/dist/main.js"]
+    command: ["node", "dist/main.js"]
 
   web:
     build:
