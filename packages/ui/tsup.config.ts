@@ -1,14 +1,11 @@
-import { defineConfig } from "tsup";
+import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ["src/index.ts", "src/tailwind.ts"],
-  format: ["cjs", "esm"],
-  dts: { resolve: true },
-  splitting: false,
-  sourcemap: true,
+  entry: ['src/index.ts', 'src/tailwind.ts'],
+  format: ['cjs', 'esm'],
+  dts: true,
   clean: true,
-  shims: true,
-  target: "es2020",
-  tsconfig: "tsconfig.json",
-  external: ["react", "react-dom", "next"],
+  sourcemap: true,
+  target: 'es2020',
+  external: ['react', 'react-dom']
 });
