@@ -1,5 +1,5 @@
 "use strict";
-"use client";
+'use client';
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
