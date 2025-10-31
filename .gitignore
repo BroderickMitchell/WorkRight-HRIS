@@ -19,4 +19,3 @@ apps/web/.next
 apps/web/out
 terraform.tfstate*
 .terraform
-*.js
