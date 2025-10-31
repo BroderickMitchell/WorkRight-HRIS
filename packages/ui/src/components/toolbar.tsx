@@ -41,7 +41,7 @@ export function Toolbar({
           <input
             type="search"
             value={searchValue}
-            onChange={(event) => onSearchChange(event.target.value)}
+            onChange={(event) => onSearchChange(event.currentTarget.value)}
             className="h-11 w-full rounded-lg border border-border bg-panel pl-10 pr-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring"
             placeholder={searchPlaceholder}
             aria-label={searchPlaceholder}
