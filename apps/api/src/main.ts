@@ -62,7 +62,7 @@ async function bootstrap() {
   }
 
   const prismaService = app.get(PrismaService);
-  await prismaService.enableShutdownHooks(app);
+  prismaService.setupShutdownHooks(app);
 
   const port = process.env.PORT || 3001;
   await app.listen(port);

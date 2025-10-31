@@ -1,9 +1,9 @@
 // src/common/prisma.service.ts
-import { Injectable, INestApplication, OnModuleInit } from '@nestjs/common';
+import { Injectable, INestApplication, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit {
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor() {
     // PrismaClientOptions can include log or datasource, but no "extensions" in v6
     super({});
@@ -19,10 +19,21 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     });
   }
 
-  async enableShutdownHooks(app: INestApplication) {
-    // Again, cast to 'any' to avoid strict typing issues
-    (this as any).$on('beforeExit', async () => {
-      await app.close();
-    });
+  async onModuleDestroy() {
+    await this.$disconnect();
+  }
+
+  setupShutdownHooks(app: INestApplication) {
+    const shutdown = async () => {
+      try {
+        await app.close();
+      } finally {
+        await this.$disconnect();
+      }
+    };
+
+    process.once('SIGINT', shutdown);
+    process.once('SIGTERM', shutdown);
+    process.once('beforeExit', shutdown);
   }
 }
