@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient, RoleKey } from '@prisma/client';
+import { BudgetStatus, Prisma, PrismaClient, RoleKey } from '@prisma/client';
 import { addDays } from 'date-fns';
 
 const prisma = new PrismaClient();
@@ -102,10 +102,24 @@ async function main() {
     ]
   });
 
+  await prisma.orgUnit.createMany({
+    data: [
+      { tenantId: acme.id, name: 'Operations' },
+      { tenantId: acme.id, name: 'People & Culture' },
+      { tenantId: demo.id, name: 'Clinicians' }
+    ]
+  });
+
   const operations = await prisma.department.findFirstOrThrow({
     where: { tenantId: acme.id, name: 'Operations' }
   });
   const pnc = await prisma.department.findFirstOrThrow({
+    where: { tenantId: acme.id, name: 'People & Culture' }
+  });
+  const operationsOrg = await prisma.orgUnit.findFirstOrThrow({
+    where: { tenantId: acme.id, name: 'Operations' }
+  });
+  const pncOrg = await prisma.orgUnit.findFirstOrThrow({
     where: { tenantId: acme.id, name: 'People & Culture' }
   });
 
@@ -113,7 +127,13 @@ async function main() {
     data: {
       tenantId: acme.id,
       title: 'Superintendent',
-      departmentId: operations.id
+      positionHumanId: 'OPS-0001',
+      departmentId: operations.id,
+      orgUnitId: operationsOrg.id,
+      employmentType: 'Permanent',
+      workType: 'Onsite',
+      budgetStatus: BudgetStatus.BUDGETED,
+      effectiveFrom: addDays(new Date(), -365)
     }
   });
 
@@ -121,7 +141,13 @@ async function main() {
     data: {
       tenantId: acme.id,
       title: 'HR Advisor',
-      departmentId: pnc.id
+      positionHumanId: 'HR-0001',
+      departmentId: pnc.id,
+      orgUnitId: pncOrg.id,
+      employmentType: 'Permanent',
+      workType: 'Hybrid',
+      budgetStatus: BudgetStatus.BUDGETED,
+      effectiveFrom: addDays(new Date(), -180)
     }
   });
 
@@ -450,7 +476,7 @@ async function main() {
       title: 'Reduce safety incidents by 20%',
       dueDate: addDays(new Date(), 180),
       weighting: 0.3,
-      owner: { connect: { id: manager.id } }
+      ownerId: manager.id
     }
   });
 

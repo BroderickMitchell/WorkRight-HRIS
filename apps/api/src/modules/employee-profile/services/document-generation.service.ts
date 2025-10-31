@@ -4,6 +4,7 @@ import type PDFKit from 'pdfkit';
 import { Document, Packer, Paragraph, TextRun } from 'docx';
 import { randomUUID } from 'crypto';
 import type { DocumentFormat } from '@workright/profile-schema';
+import type { Buffer } from 'node:buffer';
 
 interface GeneratedArtifact {
   buffer: Uint8Array;
@@ -49,10 +50,18 @@ export class DocumentGenerationService {
     return new Promise((resolve, reject) => {
       try {
         const doc = new PDFDocument({ size: 'A4', margin: 72 }) as PDFKit.PDFDocument;
-        const chunks: Buffer[] = [];
-        doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+        const chunks: Uint8Array[] = [];
+        doc.on('data', (chunk: Buffer) => {
+          chunks.push(Uint8Array.from(chunk));
+        });
         doc.on('end', () => {
-          const buffer = Buffer.concat(chunks);
+          const totalLength = chunks.reduce((acc, chunk) => acc + chunk.byteLength, 0);
+          const buffer = new Uint8Array(totalLength);
+          let offset = 0;
+          for (const chunk of chunks) {
+            buffer.set(chunk, offset);
+            offset += chunk.byteLength;
+          }
           resolve({
             buffer,
             mimeType: 'application/pdf',
@@ -84,8 +93,9 @@ export class DocumentGenerationService {
       ]
     });
     const buffer = await Packer.toBuffer(document);
+    const bytes = Uint8Array.from(buffer);
     return {
-      buffer,
+      buffer: bytes,
       mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       filename: `${this.normaliseFilename(templateName)}-${randomUUID()}.docx`
     };
