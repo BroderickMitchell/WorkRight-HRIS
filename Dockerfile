@@ -24,6 +24,7 @@ COPY packages/config/package.json packages/config/
 COPY packages/profile-schema/package.json packages/profile-schema/
 COPY packages/ui/package.json packages/ui/
 COPY scripts/bootstrap-env.mjs scripts/
+COPY apps/api/prisma apps/api/prisma
 
 # Full install incl. dev deps. When the lockfile is present, keep installs
 # reproducible with --frozen-lockfile; otherwise fall back to the latest
