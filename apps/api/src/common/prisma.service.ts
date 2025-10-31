@@ -24,7 +24,15 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   setupShutdownHooks(app: INestApplication) {
-    const shutdown = async () => {
+    let isShuttingDown = false;
+
+    const handleShutdown = async () => {
+      if (isShuttingDown) {
+        return;
+      }
+
+      isShuttingDown = true;
+
       try {
         await app.close();
       } finally {
@@ -32,8 +40,16 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       }
     };
 
-    process.once('SIGINT', shutdown);
-    process.once('SIGTERM', shutdown);
-    process.once('beforeExit', shutdown);
+    const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
+
+    signals.forEach((signal) => {
+      process.on(signal, () => {
+        void handleShutdown();
+      });
+    });
+
+    process.on('beforeExit', () => {
+      void handleShutdown();
+    });
   }
 }
