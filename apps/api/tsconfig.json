@@ -1,15 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
     "module": "CommonJS",
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "types": ["node", "vitest"],
-    "incremental": true,
-    "composite": true
+    "outDir": "dist",
+    "noEmit": false
   },
-  "include": ["src"],
+  "include": ["src", "prisma"],
   "exclude": ["node_modules", "dist"]
 }
