@@ -40,7 +40,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       }
     };
 
-    const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
+    const signals = ['SIGINT', 'SIGTERM'] as const;
 
     signals.forEach((signal) => {
       process.on(signal, () => {
