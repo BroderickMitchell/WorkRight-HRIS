@@ -2,6 +2,7 @@ import { Prisma, PrismaClient, RoleKey } from '@prisma/client';
 import { addDays } from 'date-fns';
 
 const prisma = new PrismaClient();
+const asJson = (value: unknown): Prisma.InputJsonValue => value as Prisma.InputJsonValue;
 
 async function main() {
   await prisma.$transaction([
@@ -101,14 +102,18 @@ async function main() {
     ]
   });
 
-  const operations = await prisma.department.findFirst({ where: { tenantId: acme.id, name: 'Operations' } });
-  const pnc = await prisma.department.findFirst({ where: { tenantId: acme.id, name: 'People & Culture' } });
+  const operations = await prisma.department.findFirstOrThrow({
+    where: { tenantId: acme.id, name: 'Operations' }
+  });
+  const pnc = await prisma.department.findFirstOrThrow({
+    where: { tenantId: acme.id, name: 'People & Culture' }
+  });
 
   const superintendent = await prisma.position.create({
     data: {
       tenantId: acme.id,
       title: 'Superintendent',
-      departmentId: operations?.id
+      departmentId: operations.id
     }
   });
 
@@ -116,7 +121,7 @@ async function main() {
     data: {
       tenantId: acme.id,
       title: 'HR Advisor',
-      departmentId: pnc?.id
+      departmentId: pnc.id
     }
   });
 
@@ -335,9 +340,9 @@ async function main() {
         standardHours: 38,
         schedule: '4/3 FIFO',
         bonusTarget: 12.5,
-        allowances: [
+        allowances: asJson([
           { id: 'REMOTE', label: 'Remote Loading', amount: 5000, currency: 'AUD', frequency: 'ANNUAL', taxable: true }
-        ] as Prisma.JsonValue,
+        ]),
         stockPlan: 'LTI Tier 2'
       },
       {
@@ -356,9 +361,9 @@ async function main() {
         standardHours: 40,
         schedule: '8/6 Roster',
         bonusTarget: 10,
-        allowances: [
+        allowances: asJson([
           { id: 'FIELD', label: 'Field Uplift', amount: 3000, currency: 'AUD', frequency: 'ANNUAL', taxable: true }
-        ] as Prisma.JsonValue,
+        ]),
         stockPlan: null
       },
       {
@@ -377,7 +382,7 @@ async function main() {
         standardHours: 38,
         schedule: 'Hybrid 3/2',
         bonusTarget: 7.5,
-        allowances: [] as Prisma.JsonValue,
+        allowances: asJson([]),
         stockPlan: null
       }
     ]
@@ -445,7 +450,7 @@ async function main() {
       title: 'Reduce safety incidents by 20%',
       dueDate: addDays(new Date(), 180),
       weighting: 0.3,
-      owner: { connect: { email_tenantId: { email: 'manager@acme.example.au', tenantId: acme.id } } }
+      owner: { connect: { id: manager.id } }
     }
   });
 

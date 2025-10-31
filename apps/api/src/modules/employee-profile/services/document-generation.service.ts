@@ -6,7 +6,7 @@ import { randomUUID } from 'crypto';
 import type { DocumentFormat } from '@workright/profile-schema';
 
 interface GeneratedArtifact {
-  buffer: Buffer;
+  buffer: Uint8Array;
   mimeType: string;
   filename: string;
 }

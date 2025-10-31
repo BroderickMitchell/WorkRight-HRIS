@@ -5,6 +5,5 @@ export function encryptToBytes(plaintext: string): Buffer {
 }
 
 export function decryptFromBytes(cipher: Buffer): string {
-  return Buffer.from(cipher).toString('utf8');
+  return cipher.toString('utf8');
 }
-
