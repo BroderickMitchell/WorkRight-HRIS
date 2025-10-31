@@ -3,7 +3,7 @@ import { ButtonHTMLAttributes, HTMLAttributes, ReactNode, FormHTMLAttributes } f
 import * as class_variance_authority_dist_types from 'class-variance-authority/dist/types';
 import { VariantProps } from 'class-variance-authority';
 import * as react_jsx_runtime from 'react/jsx-runtime';
-export { D as DataTableProps } from './data-table-sXa-O9EL.js';
+export { D as DataTableProps } from './data-table-sXa-O9EL.cjs';
 import '@tanstack/react-table';
 
 declare function cn(...inputs: Array<string | undefined | null | false>): string;

@@ -1,5 +1,7 @@
+export { a as DataTable, D as DataTableProps } from './data-table-sXa-O9EL.cjs';
 import * as react_jsx_runtime from 'react/jsx-runtime';
 import { ReactNode } from 'react';
+import '@tanstack/react-table';
 
 interface SplitPaneProps {
     list: ReactNode;

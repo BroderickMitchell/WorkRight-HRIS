@@ -15,4 +15,4 @@ interface DataTableProps<TData> {
  */
 declare function DataTable<TData>({ columns, data, emptyState, pageSize, onRowClick, className }: DataTableProps<TData>): react_jsx_runtime.JSX.Element;
 
-export { DataTable, type DataTableProps };
+export { type DataTableProps as D, DataTable as a };

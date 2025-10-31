@@ -1,15 +1,17 @@
-import { useReactTable, getSortedRowModel, getPaginationRowModel, getCoreRowModel, flexRender } from '@tanstack/react-table';
-import { forwardRef, isValidElement, cloneElement, useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { cva } from 'class-variance-authority';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-import { jsx, jsxs } from 'react/jsx-runtime';
-import { PanelRightOpen, PanelRightClose } from 'lucide-react';
+'use strict';
+
+var reactTable = require('@tanstack/react-table');
+var react = require('react');
+var classVarianceAuthority = require('class-variance-authority');
+var clsx = require('clsx');
+var tailwindMerge = require('tailwind-merge');
+var jsxRuntime = require('react/jsx-runtime');
+var lucideReact = require('lucide-react');
 
 function cn(...inputs) {
-  return twMerge(clsx(inputs));
+  return tailwindMerge.twMerge(clsx.clsx(inputs));
 }
-var buttonVariants = cva(
+var buttonVariants = classVarianceAuthority.cva(
   "inline-flex items-center justify-center rounded-md border text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-60",
   {
     variants: {
@@ -30,57 +32,57 @@ var buttonVariants = cva(
     }
   }
 );
-var Button = forwardRef(
+var Button = react.forwardRef(
   ({ className, variant, size, asChild = false, children, ...props }, ref) => {
     const composedClassName = cn(buttonVariants({ variant, size }), className);
-    if (asChild && isValidElement(children)) {
-      return cloneElement(children, {
+    if (asChild && react.isValidElement(children)) {
+      return react.cloneElement(children, {
         ref,
         className: cn(composedClassName, children.props?.className),
         ...props
       });
     }
-    return /* @__PURE__ */ jsx("button", { ref, className: composedClassName, ...props, children });
+    return /* @__PURE__ */ jsxRuntime.jsx("button", { ref, className: composedClassName, ...props, children });
   }
 );
 Button.displayName = "Button";
 function DataTable({ columns, data, emptyState, pageSize = 10, onRowClick, className }) {
-  const [sorting, setSorting] = useState([]);
-  const table = useReactTable({
+  const [sorting, setSorting] = react.useState([]);
+  const table = reactTable.useReactTable({
     data,
     columns,
     state: {
       sorting
     },
     onSortingChange: setSorting,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    getCoreRowModel: reactTable.getCoreRowModel(),
+    getPaginationRowModel: reactTable.getPaginationRowModel(),
+    getSortedRowModel: reactTable.getSortedRowModel(),
     initialState: {
       pagination: {
         pageSize
       }
     }
   });
-  const isEmpty = useMemo(() => data.length === 0, [data.length]);
-  return /* @__PURE__ */ jsxs("div", { className: cn("overflow-hidden rounded-xl border border-border bg-panel shadow-sm shadow-black/5", className), children: [
-    /* @__PURE__ */ jsxs("table", { className: "w-full min-w-full table-fixed border-collapse", children: [
-      /* @__PURE__ */ jsx("thead", { className: "bg-panel/70 text-xs uppercase tracking-wide text-muted-foreground", children: table.getHeaderGroups().map((headerGroup) => /* @__PURE__ */ jsx("tr", { children: headerGroup.headers.map((header) => {
+  const isEmpty = react.useMemo(() => data.length === 0, [data.length]);
+  return /* @__PURE__ */ jsxRuntime.jsxs("div", { className: cn("overflow-hidden rounded-xl border border-border bg-panel shadow-sm shadow-black/5", className), children: [
+    /* @__PURE__ */ jsxRuntime.jsxs("table", { className: "w-full min-w-full table-fixed border-collapse", children: [
+      /* @__PURE__ */ jsxRuntime.jsx("thead", { className: "bg-panel/70 text-xs uppercase tracking-wide text-muted-foreground", children: table.getHeaderGroups().map((headerGroup) => /* @__PURE__ */ jsxRuntime.jsx("tr", { children: headerGroup.headers.map((header) => {
         if (header.isPlaceholder) return null;
-        return /* @__PURE__ */ jsx("th", { scope: "col", className: "px-4 py-3 text-left font-semibold", children: /* @__PURE__ */ jsxs(
+        return /* @__PURE__ */ jsxRuntime.jsx("th", { scope: "col", className: "px-4 py-3 text-left font-semibold", children: /* @__PURE__ */ jsxRuntime.jsxs(
           "button",
           {
             type: "button",
             className: "flex items-center gap-1 text-left font-semibold hover:text-primary",
             onClick: header.column.getToggleSortingHandler(),
             children: [
-              /* @__PURE__ */ jsx("span", { children: flexRender(header.column.columnDef.header, header.getContext()) }),
+              /* @__PURE__ */ jsxRuntime.jsx("span", { children: reactTable.flexRender(header.column.columnDef.header, header.getContext()) }),
               { asc: "\u25B2", desc: "\u25BC" }[header.column.getIsSorted()] ?? null
             ]
           }
         ) }, header.id);
       }) }, headerGroup.id)) }),
-      /* @__PURE__ */ jsx("tbody", { children: isEmpty ? /* @__PURE__ */ jsx("tr", { children: /* @__PURE__ */ jsx("td", { className: "px-6 py-12 text-center text-sm text-muted-foreground", colSpan: columns.length, children: emptyState ?? "No records to display" }) }) : table.getRowModel().rows.map((row) => /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsxRuntime.jsx("tbody", { children: isEmpty ? /* @__PURE__ */ jsxRuntime.jsx("tr", { children: /* @__PURE__ */ jsxRuntime.jsx("td", { className: "px-6 py-12 text-center text-sm text-muted-foreground", colSpan: columns.length, children: emptyState ?? "No records to display" }) }) : table.getRowModel().rows.map((row) => /* @__PURE__ */ jsxRuntime.jsx(
         "tr",
         {
           className: cn(
@@ -88,20 +90,20 @@ function DataTable({ columns, data, emptyState, pageSize = 10, onRowClick, class
             onRowClick ? "cursor-pointer" : ""
           ),
           onClick: () => onRowClick?.(row.original),
-          children: row.getVisibleCells().map((cell) => /* @__PURE__ */ jsx("td", { className: "px-4 py-4 align-top text-sm text-foreground", children: flexRender(cell.column.columnDef.cell, cell.getContext()) }, cell.id))
+          children: row.getVisibleCells().map((cell) => /* @__PURE__ */ jsxRuntime.jsx("td", { className: "px-4 py-4 align-top text-sm text-foreground", children: reactTable.flexRender(cell.column.columnDef.cell, cell.getContext()) }, cell.id))
         },
         row.id
       )) })
     ] }),
-    !isEmpty && /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between border-t border-border bg-panel px-4 py-3 text-xs text-muted-foreground", children: [
-      /* @__PURE__ */ jsxs("span", { children: [
+    !isEmpty && /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "flex items-center justify-between border-t border-border bg-panel px-4 py-3 text-xs text-muted-foreground", children: [
+      /* @__PURE__ */ jsxRuntime.jsxs("span", { children: [
         "Page ",
         table.getState().pagination.pageIndex + 1,
         " of ",
         table.getPageCount() || 1
       ] }),
-      /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
-        /* @__PURE__ */ jsx(
+      /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "flex items-center gap-2", children: [
+        /* @__PURE__ */ jsxRuntime.jsx(
           Button,
           {
             variant: "ghost",
@@ -111,7 +113,7 @@ function DataTable({ columns, data, emptyState, pageSize = 10, onRowClick, class
             children: "Previous"
           }
         ),
-        /* @__PURE__ */ jsx(Button, { variant: "ghost", size: "sm", onClick: () => table.nextPage(), disabled: !table.getCanNextPage(), children: "Next" })
+        /* @__PURE__ */ jsxRuntime.jsx(Button, { variant: "ghost", size: "sm", onClick: () => table.nextPage(), disabled: !table.getCanNextPage(), children: "Next" })
       ] })
     ] })
   ] });
@@ -126,16 +128,16 @@ function SplitPane({
   onCollapsedChange,
   className
 }) {
-  const containerRef = useRef(null);
-  const [detailWidth, setDetailWidth] = useState(defaultDetailWidth);
-  const [isDragging, setIsDragging] = useState(false);
-  const [collapsed, setCollapsed] = useState(initiallyCollapsed);
-  const toggleCollapsed = useCallback(() => {
+  const containerRef = react.useRef(null);
+  const [detailWidth, setDetailWidth] = react.useState(defaultDetailWidth);
+  const [isDragging, setIsDragging] = react.useState(false);
+  const [collapsed, setCollapsed] = react.useState(initiallyCollapsed);
+  const toggleCollapsed = react.useCallback(() => {
     const next = !collapsed;
     setCollapsed(next);
     onCollapsedChange?.(next);
   }, [collapsed, onCollapsedChange]);
-  useEffect(() => {
+  react.useEffect(() => {
     function handleMouseMove(event) {
       if (!isDragging || collapsed) return;
       const container = containerRef.current;
@@ -156,8 +158,8 @@ function SplitPane({
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [collapsed, isDragging, minDetailWidth]);
-  return /* @__PURE__ */ jsxs("div", { ref: containerRef, className: cn("flex h-full w-full flex-col gap-4", className), children: [
-    collapsible ? /* @__PURE__ */ jsx("div", { className: "flex justify-end", children: /* @__PURE__ */ jsxs(
+  return /* @__PURE__ */ jsxRuntime.jsxs("div", { ref: containerRef, className: cn("flex h-full w-full flex-col gap-4", className), children: [
+    collapsible ? /* @__PURE__ */ jsxRuntime.jsx("div", { className: "flex justify-end", children: /* @__PURE__ */ jsxRuntime.jsxs(
       Button,
       {
         type: "button",
@@ -168,14 +170,14 @@ function SplitPane({
         "aria-expanded": !collapsed,
         "aria-controls": "split-pane-detail",
         children: [
-          collapsed ? /* @__PURE__ */ jsx(PanelRightOpen, { className: "h-4 w-4", "aria-hidden": true }) : /* @__PURE__ */ jsx(PanelRightClose, { className: "h-4 w-4", "aria-hidden": true }),
+          collapsed ? /* @__PURE__ */ jsxRuntime.jsx(lucideReact.PanelRightOpen, { className: "h-4 w-4", "aria-hidden": true }) : /* @__PURE__ */ jsxRuntime.jsx(lucideReact.PanelRightClose, { className: "h-4 w-4", "aria-hidden": true }),
           collapsed ? "Show details" : "Hide details"
         ]
       }
     ) }) : null,
-    /* @__PURE__ */ jsxs("div", { className: "flex min-h-0 flex-1 gap-4", children: [
-      /* @__PURE__ */ jsx("section", { className: "flex-1 overflow-auto rounded-xl border border-border bg-panel p-4 shadow-sm", "aria-label": "Primary list", children: list }),
-      !collapsed ? /* @__PURE__ */ jsxs(
+    /* @__PURE__ */ jsxRuntime.jsxs("div", { className: "flex min-h-0 flex-1 gap-4", children: [
+      /* @__PURE__ */ jsxRuntime.jsx("section", { className: "flex-1 overflow-auto rounded-xl border border-border bg-panel p-4 shadow-sm", "aria-label": "Primary list", children: list }),
+      !collapsed ? /* @__PURE__ */ jsxRuntime.jsxs(
         "aside",
         {
           id: "split-pane-detail",
@@ -183,7 +185,7 @@ function SplitPane({
           style: { width: detailWidth },
           "aria-label": "Detail",
           children: [
-            /* @__PURE__ */ jsx(
+            /* @__PURE__ */ jsxRuntime.jsx(
               "div",
               {
                 className: cn(
@@ -198,7 +200,7 @@ function SplitPane({
                 }
               }
             ),
-            /* @__PURE__ */ jsx("div", { className: "h-full overflow-y-auto p-4", children: detail })
+            /* @__PURE__ */ jsxRuntime.jsx("div", { className: "h-full overflow-y-auto p-4", children: detail })
           ]
         }
       ) : null
@@ -206,6 +208,7 @@ function SplitPane({
   ] });
 }
 
-export { DataTable, SplitPane };
-//# sourceMappingURL=client.mjs.map
-//# sourceMappingURL=client.mjs.map
+exports.DataTable = DataTable;
+exports.SplitPane = SplitPane;
+//# sourceMappingURL=client.cjs.map
+//# sourceMappingURL=client.cjs.map

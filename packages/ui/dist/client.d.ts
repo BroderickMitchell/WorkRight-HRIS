@@ -1,2 +1,21 @@
-export { DataTable, DataTableProps } from './components/data-table.js';
-export { SplitPane } from './components/split-pane.js';
+export { a as DataTable, D as DataTableProps } from './data-table-sXa-O9EL.js';
+import * as react_jsx_runtime from 'react/jsx-runtime';
+import { ReactNode } from 'react';
+import '@tanstack/react-table';
+
+interface SplitPaneProps {
+    list: ReactNode;
+    detail: ReactNode;
+    defaultDetailWidth?: number;
+    minDetailWidth?: number;
+    collapsible?: boolean;
+    initiallyCollapsed?: boolean;
+    onCollapsedChange?: (value: boolean) => void;
+    className?: string;
+}
+/**
+ * Responsive split view for master/detail experiences.
+ */
+declare function SplitPane({ list, detail, defaultDetailWidth, minDetailWidth, collapsible, initiallyCollapsed, onCollapsedChange, className }: SplitPaneProps): react_jsx_runtime.JSX.Element;
+
+export { SplitPane };

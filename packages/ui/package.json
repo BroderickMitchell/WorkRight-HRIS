@@ -41,7 +41,7 @@
   ],
   "sideEffects": false,
   "scripts": {
-    "build": "tsup --config tsup.config.ts",
+    "build": "tsup-node --config tsup.config.ts",
     "clean": "rimraf dist"
   },
   "peerDependencies": {
