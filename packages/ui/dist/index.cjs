@@ -1,3 +1,4 @@
+"use client";
 'use strict';
 
 var clsx = require('clsx');
@@ -28,7 +29,6 @@ function _interopNamespace(e) {
 
 var React__namespace = /*#__PURE__*/_interopNamespace(React);
 
-// src/utils/cn.ts
 function cn(...inputs) {
   return tailwindMerge.twMerge(clsx.clsx(inputs));
 }

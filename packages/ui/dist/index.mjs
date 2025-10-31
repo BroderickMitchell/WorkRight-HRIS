@@ -1,3 +1,4 @@
+"use client";
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { cva } from 'class-variance-authority';
@@ -7,7 +8,6 @@ import { jsx, jsxs } from 'react/jsx-runtime';
 import { Search } from 'lucide-react';
 import { Transition, Dialog } from '@headlessui/react';
 
-// src/utils/cn.ts
 function cn(...inputs) {
   return twMerge(clsx(inputs));
 }

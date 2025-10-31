@@ -1,3 +1,4 @@
+"use client";
 import { useReactTable, getSortedRowModel, getPaginationRowModel, getCoreRowModel, flexRender } from '@tanstack/react-table';
 import { forwardRef, isValidElement, cloneElement, useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { cva } from 'class-variance-authority';

@@ -1,3 +1,4 @@
+"use client";
 'use strict';
 
 var reactTable = require('@tanstack/react-table');

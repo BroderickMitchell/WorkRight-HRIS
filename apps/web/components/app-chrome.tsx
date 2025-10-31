@@ -1,7 +1,7 @@
 'use client';
 
 import { Dialog, Transition } from '@headlessui/react';
-import { Fragment, PropsWithChildren, useState } from 'react';
+import { Fragment, PropsWithChildren, useEffect, useState } from 'react';
 import { NavSection } from '../lib/navigation';
 import { GlobalHeader } from './global-header';
 import { GlobalSidebar } from './global-sidebar';
@@ -14,6 +14,53 @@ interface AppChromeProps extends PropsWithChildren {
 
 export function AppChrome({ children, sections, tenantName, tenantTagline }: AppChromeProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [displayTenant, setDisplayTenant] = useState<{ name: string; tagline?: string }>({
+    name: tenantName,
+    tagline: tenantTagline
+  });
+
+  useEffect(() => {
+    const loadProfile = (raw?: string | null) => {
+      try {
+        const source = typeof raw === 'string' ? raw : localStorage.getItem('tenantProfile');
+        if (!source) {
+          setDisplayTenant({ name: tenantName, tagline: tenantTagline });
+          return;
+        }
+        const parsed = JSON.parse(source) as Partial<{ name: string; tagline?: string }>;
+        setDisplayTenant({
+          name: parsed.name?.trim() || tenantName,
+          tagline: parsed.tagline?.trim() || tenantTagline
+        });
+      } catch {
+        setDisplayTenant({ name: tenantName, tagline: tenantTagline });
+      }
+    };
+
+    loadProfile();
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === 'tenantProfile') {
+        loadProfile(event.newValue);
+      }
+    };
+    const handleCustom = (event: Event) => {
+      const detail = (event as CustomEvent<Partial<{ name: string; tagline?: string }>>).detail;
+      if (detail) {
+        setDisplayTenant({
+          name: detail.name?.trim() || tenantName,
+          tagline: detail.tagline?.trim() || tenantTagline
+        });
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('tenantProfile:update', handleCustom as EventListener);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('tenantProfile:update', handleCustom as EventListener);
+    };
+  }, [tenantName, tenantTagline]);
 
   return (
     <div className="relative flex h-screen w-full flex-col bg-background text-foreground">
@@ -23,10 +70,7 @@ export function AppChrome({ children, sections, tenantName, tenantTagline }: App
       >
         Skip to content
       </a>
-      <GlobalHeader
-        tenantName={tenantName}
-        onOpenSidebar={() => setSidebarOpen(true)}
-      />
+      <GlobalHeader tenantName={displayTenant.name} onOpenSidebar={() => setSidebarOpen(true)} />
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <Transition.Root show={sidebarOpen} as={Fragment}>
           <Dialog as="div" className="relative z-50 md:hidden" onClose={setSidebarOpen}>
@@ -54,8 +98,8 @@ export function AppChrome({ children, sections, tenantName, tenantTagline }: App
                 <Dialog.Panel className="relative mr-16 flex w-full max-w-xs flex-1">
                   <GlobalSidebar
                     sections={sections}
-                    tenantName={tenantName}
-                    tenantTagline={tenantTagline}
+                    tenantName={displayTenant.name}
+                    tenantTagline={displayTenant.tagline}
                     onNavigate={() => setSidebarOpen(false)}
                   />
                 </Dialog.Panel>
@@ -65,7 +109,11 @@ export function AppChrome({ children, sections, tenantName, tenantTagline }: App
         </Transition.Root>
 
         <div className="hidden h-full w-72 flex-none md:flex">
-          <GlobalSidebar sections={sections} tenantName={tenantName} tenantTagline={tenantTagline} />
+          <GlobalSidebar
+            sections={sections}
+            tenantName={displayTenant.name}
+            tenantTagline={displayTenant.tagline}
+          />
         </div>
         <main id="main-content" className="flex-1 overflow-y-auto bg-background px-6 py-8 lg:px-10 lg:py-10">
           <div className="mx-auto flex max-w-7xl flex-col gap-8">{children}</div>

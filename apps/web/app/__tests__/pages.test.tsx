@@ -22,10 +22,10 @@ afterEach(() => {
 });
 
 describe('App pages render', () => {
-  it('Travel page renders heading', async () => {
-    const { default: TravelPage } = await import('../travel/page');
-    render(<TravelPage />);
-    expect(screen.getByRole('heading', { level: 1, name: /Travel & accommodation/i })).toBeInTheDocument();
+  it('Reports page renders heading', async () => {
+    const { default: ReportsPage } = await import('../(reports)/reports/page');
+    render(<ReportsPage />);
+    expect(screen.getByRole('heading', { level: 1, name: /Reporting/i })).toBeInTheDocument();
   });
 
   it('Payroll page renders heading', async () => {
@@ -38,12 +38,15 @@ describe('App pages render', () => {
     const { default: SettingsPage } = await import('../settings/page');
     render(<SettingsPage />);
     expect(screen.getByRole('heading', { level: 1, name: /Settings/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Branding/i })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('Settings roster tab renders heading', async () => {
-    const { default: SettingsRostersPage } = await import('../settings/rosters/page');
-    render(<SettingsRostersPage />);
+  it('Tenant settings page exposes company fields', async () => {
+    const { default: SettingsTenantPage } = await import('../settings/tenant/page');
+    render(<SettingsTenantPage />);
     expect(screen.getByRole('heading', { level: 1, name: /Settings/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Roster templates/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText(/Company name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Support email/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Seed demo workspace/i })).toBeInTheDocument();
   });
 });

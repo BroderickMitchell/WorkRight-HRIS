@@ -1,3 +1,6 @@
+// Ensure all exports are treated as client components when consumed in Next.js
+'use client';
+
 // Utilities
 export { cn } from './utils/cn';
 

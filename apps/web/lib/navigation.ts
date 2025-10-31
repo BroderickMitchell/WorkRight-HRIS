@@ -1,49 +1,18 @@
 import { LucideIcon } from 'lucide-react';
-import {
-  BarChart3,
-  BriefcaseBusiness,
-  Building2,
-  ClipboardList,
-  Compass,
-  FilePieChart,
-  GaugeCircle,
-  GraduationCap,
-  LayoutDashboard,
-  Settings2,
-  ShieldCheck,
-  Users2
-} from 'lucide-react';
+import { BriefcaseBusiness, Building2, FilePieChart, LayoutDashboard, Settings2, Users2 } from 'lucide-react';
 import { getTenantSettings } from './tenant';
 
 type FeatureFlag = string;
 
-export type IconName =
-  | 'dashboard'
-  | 'people'
-  | 'recruitment'
-  | 'operations'
-  | 'learning'
-  | 'performance'
-  | 'payroll'
-  | 'reports'
-  | 'admin'
-  | 'workflow'
-  | 'compliance'
-  | 'analytics';
+export type IconName = 'dashboard' | 'people' | 'recruitment' | 'payroll' | 'reports' | 'settings';
 
 export const NAV_ICON_MAP: Record<IconName, LucideIcon> = {
   dashboard: LayoutDashboard,
   people: Users2,
   recruitment: BriefcaseBusiness,
-  operations: Compass,
-  learning: GraduationCap,
-  performance: GaugeCircle,
   payroll: Building2,
   reports: FilePieChart,
-  admin: Settings2,
-  workflow: ClipboardList,
-  compliance: ShieldCheck,
-  analytics: BarChart3
+  settings: Settings2
 };
 
 export interface NavItem {
@@ -74,9 +43,7 @@ const NAV_SECTIONS: NavSection[] = [
     id: 'overview',
     label: 'Overview',
     icon: 'dashboard',
-    items: [
-      { href: '/dashboard', label: 'Executive Dashboard', icon: 'dashboard' }
-    ]
+    items: [{ href: '/dashboard', label: 'Executive Dashboard', icon: 'dashboard' }]
   },
   {
     id: 'people',
@@ -84,40 +51,37 @@ const NAV_SECTIONS: NavSection[] = [
     icon: 'people',
     items: [
       { href: '/employees', label: 'Employee Directory', icon: 'people' },
-      { href: '/leave', label: 'Leave & Time', icon: 'operations' }
+      { href: '/leave', label: 'Leave & Time', icon: 'people' }
     ]
   },
   {
     id: 'recruitment',
-    label: 'Recruitment',
+    label: 'Hiring',
     icon: 'recruitment',
     items: [
       { href: '/jobs', label: 'Job Requisitions', icon: 'recruitment' },
-      { href: '/workflows', label: 'Workflow Library', icon: 'workflow' }
+      { href: '/workflows', label: 'Workflow Library', icon: 'recruitment' }
     ]
   },
   {
-    id: 'operations',
-    label: 'Operations',
-    icon: 'operations',
-    items: [
-      { href: '/workflows/instances', label: 'Workflow Instances', icon: 'workflow' }
-    ]
+    id: 'payroll',
+    label: 'Payroll',
+    icon: 'payroll',
+    items: [{ href: '/payroll', label: 'Payroll Runs', icon: 'payroll' }]
   },
   {
     id: 'reports',
     label: 'Insights & Reports',
     icon: 'reports',
-    items: [
-      { href: '/reports', label: 'Analytics', icon: 'analytics' }
-    ]
+    items: [{ href: '/reports', label: 'Analytics', icon: 'reports' }]
   },
   {
-    id: 'admin',
-    label: 'Administration',
-    icon: 'admin',
+    id: 'settings',
+    label: 'Settings',
+    icon: 'settings',
     items: [
-      { href: '/settings', label: 'Tenant Settings', icon: 'admin', featureFlag: 'canManageSettings' }
+      { href: '/settings', label: 'Workspace Settings', icon: 'settings', featureFlag: 'canManageSettings' },
+      { href: '/settings/tenant', label: 'Tenant Settings', icon: 'settings', featureFlag: 'canManageSettings' }
     ],
     featureFlag: 'canManageSettings'
   }
