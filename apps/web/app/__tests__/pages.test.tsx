@@ -47,6 +47,6 @@ describe('App pages render', () => {
     expect(screen.getByRole('heading', { level: 1, name: /Settings/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/Company name/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Support email/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Seed demo workspace/i })).toBeInTheDocument();
+    expect(screen.getByText(/Demo-ready data is preloaded/i)).toBeInTheDocument();
   });
 });

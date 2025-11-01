@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateRosterTemplateDto, AssignRosterDto, GenerateShiftsDto, ShiftVm } from './rosters.dto.js';
 import { PrismaService } from '../../common/prisma.service.js';
 import type { Prisma } from '@prisma/client';
+import { ClsService } from 'nestjs-cls';
 
 type RosterAssignmentWithRelations = Prisma.RosterAssignmentGetPayload<{
   include: { template: true; employee: true; location: true };
@@ -13,15 +14,26 @@ type RosterAssignmentWithTemplate = Prisma.RosterAssignmentGetPayload<{
 
 @Injectable()
 export class RostersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly cls: ClsService) {}
+
+  private getTenantId(): string {
+    const tenantId = this.cls.get<string>('tenantId');
+    if (!tenantId) {
+      throw new Error('Tenant context is required for roster operations');
+    }
+    return tenantId;
+  }
 
   async listTemplates() {
-    return this.prisma.rosterTemplate.findMany({ orderBy: { createdAt: 'desc' } });
+    const tenantId = this.getTenantId();
+    return this.prisma.rosterTemplate.findMany({ where: { tenantId }, orderBy: { createdAt: 'desc' } });
   }
 
   async createTemplate(dto: CreateRosterTemplateDto) {
+    const tenantId = this.getTenantId();
     return this.prisma.rosterTemplate.create({
       data: ({
+        tenantId,
         name: dto.name,
         seedDate: new Date(dto.seedDate),
         pattern: dto.pattern as any
@@ -30,9 +42,10 @@ export class RostersService {
   }
 
   async listAssignments(employeeId?: string) {
+    const tenantId = this.getTenantId();
     const where = employeeId ? { employeeId } : undefined;
     const items: RosterAssignmentWithRelations[] = await this.prisma.rosterAssignment.findMany({
-      where,
+      where: { tenantId, ...where },
       orderBy: { createdAt: 'desc' },
       include: { template: true, employee: true, location: true }
     });
@@ -52,8 +65,10 @@ export class RostersService {
   }
 
   async assign(dto: AssignRosterDto & { templateId: string }) {
+    const tenantId = this.getTenantId();
     return this.prisma.rosterAssignment.create({
       data: ({
+        tenantId,
         templateId: dto.templateId,
         employeeId: dto.employeeId,
         locationId: dto.locationId,
@@ -64,9 +79,14 @@ export class RostersService {
   }
 
   async generateShifts(dto: GenerateShiftsDto): Promise<ShiftVm[]> {
+    const tenantId = this.getTenantId();
     const from = new Date(dto.from);
     const to = new Date(dto.to);
-    const whereAssign: any = { OR: [{ effectiveTo: null }, { effectiveTo: { gte: from } }], effectiveFrom: { lte: to } };
+    const whereAssign: any = {
+      tenantId,
+      OR: [{ effectiveTo: null }, { effectiveTo: { gte: from } }],
+      effectiveFrom: { lte: to }
+    };
     if (dto.employeeId) whereAssign.employeeId = dto.employeeId;
     const assignments: RosterAssignmentWithTemplate[] = await this.prisma.rosterAssignment.findMany({
       where: whereAssign,

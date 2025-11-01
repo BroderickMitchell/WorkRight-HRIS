@@ -30,10 +30,10 @@ const DEFAULT_SETTINGS: SiteSettings = {
 };
 
 const DEFAULT_TENANT_PROFILE: TenantProfile = {
-  name: 'WorkRight HRIS',
-  tagline: 'Empowering Aussie teams',
-  supportEmail: 'support@example.com',
-  website: 'https://workright.example'
+  name: 'Acme Mining Co',
+  tagline: 'Powering safe production',
+  supportEmail: 'people@acme.example.au',
+  website: 'https://acme-mining.example'
 };
 
 function emitStorageEvent(key: string, value: unknown) {
@@ -91,22 +91,8 @@ export default function SettingsPageClient({ initialTab = 'branding' }: Settings
   }
 
   // Pay profiles
-  const [empId, setEmpId] = useState('emp-2');
+  const [empId, setEmpId] = useState('emp-acme-manager');
   const [rate, setRate] = useState<string>('');
-  const [seedingDemo, setSeedingDemo] = useState(false);
-
-  async function seedDemoTenant() {
-    try {
-      setSeedingDemo(true);
-      await apiPost('/v1/admin/seed-mining', {}, {});
-      alert('Seeded demo tenant data');
-    } catch (error) {
-      console.error('Failed to seed demo data', error);
-      alert('Failed to seed demo data. Check console for details.');
-    } finally {
-      setSeedingDemo(false);
-    }
-  }
 
   async function loadProfile() {
     try {
@@ -250,14 +236,9 @@ export default function SettingsPageClient({ initialTab = 'branding' }: Settings
               </Button>
               <Button onClick={saveTenantProfile}>Save tenant profile</Button>
             </div>
-            <div className="md:col-span-2 flex items-center justify-between rounded-lg border border-dashed border-border bg-panel/60 p-4 text-sm">
-              <div>
-                <p className="font-medium text-slate-900">Need demo data?</p>
-                <p className="text-slate-600">Seed sample employees, rosters, travel plans, and payroll runs for walkthroughs.</p>
-              </div>
-              <Button variant="secondary" onClick={seedDemoTenant} disabled={seedingDemo}>
-                {seedingDemo ? 'Seeding…' : 'Seed demo workspace'}
-              </Button>
+            <div className="md:col-span-2 rounded-lg border border-dashed border-border bg-panel/60 p-4 text-sm text-slate-600">
+              Demo-ready data is preloaded for the <span className="font-medium text-foreground">Acme Mining Co</span> tenant.
+              Use the navigation to explore employees, rosters, travel, and payroll records without running any seed scripts.
             </div>
           </div>
         </Card>

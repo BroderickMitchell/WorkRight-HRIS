@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from 'react';
+import { DEFAULT_TENANT_ID } from '@/lib/api';
 
 export type SiteSettings = {
   brandingPrimaryColor?: string;
@@ -44,6 +45,16 @@ function applyBranding(settings: SiteSettings) {
 
 export function BrandingProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
+    try {
+      const storedTenant = localStorage.getItem('tenantId');
+      const parsedTenant = storedTenant ? JSON.parse(storedTenant) : null;
+      if (parsedTenant !== DEFAULT_TENANT_ID) {
+        localStorage.setItem('tenantId', JSON.stringify(DEFAULT_TENANT_ID));
+      }
+    } catch {
+      // ignore hydration/localStorage errors
+    }
+
     try {
       const raw = localStorage.getItem('siteSettings');
       if (raw) {

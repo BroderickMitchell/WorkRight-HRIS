@@ -1,15 +1,16 @@
 import { LucideIcon } from 'lucide-react';
-import { BriefcaseBusiness, Building2, FilePieChart, LayoutDashboard, Settings2, Users2 } from 'lucide-react';
+import { BriefcaseBusiness, Building2, Compass, FilePieChart, LayoutDashboard, Settings2, Users2 } from 'lucide-react';
 import { getTenantSettings } from './tenant';
 
 type FeatureFlag = string;
 
-export type IconName = 'dashboard' | 'people' | 'recruitment' | 'payroll' | 'reports' | 'settings';
+export type IconName = 'dashboard' | 'people' | 'recruitment' | 'operations' | 'payroll' | 'reports' | 'settings';
 
 export const NAV_ICON_MAP: Record<IconName, LucideIcon> = {
   dashboard: LayoutDashboard,
   people: Users2,
   recruitment: BriefcaseBusiness,
+  operations: Compass,
   payroll: Building2,
   reports: FilePieChart,
   settings: Settings2
@@ -61,6 +62,15 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: '/jobs', label: 'Job Requisitions', icon: 'recruitment' },
       { href: '/workflows', label: 'Workflow Library', icon: 'recruitment' }
+    ]
+  },
+  {
+    id: 'operations',
+    label: 'Operations',
+    icon: 'operations',
+    items: [
+      { href: '/rosters', label: 'Rosters & Shifts', icon: 'operations' },
+      { href: '/travel', label: 'Travel & Accommodation', icon: 'operations' }
     ]
   },
   {

@@ -7,17 +7,17 @@ export interface ApiOptions {
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 const DEMO_ROLES_STORAGE_KEY = 'demoRoles';
-const DEFAULT_DEMO_TENANT = 'tenant-demo';
-const DEFAULT_DEMO_ROLES = 'HRBP,MANAGER';
+export const DEFAULT_TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID ?? 'tenant-acme';
+const DEFAULT_DEMO_ROLES = process.env.NEXT_PUBLIC_DEMO_ROLES ?? 'HR_ADMIN,MANAGER';
 const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
 export function getTenantId(): string {
-  if (typeof window === 'undefined') return DEFAULT_DEMO_TENANT;
+  if (typeof window === 'undefined') return DEFAULT_TENANT_ID;
   try {
     const raw = window.localStorage.getItem('tenantId');
-    return raw ? JSON.parse(raw) : DEFAULT_DEMO_TENANT;
+    return raw ? JSON.parse(raw) : DEFAULT_TENANT_ID;
   } catch {
-    return DEFAULT_DEMO_TENANT;
+    return DEFAULT_TENANT_ID;
   }
 }
 
@@ -110,4 +110,3 @@ export async function apiDelete<T = any>(path: string, options: ApiOptions = {})
   }
   return res.json().catch(() => ({} as T));
 }
-

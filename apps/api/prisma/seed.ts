@@ -1,4 +1,4 @@
-import { BudgetStatus, Prisma, PrismaClient, RoleKey } from '@prisma/client';
+import { BudgetStatus, LeaveStatus, Prisma, PrismaClient, RoleKey } from '@prisma/client';
 import { addDays } from 'date-fns';
 
 const prisma = new PrismaClient();
@@ -123,6 +123,17 @@ async function main() {
     where: { tenantId: acme.id, name: 'People & Culture' }
   });
 
+  const camp = await prisma.location.create({
+    data: {
+      id: 'loc-acme-camp',
+      tenantId: acme.id,
+      name: 'Pilbara Village Camp',
+      state: 'WA',
+      country: 'Australia',
+      timezone: 'Australia/Perth'
+    }
+  });
+
   const superintendent = await prisma.position.create({
     data: {
       tenantId: acme.id,
@@ -153,6 +164,7 @@ async function main() {
 
   const manager = await prisma.employee.create({
     data: {
+      id: 'emp-acme-manager',
       tenantId: acme.id,
       givenName: 'Mason',
       familyName: 'Manager',
@@ -175,6 +187,7 @@ async function main() {
       overtimeEligible: false,
       benefitsEligible: true,
       exempt: true,
+      locationId: camp.id,
       positionId: superintendent.id
     }
   });
@@ -182,6 +195,7 @@ async function main() {
   await prisma.employee.createMany({
     data: [
       {
+        id: 'emp-acme-sienna',
         tenantId: acme.id,
         givenName: 'Sienna',
         familyName: 'Surveyor',
@@ -200,17 +214,18 @@ async function main() {
         citizenships: ['Australia'],
         languages: ['English', 'Pitjantjatjara'],
         communicationPreferences: ['EMAIL'],
-        timezone: 'Australia/Perth',
-        workSchedule: '8/6 Roster',
-        badgeId: 'BADGE-0002',
-        overtimeEligible: true,
-        benefitsEligible: true,
-        exempt: false
-      },
-      {
-        tenantId: acme.id,
-        givenName: 'Noah',
-        familyName: 'Navigator',
+      timezone: 'Australia/Perth',
+      workSchedule: '8/6 Roster',
+      badgeId: 'BADGE-0002',
+      overtimeEligible: true,
+      benefitsEligible: true,
+      exempt: false,
+      locationId: camp.id
+    },
+    {
+      tenantId: acme.id,
+      givenName: 'Noah',
+      familyName: 'Navigator',
         preferredName: 'Noah',
         employeeNumber: 'ACME-1003',
         jobTitle: 'HR Advisor',
@@ -227,14 +242,15 @@ async function main() {
         languages: ['English'],
         communicationPreferences: ['EMAIL', 'SMS'],
         timezone: 'Australia/Perth',
-        workSchedule: 'Hybrid 3/2',
-        badgeId: 'BADGE-0003',
-        overtimeEligible: false,
-        benefitsEligible: true,
-        exempt: false
-      }
-    ]
-  });
+      workSchedule: 'Hybrid 3/2',
+      badgeId: 'BADGE-0003',
+      overtimeEligible: false,
+      benefitsEligible: true,
+      exempt: false,
+      locationId: camp.id
+    }
+  ]
+});
 
   const sienna = await prisma.employee.findFirst({
     where: { tenantId: acme.id, email: 'sienna.surveyor@acme.example.au' }
@@ -246,6 +262,22 @@ async function main() {
   if (!sienna || !noah) {
     throw new Error('Employee records missing after seed');
   }
+
+  await prisma.payProfile.upsert({
+    where: { employeeId: manager.id },
+    update: { baseRateCents: 1850000 },
+    create: ({ tenantId: acme.id, employeeId: manager.id, baseRateCents: 1850000 } as any)
+  });
+  await prisma.payProfile.upsert({
+    where: { employeeId: sienna.id },
+    update: { baseRateCents: 1250000 },
+    create: ({ tenantId: acme.id, employeeId: sienna.id, baseRateCents: 1250000 } as any)
+  });
+  await prisma.payProfile.upsert({
+    where: { employeeId: noah.id },
+    update: { baseRateCents: 980000 },
+    create: ({ tenantId: acme.id, employeeId: noah.id, baseRateCents: 980000 } as any)
+  });
 
   await prisma.employeeAddress.createMany({
     data: [
@@ -260,6 +292,7 @@ async function main() {
         country: 'Australia'
       },
       {
+        id: 'emp-acme-noah',
         tenantId: acme.id,
         employeeId: sienna.id,
         type: 'PRIMARY',
@@ -345,6 +378,85 @@ async function main() {
         percentage: new Prisma.Decimal(100),
         startDate: addDays(new Date(), -90)
       }
+    ]
+  });
+
+  const rosterTemplate = await prisma.rosterTemplate.create({
+    data: ({
+      tenantId: acme.id,
+      name: '8/6 Day Shifts',
+      seedDate: new Date('2024-01-01'),
+      pattern: asJson(['D', 'D', 'D', 'D', 'D', 'D', 'D', 'D', 'R', 'R', 'R', 'R', 'R', 'R'])
+    } as any)
+  });
+
+  await prisma.rosterAssignment.create({
+    data: ({
+      tenantId: acme.id,
+      templateId: rosterTemplate.id,
+      employeeId: sienna.id,
+      locationId: camp.id,
+      effectiveFrom: addDays(new Date(), -90)
+    } as any)
+  });
+
+  const swingStart = addDays(new Date(), 7);
+  const swingEnd = addDays(swingStart, 8);
+
+  const room = await prisma.room.create({
+    data: ({
+      tenantId: acme.id,
+      locationId: camp.id,
+      name: 'Room 101',
+      capacity: 1
+    } as any)
+  });
+
+  await prisma.roomBooking.create({
+    data: ({
+      tenantId: acme.id,
+      roomId: room.id,
+      employeeId: sienna.id,
+      startDate: swingStart,
+      endDate: swingEnd
+    } as any)
+  });
+
+  const departureFlight = await prisma.flight.create({
+    data: ({
+      tenantId: acme.id,
+      carrier: 'QF',
+      flightNumber: 'QF201',
+      depAirport: 'PER',
+      arrAirport: 'KTA'
+    } as any)
+  });
+  const returnFlight = await prisma.flight.create({
+    data: ({
+      tenantId: acme.id,
+      carrier: 'QF',
+      flightNumber: 'QF202',
+      depAirport: 'KTA',
+      arrAirport: 'PER'
+    } as any)
+  });
+
+  await prisma.flightBooking.createMany({
+    data: [
+      ({
+        tenantId: acme.id,
+        flightId: departureFlight.id,
+        employeeId: sienna.id,
+        depTime: swingStart,
+        arrTime: addDays(swingStart, 0)
+      } as any),
+      ({
+        tenantId: acme.id,
+        flightId: returnFlight.id,
+        employeeId: sienna.id,
+        depTime: swingEnd,
+        arrTime: addDays(swingEnd, 0)
+      } as any)
     ]
   });
 
@@ -480,13 +592,88 @@ async function main() {
     }
   });
 
-  await prisma.leavePolicy.create({
+  const annualLeave = await prisma.leavePolicy.create({
     data: {
       tenantId: acme.id,
       name: 'Annual Leave',
       code: 'AL',
-      accrualRule: { perMonth: 2.92 },
+      accrualRule: asJson({ perMonth: 2.92 }),
       maxBalance: 228
+    }
+  });
+
+  await prisma.leaveBalance.createMany({
+    data: [
+      {
+        tenantId: acme.id,
+        employeeId: sienna.id,
+        leaveTypeId: annualLeave.id,
+        balance: 8
+      },
+      {
+        tenantId: acme.id,
+        employeeId: noah.id,
+        leaveTypeId: annualLeave.id,
+        balance: 14
+      }
+    ]
+  });
+
+  const approvedLeave = await prisma.leaveRequest.create({
+    data: {
+      tenantId: acme.id,
+      employeeId: sienna.id,
+      leaveTypeId: annualLeave.id,
+      startDate: addDays(new Date(), 14),
+      endDate: addDays(new Date(), 19),
+      status: LeaveStatus.APPROVED,
+      notes: 'Family trip to Ningaloo'
+    }
+  });
+
+  await prisma.leaveApproval.create({
+    data: {
+      tenantId: acme.id,
+      leaveRequestId: approvedLeave.id,
+      approverId: manager.id,
+      stepOrder: 1,
+      status: LeaveStatus.APPROVED,
+      comment: 'Enjoy the break!',
+      actedAt: addDays(new Date(), -2)
+    }
+  });
+
+  const payrollRun = await prisma.payrollRun.create({
+    data: {
+      tenantId: acme.id,
+      periodStart: addDays(new Date(), -14),
+      periodEnd: addDays(new Date(), -1),
+      totalCents: 820000,
+      lines: {
+        create: [
+          ({
+            tenantId: acme.id,
+            employeeId: manager.id,
+            hours: 80,
+            amountCents: 420000,
+            details: asJson({ payCode: 'BASE', narrative: 'Fortnightly salary' })
+          } as any),
+          ({
+            tenantId: acme.id,
+            employeeId: sienna.id,
+            hours: 84,
+            amountCents: 260000,
+            details: asJson({ payCode: 'BASE', narrative: 'Rostered shifts' })
+          } as any),
+          ({
+            tenantId: acme.id,
+            employeeId: noah.id,
+            hours: 80,
+            amountCents: 140000,
+            details: asJson({ payCode: 'BASE', narrative: 'People & Culture support' })
+          } as any)
+        ]
+      }
     }
   });
 

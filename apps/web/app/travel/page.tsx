@@ -5,12 +5,20 @@ import { apiFetch, apiPost } from '../../lib/api';
 
 type FlightBookingVm = { id: string; flight: { carrier: string; flightNumber: string; depAirport: string; arrAirport: string }; depTime: string; arrTime: string };
 
+const formatIso = (date: Date) => date.toISOString().slice(0, 10);
+
 export default function TravelPage() {
-  const [employeeId, setEmployeeId] = useState('emp-2');
-  const [locationId, setLocationId] = useState('loc-karratha');
-  const [start, setStart] = useState('2024-11-04');
-  const [end, setEnd] = useState('2024-11-12');
-  const [manifestDate, setManifestDate] = useState('2024-11-04');
+  const today = new Date();
+  const defaultStart = new Date(today);
+  defaultStart.setDate(today.getDate() + 7);
+  const defaultEnd = new Date(defaultStart);
+  defaultEnd.setDate(defaultStart.getDate() + 8);
+
+  const [employeeId, setEmployeeId] = useState('emp-acme-sienna');
+  const [locationId, setLocationId] = useState('loc-acme-camp');
+  const [start, setStart] = useState(formatIso(defaultStart));
+  const [end, setEnd] = useState(formatIso(defaultEnd));
+  const [manifestDate, setManifestDate] = useState(formatIso(defaultStart));
   const [manifest, setManifest] = useState<FlightBookingVm[]>([]);
 
   async function plan() {
@@ -29,30 +37,12 @@ export default function TravelPage() {
 
   useEffect(() => { loadManifest(); }, [loadManifest]);
 
-  async function seedDemo() {
-    const body = await apiPost(`/v1/admin/seed-mining`, {}, {});
-    try { localStorage.setItem('tenantId', JSON.stringify('tenant-demo')); } catch {}
-    alert(`Seeded demo data for tenant ${body.tenantId ?? 'tenant-demo'}`);
-  }
-
   return (
     <div className="space-y-6" aria-label="Travel & accommodation">
       <header className="space-y-1">
         <h1 className="text-3xl font-semibold text-slate-900">Travel & accommodation</h1>
         <p className="text-slate-600">Plan swings and view flight manifests.</p>
       </header>
-
-      <Card>
-        <CardHeader>
-          <div>
-            <CardTitle>Demo data</CardTitle>
-            <CardDescription>Seed example tenant, employee, roster, travel and accommodation.</CardDescription>
-          </div>
-        </CardHeader>
-        <div className="p-6 pt-0">
-          <Button variant="secondary" onClick={seedDemo}>Seed demo data</Button>
-        </div>
-      </Card>
 
       <Card>
         <CardHeader>
