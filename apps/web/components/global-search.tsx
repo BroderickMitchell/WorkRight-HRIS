@@ -96,14 +96,14 @@ export function GlobalSearch() {
                 <Combobox.Option
                   key={`${result.type}-${result.id}`}
                   value={result}
-                  className={({ active }) =>
+                  className={({ active }: { active: boolean }) =>
                     cn(
                       'flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm',
                       active ? 'bg-primary/10 text-primary' : 'text-foreground'
                     )
                   }
                 >
-                  {({ active }) => (
+                  {({ active }: { active: boolean }) => (
                     <>
                       <div className="flex items-center gap-3">
                         {renderIcon(result.type, active)}

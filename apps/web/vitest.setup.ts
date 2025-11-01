@@ -3,12 +3,11 @@ import React from 'react';
 import { afterEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
-declare global {
-  // eslint-disable-next-line no-var
-  var React: typeof React;
-}
+const globals = globalThis as typeof globalThis & {
+  React: typeof import('react');
+};
 
-globalThis.React = React;
+globals.React = React;
 
 afterEach(() => {
   cleanup();

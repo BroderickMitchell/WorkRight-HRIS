@@ -1,7 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, Button } from '@workright/ui';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { createProfileChangeWorkflow } from '../../../../../lib/workflows';
 import { getEmployeeOverrides } from '../../../../../lib/overrides';
 import type { EmployeeProfile } from '@/lib/directory';
@@ -20,7 +20,7 @@ export function EmployeeSettingsForm({ employee: base }: EmployeeSettingsFormPro
   const [email, setEmail] = useState(() => overrides.email ?? base.email);
   const [notes, setNotes] = useState('');
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const wf = createProfileChangeWorkflow({
       employeeId: base.id,

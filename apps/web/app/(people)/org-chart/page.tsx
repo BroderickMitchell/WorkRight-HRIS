@@ -1,7 +1,7 @@
 "use client";
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { sampleEmployees, type Employee } from '../../../lib/sample-data';
 
@@ -171,12 +171,12 @@ function OrgChartInner() {
   const dragging = useRef(false);
   const dragStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const originStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
+  const onMouseDown = useCallback((e: MouseEvent<HTMLDivElement>) => {
     dragging.current = true;
     dragStart.current = { x: e.clientX, y: e.clientY };
     originStart.current = { ...offset };
   }, [offset]);
-  const onMouseMove = useCallback((e: React.MouseEvent) => {
+  const onMouseMove = useCallback((e: MouseEvent<HTMLDivElement>) => {
     if (!dragging.current) return;
     const dx = e.clientX - dragStart.current.x;
     const dy = e.clientY - dragStart.current.y;
@@ -255,6 +255,5 @@ export default function OrgChartPage() {
     </Suspense>
   );
 }
-
 
 

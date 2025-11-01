@@ -8,13 +8,13 @@ import { render, screen } from '@testing-library/react';
 // Stub fetch for client pages that use apiFetch/useEffect
 beforeEach(() => {
   // default: JSON [] with 200 OK
-  // @ts-expect-error partial fetch mock
-  global.fetch = vi.fn(async () =>
+  const mockFetch = vi.fn(async () =>
     new Response(JSON.stringify([]), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     })
   );
+  global.fetch = mockFetch as unknown as typeof fetch;
 });
 
 afterEach(() => {

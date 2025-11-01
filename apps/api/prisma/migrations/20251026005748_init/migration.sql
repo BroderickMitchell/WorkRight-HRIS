@@ -8,6 +8,21 @@ CREATE TYPE "LeaveStatus" AS ENUM ('PENDING', 'APPROVED', 'DECLINED', 'CANCELLED
 CREATE TYPE "ReviewStatus" AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'SUBMITTED', 'COMPLETED');
 
 -- CreateEnum
+CREATE TYPE "EmployeeStatus" AS ENUM ('ACTIVE', 'ON_LEAVE', 'TERMINATED');
+
+-- CreateEnum
+CREATE TYPE "CostCodeType" AS ENUM ('COST_CENTER', 'GL', 'PROJECT', 'WORKTAG');
+
+-- CreateEnum
+CREATE TYPE "EmploymentEventType" AS ENUM ('HIRE', 'TRANSFER', 'COMP_CHANGE', 'COST_CODE_CHANGE', 'MANAGER_CHANGE', 'LOA', 'TERMINATION', 'OTHER');
+
+-- CreateEnum
+CREATE TYPE "DocumentFormat" AS ENUM ('PDF', 'DOCX');
+
+-- CreateEnum
+CREATE TYPE "AddressType" AS ENUM ('PRIMARY', 'MAILING');
+
+-- CreateEnum
 CREATE TYPE "DepartmentStatus" AS ENUM ('ACTIVE', 'INACTIVE');
 
 -- CreateEnum
@@ -181,6 +196,7 @@ CREATE TABLE "Requisition" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
     "positionId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
     "hiringManagerEmployeeId" TEXT,
     "recruiterEmployeeId" TEXT,
     "panelMemberIds" TEXT[],
@@ -335,19 +351,155 @@ CREATE TABLE "Employee" (
     "id" TEXT NOT NULL,
     "tenantId" TEXT NOT NULL,
     "userId" TEXT,
+    "employeeNumber" TEXT,
     "givenName" TEXT NOT NULL,
+    "middleName" TEXT,
     "familyName" TEXT NOT NULL,
+    "nameSuffix" TEXT,
+    "preferredName" TEXT,
+    "pronouns" TEXT,
     "email" TEXT NOT NULL,
+    "personalEmail" TEXT,
+    "workPhone" TEXT,
+    "mobilePhone" TEXT,
+    "dateOfBirth" TIMESTAMP(3),
+    "status" "EmployeeStatus" NOT NULL DEFAULT 'ACTIVE',
+    "maritalStatus" TEXT,
+    "nationalIdentifiers" JSONB,
+    "citizenships" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "languages" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "veteranStatus" TEXT,
     "startDate" TIMESTAMP(3) NOT NULL,
     "terminatedAt" TIMESTAMP(3),
+    "serviceDate" TIMESTAMP(3),
+    "probationEndDate" TIMESTAMP(3),
+    "contractEndDate" TIMESTAMP(3),
     "managerId" TEXT,
+    "jobTitle" TEXT,
     "positionId" TEXT,
     "departmentId" TEXT,
     "locationId" TEXT,
+    "communicationPreferences" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "timezone" TEXT,
+    "workSchedule" TEXT,
+    "badgeId" TEXT,
+    "overtimeEligible" BOOLEAN NOT NULL DEFAULT false,
+    "benefitsEligible" BOOLEAN NOT NULL DEFAULT true,
+    "exempt" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Employee_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "EmployeeAddress" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "type" "AddressType" NOT NULL DEFAULT 'PRIMARY',
+    "line1" TEXT NOT NULL,
+    "line2" TEXT,
+    "suburb" TEXT NOT NULL,
+    "state" TEXT NOT NULL,
+    "postcode" TEXT NOT NULL,
+    "country" TEXT NOT NULL DEFAULT 'Australia',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "EmployeeAddress_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "EmployeeEmergencyContact" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "relationship" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
+    "email" TEXT,
+    "address" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "EmployeeEmergencyContact_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CostCode" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "description" TEXT,
+    "type" "CostCodeType" NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "CostCode_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "EmployeeCostSplit" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "costCodeId" TEXT NOT NULL,
+    "percentage" DECIMAL(5,2) NOT NULL,
+    "startDate" TIMESTAMP(3) NOT NULL,
+    "endDate" TIMESTAMP(3),
+    "createdBy" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "EmployeeCostSplit_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "EmploymentEvent" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "type" "EmploymentEventType" NOT NULL,
+    "effectiveDate" TIMESTAMP(3) NOT NULL,
+    "payload" JSONB NOT NULL,
+    "actorId" TEXT,
+    "source" TEXT NOT NULL DEFAULT 'UI',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "createdBy" TEXT,
+
+    CONSTRAINT "EmploymentEvent_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "DocumentTemplate" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "description" TEXT,
+    "format" "DocumentFormat" NOT NULL,
+    "body" TEXT NOT NULL,
+    "createdBy" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "DocumentTemplate_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "GeneratedDocument" (
+    "id" TEXT NOT NULL,
+    "tenantId" TEXT NOT NULL,
+    "employeeId" TEXT NOT NULL,
+    "templateId" TEXT,
+    "format" "DocumentFormat" NOT NULL,
+    "filename" TEXT NOT NULL,
+    "storageUrl" TEXT NOT NULL,
+    "payload" JSONB NOT NULL,
+    "createdBy" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "GeneratedDocument_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -361,6 +513,16 @@ CREATE TABLE "Employment" (
     "fte" DOUBLE PRECISION NOT NULL DEFAULT 1,
     "payType" TEXT NOT NULL,
     "payRate" DECIMAL(12,2),
+    "currency" TEXT NOT NULL DEFAULT 'AUD',
+    "payFrequency" TEXT NOT NULL DEFAULT 'ANNUAL',
+    "grade" TEXT,
+    "workerType" TEXT NOT NULL DEFAULT 'Employee',
+    "employmentType" TEXT NOT NULL DEFAULT 'Full-time',
+    "standardHours" DOUBLE PRECISION,
+    "schedule" TEXT,
+    "bonusTarget" DOUBLE PRECISION,
+    "allowances" JSONB,
+    "stockPlan" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -797,6 +959,36 @@ CREATE UNIQUE INDEX "RejectionReason_code_key" ON "RejectionReason"("code");
 CREATE INDEX "Employee_tenantId_email_idx" ON "Employee"("tenantId", "email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Employee_tenantId_employeeNumber_key" ON "Employee"("tenantId", "employeeNumber");
+
+-- CreateIndex
+CREATE INDEX "EmployeeAddress_tenantId_employeeId_type_idx" ON "EmployeeAddress"("tenantId", "employeeId", "type");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "EmployeeAddress_tenantId_employeeId_type_key" ON "EmployeeAddress"("tenantId", "employeeId", "type");
+
+-- CreateIndex
+CREATE INDEX "EmployeeEmergencyContact_tenantId_employeeId_idx" ON "EmployeeEmergencyContact"("tenantId", "employeeId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "CostCode_tenantId_code_key" ON "CostCode"("tenantId", "code");
+
+-- CreateIndex
+CREATE INDEX "EmployeeCostSplit_tenantId_employeeId_startDate_idx" ON "EmployeeCostSplit"("tenantId", "employeeId", "startDate");
+
+-- CreateIndex
+CREATE INDEX "EmploymentEvent_tenantId_employeeId_effectiveDate_idx" ON "EmploymentEvent"("tenantId", "employeeId", "effectiveDate");
+
+-- CreateIndex
+CREATE INDEX "EmploymentEvent_tenantId_type_idx" ON "EmploymentEvent"("tenantId", "type");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "DocumentTemplate_tenantId_name_key" ON "DocumentTemplate"("tenantId", "name");
+
+-- CreateIndex
+CREATE INDEX "GeneratedDocument_tenantId_employeeId_idx" ON "GeneratedDocument"("tenantId", "employeeId");
+
+-- CreateIndex
 CREATE INDEX "Goal_tenantId_ownerId_idx" ON "Goal"("tenantId", "ownerId");
 
 -- CreateIndex
@@ -951,6 +1143,48 @@ ALTER TABLE "Employee" ADD CONSTRAINT "Employee_departmentId_fkey" FOREIGN KEY (
 
 -- AddForeignKey
 ALTER TABLE "Employee" ADD CONSTRAINT "Employee_locationId_fkey" FOREIGN KEY ("locationId") REFERENCES "Location"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EmployeeAddress" ADD CONSTRAINT "EmployeeAddress_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EmployeeAddress" ADD CONSTRAINT "EmployeeAddress_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EmployeeEmergencyContact" ADD CONSTRAINT "EmployeeEmergencyContact_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EmployeeEmergencyContact" ADD CONSTRAINT "EmployeeEmergencyContact_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "CostCode" ADD CONSTRAINT "CostCode_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EmployeeCostSplit" ADD CONSTRAINT "EmployeeCostSplit_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EmployeeCostSplit" ADD CONSTRAINT "EmployeeCostSplit_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EmployeeCostSplit" ADD CONSTRAINT "EmployeeCostSplit_costCodeId_fkey" FOREIGN KEY ("costCodeId") REFERENCES "CostCode"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EmploymentEvent" ADD CONSTRAINT "EmploymentEvent_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "EmploymentEvent" ADD CONSTRAINT "EmploymentEvent_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DocumentTemplate" ADD CONSTRAINT "DocumentTemplate_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "GeneratedDocument" ADD CONSTRAINT "GeneratedDocument_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "GeneratedDocument" ADD CONSTRAINT "GeneratedDocument_employeeId_fkey" FOREIGN KEY ("employeeId") REFERENCES "Employee"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "GeneratedDocument" ADD CONSTRAINT "GeneratedDocument_templateId_fkey" FOREIGN KEY ("templateId") REFERENCES "DocumentTemplate"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Employment" ADD CONSTRAINT "Employment_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

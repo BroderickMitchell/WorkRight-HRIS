@@ -171,7 +171,7 @@ export function DocumentsCard({
                                     <Listbox.Option
                                       key={template.id}
                                       value={template}
-                                      className={({ active }) =>
+                                      className={({ active }: { active: boolean }) =>
                                         `cursor-pointer px-3 py-2 ${active ? 'bg-brand/10 text-brand' : 'text-slate-700'}`
                                       }
                                     >

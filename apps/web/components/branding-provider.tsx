@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { DEFAULT_TENANT_ID } from '@/lib/api';
 
 export type SiteSettings = {
@@ -43,7 +43,7 @@ function applyBranding(settings: SiteSettings) {
   }
 }
 
-export function BrandingProvider({ children }: { children: React.ReactNode }) {
+export function BrandingProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const storedTenant = localStorage.getItem('tenantId');

@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import Link from 'next/link';
 import { apiFetch } from '../../../../lib/api';
 
@@ -79,8 +79,8 @@ export default function PositionsOrgChartPage() {
   const dragging = useRef(false);
   const dragStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const originStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const onMouseDown = useCallback((e: React.MouseEvent) => { dragging.current = true; dragStart.current = { x: e.clientX, y: e.clientY }; originStart.current = { ...offset }; }, [offset]);
-  const onMouseMove = useCallback((e: React.MouseEvent) => { if (!dragging.current) return; const dx = e.clientX - dragStart.current.x; const dy = e.clientY - dragStart.current.y; setOffset({ x: originStart.current.x + dx, y: originStart.current.y + dy }); }, []);
+  const onMouseDown = useCallback((e: MouseEvent<HTMLDivElement>) => { dragging.current = true; dragStart.current = { x: e.clientX, y: e.clientY }; originStart.current = { ...offset }; }, [offset]);
+  const onMouseMove = useCallback((e: MouseEvent<HTMLDivElement>) => { if (!dragging.current) return; const dx = e.clientX - dragStart.current.x; const dy = e.clientY - dragStart.current.y; setOffset({ x: originStart.current.x + dx, y: originStart.current.y + dy }); }, []);
   const onMouseUp = useCallback(() => { dragging.current = false; }, []);
   const zoomIn = () => setZoom((z) => Math.min(2, +(z + 0.1).toFixed(2)));
   const zoomOut = () => setZoom((z) => Math.max(0.5, +(z - 0.1).toFixed(2)));
@@ -118,5 +118,4 @@ export default function PositionsOrgChartPage() {
     </div>
   );
 }
-
 
