@@ -94,6 +94,24 @@ export async function apiPatch<T = any>(path: string, body: unknown, options: Ap
   return res.json();
 }
 
+export async function apiPut<T = any>(path: string, body: unknown, options: ApiOptions = {}): Promise<T> {
+  const res = await fetch(
+    `${BASE_URL}${path}`,
+    withCache(
+      {
+        method: 'PUT',
+        headers: buildHeaders(options),
+        body: JSON.stringify(body)
+      },
+      options.cache
+    )
+  );
+  if (!res.ok) {
+    throw new Error(`API request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function apiDelete<T = any>(path: string, options: ApiOptions = {}): Promise<T> {
   const res = await fetch(
     `${BASE_URL}${path}`,

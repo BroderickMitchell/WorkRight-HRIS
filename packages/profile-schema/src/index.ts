@@ -189,14 +189,65 @@ export const employmentEventSchema = z.object({
 });
 export type EmploymentEvent = z.infer<typeof employmentEventSchema>;
 
+export const documentTemplateCategorySchema = z.enum(['HR', 'Payroll', 'Compliance', 'Legal', 'Custom']);
+export type DocumentTemplateCategory = z.infer<typeof documentTemplateCategorySchema>;
+
+export const documentTemplateFieldSchema = z.object({
+  key: z.string().min(1),
+  label: z.string().min(1),
+  description: z.string().optional().nullable(),
+  required: z.boolean().default(false)
+});
+export type DocumentTemplateField = z.infer<typeof documentTemplateFieldSchema>;
+
 export const documentTemplateSchema = z.object({
   id: z.string(),
   name: z.string(),
-  format: documentFormatSchema,
   description: z.string().optional().nullable(),
-  lastUpdatedAt: z.string()
+  format: documentFormatSchema,
+  category: documentTemplateCategorySchema,
+  version: z.number().int().positive(),
+  isActive: z.boolean(),
+  placeholders: z.array(documentTemplateFieldSchema).default([]),
+  lastUpdatedAt: z.string(),
+  createdBy: z.string().optional().nullable(),
+  body: z.string().optional()
 });
 export type DocumentTemplate = z.infer<typeof documentTemplateSchema>;
+
+export const documentTemplateRevisionSchema = documentTemplateSchema.extend({
+  version: z.number().int().positive(),
+  body: z.string(),
+  createdAt: z.string()
+});
+export type DocumentTemplateRevision = z.infer<typeof documentTemplateRevisionSchema>;
+
+export const upsertDocumentTemplateSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(3),
+  description: z.string().optional().nullable(),
+  format: documentFormatSchema,
+  category: documentTemplateCategorySchema,
+  placeholders: z.array(documentTemplateFieldSchema).default([]),
+  body: z.string().min(1),
+  isActive: z.boolean().optional()
+});
+export type UpsertDocumentTemplateInput = z.infer<typeof upsertDocumentTemplateSchema>;
+
+export const updateDocumentTemplateMetadataSchema = z.object({
+  name: z.string().min(3).optional(),
+  description: z.string().optional().nullable(),
+  category: documentTemplateCategorySchema.optional(),
+  isActive: z.boolean().optional()
+});
+export type UpdateDocumentTemplateMetadataInput = z.infer<typeof updateDocumentTemplateMetadataSchema>;
+
+export const documentTemplateFiltersSchema = z.object({
+  category: documentTemplateCategorySchema.optional(),
+  active: z.coerce.boolean().optional(),
+  createdBy: z.string().optional()
+});
+export type DocumentTemplateFilters = z.infer<typeof documentTemplateFiltersSchema>;
 
 export const generatedDocumentSchema = z.object({
   id: z.string(),
@@ -206,7 +257,11 @@ export const generatedDocumentSchema = z.object({
   filename: z.string(),
   storageUrl: z.string().url(),
   createdAt: z.string(),
-  createdBy: z.string().optional().nullable()
+  createdBy: z.string().optional().nullable(),
+  status: z.string(),
+  signed: z.boolean(),
+  signedAt: z.string().optional().nullable(),
+  signedBy: z.string().optional().nullable()
 });
 export type GeneratedDocument = z.infer<typeof generatedDocumentSchema>;
 
@@ -223,6 +278,64 @@ export const generateDocumentInputSchema = z.object({
   mergeFields: z.record(z.any()).optional()
 });
 export type GenerateDocumentInput = z.infer<typeof generateDocumentInputSchema>;
+
+export const generateDocumentPreviewSchema = z.object({
+  templateId: z.string().optional(),
+  body: z.string().optional(),
+  name: z.string().optional(),
+  format: documentFormatSchema.default('PDF'),
+  data: z.record(z.any()).default({})
+});
+export type GenerateDocumentPreviewInput = z.infer<typeof generateDocumentPreviewSchema>;
+
+export const signGeneratedDocumentSchema = z.object({
+  documentId: z.string(),
+  signedBy: z.string().min(1),
+  note: z.string().optional().nullable()
+});
+export type SignGeneratedDocumentInput = z.infer<typeof signGeneratedDocumentSchema>;
+
+export const tenantBrandingAssetSchema = z.object({
+  filename: z.string().min(1),
+  mimeType: z.string().min(3),
+  data: z.string().min(10)
+});
+export type TenantBrandingAssetUpload = z.infer<typeof tenantBrandingAssetSchema>;
+
+export const tenantBrandingSchema = z.object({
+  primaryColor: z.string(),
+  accentColor: z.string(),
+  surfaceColor: z.string(),
+  darkMode: z.boolean(),
+  logoUrl: z.string().url().optional().nullable(),
+  emailLogoUrl: z.string().url().optional().nullable(),
+  loginHeroUrl: z.string().url().optional().nullable(),
+  faviconUrl: z.string().url().optional().nullable(),
+  supportEmail: z.string().email(),
+  legalAddress: z.string().optional().nullable(),
+  subjectPrefix: z.string().optional().nullable(),
+  updatedAt: z.string()
+});
+export type TenantBranding = z.infer<typeof tenantBrandingSchema>;
+
+export const updateTenantBrandingSchema = z.object({
+  primaryColor: z.string(),
+  accentColor: z.string(),
+  surfaceColor: z.string().optional(),
+  darkMode: z.boolean().optional(),
+  supportEmail: z.string().email(),
+  legalAddress: z.string().optional().nullable(),
+  subjectPrefix: z.string().optional().nullable(),
+  logo: tenantBrandingAssetSchema.optional(),
+  emailLogo: tenantBrandingAssetSchema.optional(),
+  loginHero: tenantBrandingAssetSchema.optional(),
+  favicon: tenantBrandingAssetSchema.optional(),
+  removeLogo: z.boolean().optional(),
+  removeEmailLogo: z.boolean().optional(),
+  removeLoginHero: z.boolean().optional(),
+  removeFavicon: z.boolean().optional()
+});
+export type UpdateTenantBrandingInput = z.infer<typeof updateTenantBrandingSchema>;
 
 export const employeeProfileSchema = z.object({
   employee: z.object({
