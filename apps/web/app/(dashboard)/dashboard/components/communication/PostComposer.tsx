@@ -10,7 +10,7 @@ import {
   CommunicationPost,
   CommunicationAttachment,
   CommunicationMention
-} from '../../../../lib/api/communications';
+} from '../../../../../lib/api/communications';
 
 const attachmentSchema = z.object({
   url: z.string().url('Provide a valid URL'),

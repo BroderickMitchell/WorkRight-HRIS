@@ -26,6 +26,29 @@ import { ListAckItemsQueryDto } from './dto/list-acks.dto.js';
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
 const MAX_PAGE_SIZE = 50;
 
+type RecipientForActor = {
+  acknowledged: boolean;
+  acknowledgedAt: Date | null;
+  firstSeenAt: Date | null;
+};
+
+type PostForActor = Prisma.CommunicationPostGetPayload<{
+  include: {
+    author: true;
+    department: true;
+    targetTeams: { select: { id: true; name: true; departmentId: true } };
+    recipients: { select: { acknowledged: true; acknowledgedAt: true; firstSeenAt: true } };
+  };
+}>;
+
+type TeamWithRelations = Prisma.TeamGetPayload<{
+  include: {
+    members: { select: { id: true } };
+    supervisors: { select: { id: true } };
+    department: { select: { id: true; name: true } };
+  };
+}>;
+
 @Injectable()
 export class CommunicationsService {
   private readonly logger = new Logger(CommunicationsService.name);
@@ -110,7 +133,7 @@ export class CommunicationsService {
     };
   }
 
-  private async fetchTeams(tenantId: string, teamIds: string[]) {
+  private async fetchTeams(tenantId: string, teamIds: string[]): Promise<TeamWithRelations[]> {
     if (!teamIds.length) return [];
     return this.prisma.team.findMany({
       where: { tenantId, id: { in: teamIds } },
@@ -122,11 +145,17 @@ export class CommunicationsService {
     });
   }
 
-  private async resolveTargetableTeams(actor: ActorContext) {
+  private async resolveTargetableTeams(actor: ActorContext): Promise<TeamWithRelations[]> {
+    const include: Prisma.TeamInclude = {
+      members: { select: { id: true } },
+      supervisors: { select: { id: true } },
+      department: { select: { id: true, name: true } }
+    };
+
     if (actor.role === 'ADMIN') {
       return this.prisma.team.findMany({
         where: { tenantId: actor.tenantId },
-        include: { department: { select: { id: true, name: true } } },
+        include,
         orderBy: [{ department: { name: 'asc' } }, { name: 'asc' }]
       });
     }
@@ -134,7 +163,7 @@ export class CommunicationsService {
     if (!actor.departmentId) {
       return this.prisma.team.findMany({
         where: { tenantId: actor.tenantId, id: { in: [...actor.teamIds, ...actor.supervisorTeamIds] } },
-        include: { department: { select: { id: true, name: true } } },
+        include,
         orderBy: { name: 'asc' }
       });
     }
@@ -150,7 +179,7 @@ export class CommunicationsService {
 
     return this.prisma.team.findMany({
       where,
-      include: { department: { select: { id: true, name: true } } },
+      include,
       orderBy: { name: 'asc' }
     });
   }
@@ -209,7 +238,7 @@ export class CommunicationsService {
     }
   }
 
-  private computeDepartmentId(actor: ActorContext, teams: Awaited<ReturnType<typeof this.fetchTeams>>): string | null {
+  private computeDepartmentId(actor: ActorContext, teams: TeamWithRelations[]): string | null {
     const uniqueDepartments = new Set(teams.map((team) => team.departmentId));
     if (uniqueDepartments.size === 1) {
       return teams[0]?.departmentId ?? null;
@@ -217,18 +246,7 @@ export class CommunicationsService {
     return actor.departmentId ?? null;
   }
 
-  private mapPost(
-    post: Prisma.CommunicationPostGetPayload<{
-      include: {
-        author: true;
-        department: true;
-        targetTeams: true;
-        recipients: true;
-      };
-    }>,
-    actor: ActorContext,
-    ackSummary?: AckSummary['summary']
-  ): CommunicationPostSummary {
+  private mapPost(post: PostForActor, actor: ActorContext, ackSummary?: AckSummary['summary']): CommunicationPostSummary {
     const now = new Date();
     const isAuthor = post.authorId === actor.userId;
     const isAdmin = actor.role === 'ADMIN';
@@ -286,33 +304,36 @@ export class CommunicationsService {
   private async computeRecipientsSnapshot(
     tenantId: string,
     postId: string,
-    teams: Awaited<ReturnType<typeof this.fetchTeams>>,
+    teams: TeamWithRelations[],
     authorId: string,
     includeAuthor = false
   ) {
-    const userIds = new Set<string>();
-    const recipientRows: Prisma.CommunicationPostRecipientCreateManyInput[] = [];
+    const recipients = new Map<string, Set<string>>();
 
     for (const team of teams) {
       const teamMemberIds = [...team.members, ...team.supervisors].map((member) => member.id);
       for (const userId of teamMemberIds) {
         if (!includeAuthor && userId === authorId) continue;
-        const existing = recipientRows.find((row) => row.userId === userId);
-        if (existing) {
-          existing.teamIds = existing.teamIds?.concat(team.id) ?? [team.id];
-          continue;
+        if (!recipients.has(userId)) {
+          recipients.set(userId, new Set());
         }
-        userIds.add(userId);
-        recipientRows.push({
-          tenantId,
-          postId,
-          userId,
-          teamIds: [team.id]
-        });
+        recipients.get(userId)!.add(team.id);
       }
     }
 
-    return { userIds: Array.from(userIds), rows: recipientRows };
+    const rows: Prisma.CommunicationPostRecipientCreateManyInput[] = [];
+    const userIds: string[] = [];
+    for (const [userId, teamIds] of recipients.entries()) {
+      userIds.push(userId);
+      rows.push({
+        tenantId,
+        postId,
+        userId,
+        teamIds: Array.from(teamIds)
+      });
+    }
+
+    return { userIds, rows };
   }
 
   private async ensurePostVisibility(postId: string, actor: ActorContext) {
@@ -362,7 +383,7 @@ export class CommunicationsService {
       include: {
         author: true,
         department: true,
-        targetTeams: true,
+        targetTeams: { select: { id: true, name: true, departmentId: true } },
         recipients: {
           where: { userId: actor.userId },
           take: 1,
@@ -535,7 +556,7 @@ export class CommunicationsService {
       include: {
         author: true,
         department: true,
-        targetTeams: true,
+        targetTeams: { select: { id: true, name: true, departmentId: true } },
         recipients: {
           where: { userId: actor.userId },
           take: 1,
@@ -581,8 +602,12 @@ export class CommunicationsService {
           departmentId: departmentId ?? undefined,
           title: dto.title,
           body: dto.body,
-          attachments: dto.attachments?.length ? dto.attachments : undefined,
-          mentions: dto.mentions?.length ? dto.mentions : undefined,
+          attachments: dto.attachments?.length
+            ? (dto.attachments as unknown as Prisma.JsonArray)
+            : undefined,
+          mentions: dto.mentions?.length
+            ? (dto.mentions as unknown as Prisma.JsonArray)
+            : undefined,
           requireAck,
           ackDueAt: dto.ackDueAt ? new Date(dto.ackDueAt) : undefined,
           targetTeams: {
@@ -592,7 +617,7 @@ export class CommunicationsService {
         include: {
           author: true,
           department: true,
-          targetTeams: true,
+          targetTeams: { select: { id: true, name: true, departmentId: true } },
           recipients: {
             where: { userId: actor.userId },
             take: 1,
@@ -627,7 +652,7 @@ export class CommunicationsService {
     const actor = await this.getActorContext();
     const post = await this.prisma.communicationPost.findUnique({
       where: { id },
-      include: { targetTeams: true }
+      include: { targetTeams: { select: { id: true, name: true, departmentId: true } } }
     });
     if (!post || post.tenantId !== actor.tenantId || post.deletedAt) {
       throw new NotFoundException('Communication post not found');
@@ -641,37 +666,55 @@ export class CommunicationsService {
       throw new ForbiddenException('Editing window has expired');
     }
 
-    let teams = post.targetTeams;
+    let nextDepartmentId = post.departmentId;
+    let teamsToConnect: TeamWithRelations[] | null = null;
     if (dto.targetTeamIds && dto.targetTeamIds.length) {
-      teams = await this.fetchTeams(actor.tenantId, dto.targetTeamIds);
-      this.ensureTeamsExist(dto.targetTeamIds, teams);
-      this.assertTargetsAllowed(actor, teams);
+      teamsToConnect = await this.fetchTeams(actor.tenantId, dto.targetTeamIds);
+      this.ensureTeamsExist(dto.targetTeamIds, teamsToConnect);
+      this.assertTargetsAllowed(actor, teamsToConnect);
+      nextDepartmentId = this.computeDepartmentId(actor, teamsToConnect);
     }
 
-    const departmentId = dto.targetTeamIds ? this.computeDepartmentId(actor, teams) : post.departmentId;
+    const attachmentsInput =
+      dto.attachments !== undefined
+        ? dto.attachments.length
+          ? (dto.attachments as unknown as Prisma.JsonArray)
+          : Prisma.JsonNull
+        : post.attachments === null
+          ? Prisma.JsonNull
+          : (post.attachments as Prisma.InputJsonValue);
+
+    const mentionsInput =
+      dto.mentions !== undefined
+        ? dto.mentions.length
+          ? (dto.mentions as unknown as Prisma.JsonArray)
+          : Prisma.JsonNull
+        : post.mentions === null
+          ? Prisma.JsonNull
+          : (post.mentions as Prisma.InputJsonValue);
 
     const updated = await this.prisma.communicationPost.update({
       where: { id },
       data: {
         title: dto.title ?? post.title,
         body: dto.body ?? post.body,
-        attachments: dto.attachments ? (dto.attachments.length ? dto.attachments : Prisma.DbNull) : post.attachments,
-        mentions: dto.mentions ? (dto.mentions.length ? dto.mentions : Prisma.DbNull) : post.mentions,
+        attachments: attachmentsInput,
+        mentions: mentionsInput,
         ackDueAt: dto.ackDueAt ? new Date(dto.ackDueAt) : post.ackDueAt,
         lastEditedBy: actor.userId,
         editedAt: new Date(),
-        departmentId: departmentId ?? undefined,
-        targetTeams: dto.targetTeamIds
+        departmentId: nextDepartmentId ?? undefined,
+        targetTeams: teamsToConnect
           ? {
               set: [],
-              connect: teams.map((team) => ({ id: team.id }))
+              connect: teamsToConnect.map((team) => ({ id: team.id }))
             }
           : undefined
       },
       include: {
         author: true,
         department: true,
-        targetTeams: true,
+        targetTeams: { select: { id: true, name: true, departmentId: true } },
         recipients: {
           where: { userId: actor.userId },
           take: 1,
@@ -792,7 +835,7 @@ export class CommunicationsService {
       include: {
         author: true,
         department: true,
-        targetTeams: true,
+        targetTeams: { select: { id: true, name: true, departmentId: true } },
         recipients: {
           where: { userId: actor.userId },
           take: 1,

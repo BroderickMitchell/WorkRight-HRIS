@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Loader2, SendHorizonal } from 'lucide-react';
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, EmptyState } from '@workright/ui';
-import { CommunicationPost, CommunicationContext } from '../../../../lib/api/communications';
+import { CommunicationPost, CommunicationContext } from '../../../../../lib/api/communications';
 import {
   useCommunicationFeed,
   useCommunicationContext,
@@ -12,7 +12,7 @@ import {
   useDeleteCommunication,
   useAcknowledgeCommunication,
   useMyPendingAcks
-} from '../../../../lib/hooks/useCommunications';
+} from '../../../../../lib/hooks/useCommunications';
 import PostComposer, { ComposerSubmitData } from './PostComposer';
 import PostCard from './PostCard';
 

@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { AlertTriangle, CheckCircle, ClipboardList, FileText, MoreHorizontal, Trash2 } from 'lucide-react';
 import { Badge, Button, Card, CardContent, CardHeader, CardTitle } from '@workright/ui';
-import { CommunicationPost } from '../../../../lib/api/communications';
-import { useCommunicationAckSummary } from '../../../../lib/hooks/useCommunications';
+import { CommunicationPost } from '../../../../../lib/api/communications';
+import { useCommunicationAckSummary } from '../../../../../lib/hooks/useCommunications';
 import AckSummaryDrawer from './AckSummaryDrawer';
 
 interface PostCardProps {

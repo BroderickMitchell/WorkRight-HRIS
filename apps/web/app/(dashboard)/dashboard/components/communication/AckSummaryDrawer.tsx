@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { Loader2, DownloadCloud } from 'lucide-react';
 import { Badge, Button, Drawer } from '@workright/ui';
-import { CommunicationAckSummary, CommunicationPost } from '../../../../lib/api/communications';
+import { CommunicationAckSummary, CommunicationPost } from '../../../../../lib/api/communications';
 
 interface AckSummaryDrawerProps {
   open: boolean;
