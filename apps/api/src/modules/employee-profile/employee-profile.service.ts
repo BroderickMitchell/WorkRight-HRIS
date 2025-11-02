@@ -2,7 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
-  NotFoundException
+  NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
@@ -16,12 +16,14 @@ import {
   EmployeeTimeEligibility,
   EmploymentEventType,
   GenerateDocumentInput,
+  documentTemplateSchema,
   UpdateEmployeeProfileInput,
   UpsertCostSplitInput,
   costSplitSchema,
   employeeProfileSchema,
   employmentEventSchema,
-  generatedDocumentSchema
+  generatedDocumentSchema,
+  type DocumentTemplate,
 } from '@workright/profile-schema';
 import { PrismaService } from '../../common/prisma.service.js';
 import { AuditService } from '../../common/audit.service.js';
@@ -32,7 +34,38 @@ import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
 
 const MAX_DATE = new Date('9999-12-31T23:59:59.999Z');
-const asJson = (value: unknown): Prisma.InputJsonValue => value as Prisma.InputJsonValue;
+const asJson = (value: unknown): Prisma.InputJsonValue =>
+  value as Prisma.InputJsonValue;
+
+const normaliseTemplatePlaceholders = (
+  value: Prisma.JsonValue | null | undefined,
+): DocumentTemplate['placeholders'] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((item) => {
+      if (typeof item !== 'object' || item === null) return null;
+      const record = item as Record<string, unknown>;
+      const key = 'key' in record ? String(record.key ?? '') : '';
+      if (!key) return null;
+      const label = 'label' in record ? String(record.label ?? key) : key;
+      const description =
+        'description' in record && record.description != null
+          ? String(record.description)
+          : null;
+      const normalised: DocumentTemplate['placeholders'][number] = {
+        key,
+        label,
+        required: Boolean(record.required ?? false),
+        ...(description !== null ? { description } : { description: null }),
+      };
+      return normalised;
+    })
+    .filter(
+      (item): item is DocumentTemplate['placeholders'][number] => item !== null,
+    );
+};
 
 type EmployeeProfileRecord = Prisma.EmployeeGetPayload<{
   include: {
@@ -52,12 +85,16 @@ type EmployeeProfileRecord = Prisma.EmployeeGetPayload<{
 
 type EmployeeAddressRecord = EmployeeProfileRecord['addresses'][number];
 type EmployeeCostSplitRecord = EmployeeProfileRecord['costSplits'][number];
-type EmployeeCostSplitBase = Prisma.EmployeeCostSplitGetPayload<Prisma.EmployeeCostSplitDefaultArgs>;
+type EmployeeCostSplitBase =
+  Prisma.EmployeeCostSplitGetPayload<Prisma.EmployeeCostSplitDefaultArgs>;
 type EmploymentEventRecord = EmployeeProfileRecord['employmentEvents'][number];
-type GeneratedDocumentRecord = EmployeeProfileRecord['generatedDocuments'][number];
-type EmergencyContactRecord = EmployeeProfileRecord['emergencyContacts'][number];
+type GeneratedDocumentRecord =
+  EmployeeProfileRecord['generatedDocuments'][number];
+type EmergencyContactRecord =
+  EmployeeProfileRecord['emergencyContacts'][number];
 type LeaveBalanceRecord = EmployeeProfileRecord['leaveBalances'][number];
-type DocumentTemplateRecord = Prisma.DocumentTemplateGetPayload<Prisma.DocumentTemplateDefaultArgs>;
+type DocumentTemplateRecord =
+  Prisma.DocumentTemplateGetPayload<Prisma.DocumentTemplateDefaultArgs>;
 
 interface DownloadDescriptor {
   stream: ReturnType<typeof createReadStream>;
@@ -74,7 +111,7 @@ export class EmployeeProfileService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly documents: DocumentGenerationService,
-    private readonly cls: ClsService
+    private readonly cls: ClsService,
   ) {
     this.ensureStorage();
   }
@@ -87,7 +124,7 @@ export class EmployeeProfileService {
       where: { id },
       include: {
         position: {
-          include: { department: true, orgUnit: true }
+          include: { department: true, orgUnit: true },
         },
         department: true,
         location: true,
@@ -96,25 +133,25 @@ export class EmployeeProfileService {
         emergencyContacts: true,
         costSplits: {
           include: { costCode: true },
-          orderBy: { startDate: 'desc' }
+          orderBy: { startDate: 'desc' },
         },
         generatedDocuments: {
           include: { template: true },
           orderBy: { createdAt: 'desc' },
-          take: 50
+          take: 50,
         },
         employmentEvents: {
           orderBy: { effectiveDate: 'desc' },
-          take: 250
+          take: 250,
         },
         employments: {
           orderBy: { startDate: 'desc' },
-          take: 1
+          take: 1,
         },
         leaveBalances: {
-          include: { leaveType: true }
-        }
-      }
+          include: { leaveType: true },
+        },
+      },
     })) as EmployeeProfileRecord | null;
 
     if (!employee) {
@@ -123,57 +160,63 @@ export class EmployeeProfileService {
 
     const templates = await this.prisma.documentTemplate.findMany({
       where: { tenantId, isActive: true },
-      orderBy: [{ category: 'asc' }, { name: 'asc' }]
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
     });
     const employment = employee.employments[0];
     const primaryAddress = employee.addresses.find(
-      (addr: EmployeeAddressRecord) => addr.type === 'PRIMARY'
+      (addr: EmployeeAddressRecord) => addr.type === 'PRIMARY',
     );
     const mailingAddress = employee.addresses.find(
-      (addr: EmployeeAddressRecord) => addr.type === 'MAILING'
+      (addr: EmployeeAddressRecord) => addr.type === 'MAILING',
     );
 
-    const costSplits = employee.costSplits.map((split: EmployeeCostSplitRecord) => ({
-      id: split.id,
-      costCodeId: split.costCodeId,
-      costCode: {
-        id: split.costCode.id,
-        code: split.costCode.code,
-        description: split.costCode.description ?? null,
-        type: split.costCode.type
-      },
-      percentage: Number(split.percentage),
-      startDate: split.startDate.toISOString(),
-      endDate: split.endDate ? split.endDate.toISOString() : null,
-      createdAt: split.createdAt.toISOString(),
-      updatedAt: split.updatedAt.toISOString(),
-      createdBy: split.createdBy ?? null
-    }));
+    const costSplits = employee.costSplits.map(
+      (split: EmployeeCostSplitRecord) => ({
+        id: split.id,
+        costCodeId: split.costCodeId,
+        costCode: {
+          id: split.costCode.id,
+          code: split.costCode.code,
+          description: split.costCode.description ?? null,
+          type: split.costCode.type,
+        },
+        percentage: Number(split.percentage),
+        startDate: split.startDate.toISOString(),
+        endDate: split.endDate ? split.endDate.toISOString() : null,
+        createdAt: split.createdAt.toISOString(),
+        updatedAt: split.updatedAt.toISOString(),
+        createdBy: split.createdBy ?? null,
+      }),
+    );
 
-    const history = employee.employmentEvents.map((event: EmploymentEventRecord) => ({
-      id: event.id,
-      type: event.type,
-      effectiveDate: event.effectiveDate.toISOString(),
-      actor: event.actorId ?? null,
-      createdAt: event.createdAt.toISOString(),
-      payload: event.payload as Record<string, unknown>,
-      source: (event.source as 'UI' | 'API' | 'INTEGRATION') ?? 'UI'
-    }));
+    const history = employee.employmentEvents.map(
+      (event: EmploymentEventRecord) => ({
+        id: event.id,
+        type: event.type,
+        effectiveDate: event.effectiveDate.toISOString(),
+        actor: event.actorId ?? null,
+        createdAt: event.createdAt.toISOString(),
+        payload: event.payload as Record<string, unknown>,
+        source: (event.source as 'UI' | 'API' | 'INTEGRATION') ?? 'UI',
+      }),
+    );
 
-    const generated = employee.generatedDocuments.map((doc: GeneratedDocumentRecord) => ({
-      id: doc.id,
-      templateId: doc.templateId ?? undefined,
-      templateName: doc.template?.name ?? undefined,
-      format: doc.format,
-      filename: doc.filename,
-      storageUrl: doc.storageUrl,
-      createdAt: doc.createdAt.toISOString(),
-      createdBy: doc.createdBy ?? null,
-      status: doc.status,
-      signed: doc.signed,
-      signedAt: doc.signedAt ? doc.signedAt.toISOString() : null,
-      signedBy: doc.signedBy ?? null
-    }));
+    const generated = employee.generatedDocuments.map(
+      (doc: GeneratedDocumentRecord) => ({
+        id: doc.id,
+        templateId: doc.templateId ?? undefined,
+        templateName: doc.template?.name ?? undefined,
+        format: doc.format,
+        filename: doc.filename,
+        storageUrl: doc.storageUrl,
+        createdAt: doc.createdAt.toISOString(),
+        createdBy: doc.createdBy ?? null,
+        status: doc.status,
+        signed: doc.signed,
+        signedAt: doc.signedAt ? doc.signedAt.toISOString() : null,
+        signedBy: doc.signedBy ?? null,
+      }),
+    );
 
     const permissions = this.resolvePermissions();
 
@@ -184,35 +227,46 @@ export class EmployeeProfileService {
         positionId: employee.positionId ?? null,
         legalName: {
           full: this.buildFullName(employee),
-          preferred: employee.preferredName ?? null
+          preferred: employee.preferredName ?? null,
         },
-        jobTitle: employee.jobTitle ?? employee.position?.title ?? 'Role pending',
-        department: employee.department?.name ?? employee.position?.department.name ?? null,
+        jobTitle:
+          employee.jobTitle ?? employee.position?.title ?? 'Role pending',
+        department:
+          employee.department?.name ??
+          employee.position?.department.name ??
+          null,
         orgUnit: employee.position?.orgUnit?.name ?? null,
         location: employee.location?.name ?? null,
         status: employee.status,
         costCodeSummary: this.buildCostSplitSummary(costSplits),
         hireDate: employee.startDate.toISOString(),
         manager: employee.manager ? this.buildFullName(employee.manager) : null,
-        avatarUrl: null
+        avatarUrl: null,
       },
       personal: {
         legalName: {
           first: employee.givenName,
           middle: employee.middleName ?? null,
           last: employee.familyName,
-          suffix: employee.nameSuffix ?? null
+          suffix: employee.nameSuffix ?? null,
         },
         preferredName: employee.preferredName ?? null,
         pronouns: employee.pronouns ?? null,
-        dateOfBirth: employee.dateOfBirth ? employee.dateOfBirth.toISOString() : new Date(0).toISOString(),
+        dateOfBirth: employee.dateOfBirth
+          ? employee.dateOfBirth.toISOString()
+          : new Date(0).toISOString(),
         nationalIdentifiers: Array.isArray(employee.nationalIdentifiers)
-          ? (employee.nationalIdentifiers as Array<{ id: string; type: string; country: string; value: string }>)
+          ? (employee.nationalIdentifiers as Array<{
+              id: string;
+              type: string;
+              country: string;
+              value: string;
+            }>)
           : [],
         citizenships: employee.citizenships ?? [],
         maritalStatus: employee.maritalStatus ?? null,
         languages: employee.languages ?? [],
-        veteranStatus: employee.veteranStatus ?? null
+        veteranStatus: employee.veteranStatus ?? null,
       },
       contact: {
         workEmail: employee.email,
@@ -226,7 +280,7 @@ export class EmployeeProfileService {
               suburb: primaryAddress.suburb,
               state: primaryAddress.state,
               postcode: primaryAddress.postcode,
-              country: primaryAddress.country
+              country: primaryAddress.country,
             }
           : null,
         mailingAddress: mailingAddress
@@ -236,30 +290,50 @@ export class EmployeeProfileService {
               suburb: mailingAddress.suburb,
               state: mailingAddress.state,
               postcode: mailingAddress.postcode,
-              country: mailingAddress.country
+              country: mailingAddress.country,
             }
           : null,
-        emergencyContacts: employee.emergencyContacts.map((contact: EmergencyContactRecord) => ({
-          id: contact.id,
-          name: contact.name,
-          relationship: contact.relationship,
-          phone: contact.phone,
-          email: contact.email ?? null
-        })),
-        communicationPreferences: employee.communicationPreferences ?? []
+        emergencyContacts: employee.emergencyContacts.map(
+          (contact: EmergencyContactRecord) => ({
+            id: contact.id,
+            name: contact.name,
+            relationship: contact.relationship,
+            phone: contact.phone,
+            email: contact.email ?? null,
+          }),
+        ),
+        communicationPreferences: employee.communicationPreferences ?? [],
       },
       job: {
         positionId: employee.positionId ?? null,
-        jobTitle: employee.jobTitle ?? employee.position?.title ?? 'Role pending',
-        manager: employee.manager ? { id: employee.manager.id, name: this.buildFullName(employee.manager) } : null,
-        orgUnit: employee.position?.orgUnit ? { id: employee.position.orgUnit.id, name: employee.position.orgUnit.name } : null,
+        jobTitle:
+          employee.jobTitle ?? employee.position?.title ?? 'Role pending',
+        manager: employee.manager
+          ? {
+              id: employee.manager.id,
+              name: this.buildFullName(employee.manager),
+            }
+          : null,
+        orgUnit: employee.position?.orgUnit
+          ? {
+              id: employee.position.orgUnit.id,
+              name: employee.position.orgUnit.name,
+            }
+          : null,
         department: employee.department
           ? { id: employee.department.id, name: employee.department.name }
           : employee.position?.department
-            ? { id: employee.position.department.id, name: employee.position.department.name }
+            ? {
+                id: employee.position.department.id,
+                name: employee.position.department.name,
+              }
             : null,
         location: employee.location
-          ? { id: employee.location.id, name: employee.location.name, timezone: employee.location.timezone }
+          ? {
+              id: employee.location.id,
+              name: employee.location.name,
+              timezone: employee.location.timezone,
+            }
           : null,
         grade: employment?.grade ?? null,
         fte: employment?.fte ?? 1,
@@ -271,81 +345,96 @@ export class EmployeeProfileService {
         costCenterSummary: this.buildCostSplitSummary(costSplits),
         status: employee.status,
         hireDate: employee.startDate.toISOString(),
-        serviceDate: employee.serviceDate ? employee.serviceDate.toISOString() : null,
-        probationEndDate: employee.probationEndDate ? employee.probationEndDate.toISOString() : null,
-        contractEndDate: employee.contractEndDate ? employee.contractEndDate.toISOString() : null
+        serviceDate: employee.serviceDate
+          ? employee.serviceDate.toISOString()
+          : null,
+        probationEndDate: employee.probationEndDate
+          ? employee.probationEndDate.toISOString()
+          : null,
+        contractEndDate: employee.contractEndDate
+          ? employee.contractEndDate.toISOString()
+          : null,
       },
       compensation: {
         payGroup: 'Default',
         baseSalary: {
           amount: Number(employment?.payRate ?? 0),
           currency: employment?.currency ?? 'AUD',
-          frequency: employment?.payFrequency ?? 'ANNUAL'
+          frequency: employment?.payFrequency ?? 'ANNUAL',
         },
         payGrade: employment?.grade ?? null,
         salaryRange: null,
         bonusTargetPercent: employment?.bonusTarget ?? null,
         allowances: Array.isArray(employment?.allowances)
-          ? (employment?.allowances as Array<{
-              id: string;
-              label: string;
-              amount: number;
-              currency: string;
-              frequency: string;
-              taxable?: boolean;
-            }>).map((allowance) => ({
+          ? (
+              employment?.allowances as Array<{
+                id: string;
+                label: string;
+                amount: number;
+                currency: string;
+                frequency: string;
+                taxable?: boolean;
+              }>
+            ).map((allowance) => ({
               id: allowance.id,
               label: allowance.label,
               amount: allowance.amount,
               currency: allowance.currency,
-              frequency: allowance.frequency as 'ANNUAL' | 'MONTHLY' | 'FORTNIGHTLY' | 'WEEKLY' | 'HOURLY',
-              taxable: allowance.taxable ?? true
+              frequency: allowance.frequency as
+                | 'ANNUAL'
+                | 'MONTHLY'
+                | 'FORTNIGHTLY'
+                | 'WEEKLY'
+                | 'HOURLY',
+              taxable: allowance.taxable ?? true,
             }))
           : [],
         stockPlan: employment?.stockPlan ?? null,
         effectiveDate: employment?.startDate
           ? employment.startDate.toISOString()
-          : employee.startDate.toISOString()
+          : employee.startDate.toISOString(),
       },
       timeAndEligibility: {
         location: employee.location?.name ?? 'Unknown',
-        timezone: employee.timezone ?? employee.location?.timezone ?? 'Australia/Sydney',
-        workSchedule: employee.workSchedule ?? employment?.schedule ?? 'Standard Week',
+        timezone:
+          employee.timezone ??
+          employee.location?.timezone ??
+          'Australia/Sydney',
+        workSchedule:
+          employee.workSchedule ?? employment?.schedule ?? 'Standard Week',
         badgeId: employee.badgeId ?? null,
         overtimeEligible: employee.overtimeEligible,
         exempt: employee.exempt,
         benefitsEligible: employee.benefitsEligible,
-        leaveBalances: employee.leaveBalances.map((balance: LeaveBalanceRecord) => ({
-          id: balance.id,
-          type: balance.leaveType?.name ?? 'Leave',
-          balanceHours: balance.balance
-        }))
+        leaveBalances: employee.leaveBalances.map(
+          (balance: LeaveBalanceRecord) => ({
+            id: balance.id,
+            type: balance.leaveType?.name ?? 'Leave',
+            balanceHours: balance.balance,
+          }),
+        ),
       },
       costSplits,
       history,
       documents: {
         generated,
-        templates: templates.map((template: DocumentTemplateRecord) => ({
-          id: template.id,
-          name: template.name,
-          description: template.description ?? null,
-          format: template.format,
-          category: template.category,
-          version: template.version,
-          isActive: template.isActive,
-          placeholders: Array.isArray(template.placeholders)
-            ? (template.placeholders as Array<Record<string, unknown>>).map((field) => ({
-                key: String(field.key ?? ''),
-                label: String(field.label ?? field.key ?? ''),
-                description: field.description ? String(field.description) : null,
-                required: Boolean(field.required ?? false)
-              }))
-            : [],
-          lastUpdatedAt: template.updatedAt.toISOString(),
-          createdBy: template.createdBy ?? null
-        }))
+        templates: templates.map((template: DocumentTemplateRecord) =>
+          documentTemplateSchema.parse({
+            id: template.id,
+            name: template.name,
+            description: template.description ?? null,
+            format: template.format,
+            category: template.category,
+            version: template.version,
+            isActive: template.isActive,
+            placeholders: normaliseTemplatePlaceholders(template.placeholders),
+            lastUpdatedAt: template.updatedAt.toISOString(),
+            createdBy: template.createdBy ?? null,
+            body: template.body ?? undefined,
+          }),
+        ),
       },
-      permissions
+      permissions,
     };
 
     return employeeProfileSchema.parse(payload);
@@ -372,7 +461,7 @@ export class EmployeeProfileService {
     const splits = await this.prisma.employeeCostSplit.findMany({
       where: { employeeId: id },
       include: { costCode: true },
-      orderBy: { startDate: 'desc' }
+      orderBy: { startDate: 'desc' },
     });
     return splits.map((split: EmployeeCostSplitRecord) =>
       costSplitSchema.parse({
@@ -382,15 +471,15 @@ export class EmployeeProfileService {
           id: split.costCode.id,
           code: split.costCode.code,
           description: split.costCode.description ?? null,
-          type: split.costCode.type
+          type: split.costCode.type,
         },
         percentage: Number(split.percentage),
         startDate: split.startDate.toISOString(),
         endDate: split.endDate ? split.endDate.toISOString() : null,
         createdAt: split.createdAt.toISOString(),
         updatedAt: split.updatedAt.toISOString(),
-        createdBy: split.createdBy ?? null
-      })
+        createdBy: split.createdBy ?? null,
+      }),
     );
   }
 
@@ -400,8 +489,12 @@ export class EmployeeProfileService {
     const tenantId = this.cls.get('tenantId');
     if (!tenantId) throw new BadRequestException('Tenant context missing');
 
-    const existing = await this.prisma.employeeCostSplit.findMany({ where: { employeeId: id } });
-    const incomingIds = new Set(input.splits.map((split) => split.id).filter(Boolean) as string[]);
+    const existing = await this.prisma.employeeCostSplit.findMany({
+      where: { employeeId: id },
+    });
+    const incomingIds = new Set(
+      input.splits.map((split) => split.id).filter(Boolean) as string[],
+    );
 
     await this.prisma.$transaction(async (tx) => {
       for (const split of input.splits) {
@@ -412,8 +505,8 @@ export class EmployeeProfileService {
               costCodeId: split.costCodeId,
               percentage: new Prisma.Decimal(split.percentage),
               startDate: new Date(split.startDate),
-              endDate: split.endDate ? new Date(split.endDate) : null
-            }
+              endDate: split.endDate ? new Date(split.endDate) : null,
+            },
           });
         } else {
           await tx.employeeCostSplit.create({
@@ -424,8 +517,8 @@ export class EmployeeProfileService {
               percentage: new Prisma.Decimal(split.percentage),
               startDate: new Date(split.startDate),
               endDate: split.endDate ? new Date(split.endDate) : null,
-              createdBy: this.cls.get('actorId') ?? 'system'
-            }
+              createdBy: this.cls.get('actorId') ?? 'system',
+            },
           });
         }
       }
@@ -436,12 +529,14 @@ export class EmployeeProfileService {
       }
     });
 
-    await this.recordEvent(id, 'COST_CODE_CHANGE', { count: input.splits.length });
+    await this.recordEvent(id, 'COST_CODE_CHANGE', {
+      count: input.splits.length,
+    });
     await this.audit.record({
       entity: 'employee',
       entityId: id,
       action: 'costSplits.upserted',
-      changes: { splits: input.splits }
+      changes: { splits: input.splits },
     });
 
     return this.listCostSplits(id);
@@ -450,11 +545,11 @@ export class EmployeeProfileService {
   async updateSingleCostSplit(splitId: string, split: CostSplitInput) {
     const existing = await this.prisma.employeeCostSplit.findUnique({
       where: { id: splitId },
-      include: { employee: false }
+      include: { employee: false },
     });
     if (!existing) throw new NotFoundException('Cost split not found');
     const otherSplits = await this.prisma.employeeCostSplit.findMany({
-      where: { employeeId: existing.employeeId, NOT: { id: splitId } }
+      where: { employeeId: existing.employeeId, NOT: { id: splitId } },
     });
     this.validateCostSplits([
       ...otherSplits.map((item: EmployeeCostSplitBase) => ({
@@ -462,9 +557,9 @@ export class EmployeeProfileService {
         costCodeId: item.costCodeId,
         percentage: Number(item.percentage),
         startDate: item.startDate.toISOString(),
-        endDate: item.endDate ? item.endDate.toISOString() : null
+        endDate: item.endDate ? item.endDate.toISOString() : null,
       })),
-      split
+      split,
     ]);
 
     await this.prisma.employeeCostSplit.update({
@@ -473,29 +568,35 @@ export class EmployeeProfileService {
         costCodeId: split.costCodeId,
         percentage: new Prisma.Decimal(split.percentage),
         startDate: new Date(split.startDate),
-        endDate: split.endDate ? new Date(split.endDate) : null
-      }
+        endDate: split.endDate ? new Date(split.endDate) : null,
+      },
     });
 
-    await this.recordEvent(existing.employeeId, 'COST_CODE_CHANGE', { splitId });
+    await this.recordEvent(existing.employeeId, 'COST_CODE_CHANGE', {
+      splitId,
+    });
     await this.audit.record({
       entity: 'employee',
       entityId: existing.employeeId,
       action: 'costSplits.updated',
-      changes: { split }
+      changes: { split },
     });
 
     return this.listCostSplits(existing.employeeId);
   }
 
   async deleteCostSplit(splitId: string) {
-    const split = await this.prisma.employeeCostSplit.delete({ where: { id: splitId } });
-    await this.recordEvent(split.employeeId, 'COST_CODE_CHANGE', { removed: splitId });
+    const split = await this.prisma.employeeCostSplit.delete({
+      where: { id: splitId },
+    });
+    await this.recordEvent(split.employeeId, 'COST_CODE_CHANGE', {
+      removed: splitId,
+    });
     await this.audit.record({
       entity: 'employee',
       entityId: split.employeeId,
       action: 'costSplits.deleted',
-      changes: { splitId }
+      changes: { splitId },
     });
     return { success: true };
   }
@@ -511,7 +612,7 @@ export class EmployeeProfileService {
     }
     const history = await this.prisma.employmentEvent.findMany({
       where,
-      orderBy: { effectiveDate: 'desc' }
+      orderBy: { effectiveDate: 'desc' },
     });
     return history.map((event: EmploymentEventRecord) =>
       employmentEventSchema.parse({
@@ -521,8 +622,8 @@ export class EmployeeProfileService {
         actor: event.actorId ?? null,
         createdAt: event.createdAt.toISOString(),
         payload: event.payload as Record<string, unknown>,
-        source: (event.source as 'UI' | 'API' | 'INTEGRATION') ?? 'UI'
-      })
+        source: (event.source as 'UI' | 'API' | 'INTEGRATION') ?? 'UI',
+      }),
     );
   }
 
@@ -538,8 +639,8 @@ export class EmployeeProfileService {
           escape(event.effectiveDate),
           escape(event.actor ?? ''),
           escape(event.source),
-          escape(payload)
-        ].join(',')
+          escape(payload),
+        ].join(','),
       );
     }
     const csv = lines.join('\n');
@@ -547,18 +648,23 @@ export class EmployeeProfileService {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
     return {
       url: `data:text/csv;base64,${base64}`,
-      expiresAt
+      expiresAt,
     };
   }
 
   async generateDocument(id: string, input: GenerateDocumentInput) {
     const employee = await this.prisma.employee.findFirst({
       where: { id },
-      include: { position: { include: { department: true } }, costSplits: { include: { costCode: true } } }
+      include: {
+        position: { include: { department: true } },
+        costSplits: { include: { costCode: true } },
+      },
     });
     if (!employee) throw new NotFoundException('Employee not found');
 
-    const template = await this.prisma.documentTemplate.findUnique({ where: { id: input.templateId } });
+    const template = await this.prisma.documentTemplate.findUnique({
+      where: { id: input.templateId },
+    });
     if (!template) throw new NotFoundException('Template not found');
 
     const merge = {
@@ -567,24 +673,32 @@ export class EmployeeProfileService {
         name: this.buildFullName(employee),
         positionId: employee.positionId,
         jobTitle: employee.jobTitle ?? employee.position?.title ?? null,
-        department: employee.position?.department?.name ?? null
+        department: employee.position?.department?.name ?? null,
       },
       costSplits: employee.costSplits.map((split: EmployeeCostSplitRecord) => ({
         code: split.costCode.code,
         description: split.costCode.description,
         percentage: Number(split.percentage),
         startDate: split.startDate.toISOString(),
-        endDate: split.endDate ? split.endDate.toISOString() : null
+        endDate: split.endDate ? split.endDate.toISOString() : null,
       })),
       generatedAt: new Date().toISOString(),
-      ...input.mergeFields
+      ...input.mergeFields,
     };
 
-    const artifact = await this.documents.generate(input.format ?? template.format, template.name, template.body, merge);
+    const artifact = await this.documents.generate(
+      input.format ?? template.format,
+      template.name,
+      template.body,
+      merge,
+    );
     const tenantId = this.cls.get('tenantId');
     if (!tenantId) throw new BadRequestException('Tenant context missing');
     await this.ensureStorage();
-    await fs.writeFile(join(this.documentsDir, artifact.filename), artifact.buffer);
+    await fs.writeFile(
+      join(this.documentsDir, artifact.filename),
+      artifact.buffer,
+    );
 
     const record = await this.prisma.generatedDocument.create({
       data: {
@@ -598,21 +712,24 @@ export class EmployeeProfileService {
         data: asJson(input.mergeFields ?? {}),
         status: 'issued',
         signed: false,
-        createdBy: this.cls.get('actorId') ?? 'system'
-      }
+        createdBy: this.cls.get('actorId') ?? 'system',
+      },
     });
 
     const updated = await this.prisma.generatedDocument.update({
       where: { id: record.id },
-      data: { storageUrl: `/v1/employees/documents/${record.id}/download` }
+      data: { storageUrl: `/v1/employees/documents/${record.id}/download` },
     });
 
-    await this.recordEvent(id, 'OTHER', { action: 'DOCUMENT_GENERATE', templateId: template.id });
+    await this.recordEvent(id, 'OTHER', {
+      action: 'DOCUMENT_GENERATE',
+      templateId: template.id,
+    });
     await this.audit.record({
       entity: 'employee',
       entityId: id,
       action: 'documents.generated',
-      changes: { templateId: template.id, documentId: record.id }
+      changes: { templateId: template.id, documentId: record.id },
     });
 
     return generatedDocumentSchema.parse({
@@ -627,7 +744,7 @@ export class EmployeeProfileService {
       status: updated.status,
       signed: updated.signed,
       signedAt: updated.signedAt ? updated.signedAt.toISOString() : null,
-      signedBy: updated.signedBy ?? null
+      signedBy: updated.signedBy ?? null,
     });
   }
 
@@ -636,7 +753,7 @@ export class EmployeeProfileService {
     const docs = await this.prisma.generatedDocument.findMany({
       where: { employeeId: id },
       include: { template: true },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
     return docs.map((doc: GeneratedDocumentRecord) =>
       generatedDocumentSchema.parse({
@@ -651,26 +768,35 @@ export class EmployeeProfileService {
         status: doc.status,
         signed: doc.signed,
         signedAt: doc.signedAt ? doc.signedAt.toISOString() : null,
-        signedBy: doc.signedBy ?? null
-      })
+        signedBy: doc.signedBy ?? null,
+      }),
     );
   }
 
   async getDownloadStream(docId: string): Promise<DownloadDescriptor> {
-    const doc = await this.prisma.generatedDocument.findUnique({ where: { id: docId } });
+    const doc = await this.prisma.generatedDocument.findUnique({
+      where: { id: docId },
+    });
     if (!doc) throw new NotFoundException('Document not found');
     const path = (doc.payload as { path?: string })?.path;
     if (!path) throw new NotFoundException('Document payload missing path');
     const filePath = join(this.documentsDir, path);
-    if (!existsSync(filePath)) throw new NotFoundException('Document file missing');
-    const mimeType = doc.format === 'PDF'
-      ? 'application/pdf'
-      : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    return { stream: createReadStream(filePath), filename: doc.filename, mimeType };
+    if (!existsSync(filePath))
+      throw new NotFoundException('Document file missing');
+    const mimeType =
+      doc.format === 'PDF'
+        ? 'application/pdf'
+        : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    return {
+      stream: createReadStream(filePath),
+      filename: doc.filename,
+      mimeType,
+    };
   }
 
   private async updatePersonal(id: string, payload: EmployeePersonal) {
-    if (!this.canEditPersonal()) throw new ForbiddenException('Insufficient permissions');
+    if (!this.canEditPersonal())
+      throw new ForbiddenException('Insufficient permissions');
     const existing = await this.prisma.employee.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Employee not found');
 
@@ -681,12 +807,14 @@ export class EmployeeProfileService {
       nameSuffix: payload.legalName.suffix ?? null,
       preferredName: payload.preferredName ?? null,
       pronouns: payload.pronouns ?? null,
-      dateOfBirth: payload.dateOfBirth ? new Date(payload.dateOfBirth) : existing.dateOfBirth,
+      dateOfBirth: payload.dateOfBirth
+        ? new Date(payload.dateOfBirth)
+        : existing.dateOfBirth,
       nationalIdentifiers: payload.nationalIdentifiers,
       citizenships: payload.citizenships,
       languages: payload.languages,
       maritalStatus: payload.maritalStatus ?? null,
-      veteranStatus: payload.veteranStatus ?? null
+      veteranStatus: payload.veteranStatus ?? null,
     };
 
     await this.prisma.employee.update({ where: { id }, data });
@@ -695,21 +823,22 @@ export class EmployeeProfileService {
       entity: 'employee',
       entityId: id,
       action: 'profile.personal.updated',
-      changes: { before: existing, after: data }
+      changes: { before: existing, after: data },
     });
     return this.getEmployeeProfile(id);
   }
 
   private async updateContact(id: string, payload: EmployeeContact) {
-    if (!this.canEditPersonal()) throw new ForbiddenException('Insufficient permissions');
+    if (!this.canEditPersonal())
+      throw new ForbiddenException('Insufficient permissions');
     await this.prisma.employee.update({
       where: { id },
       data: {
         personalEmail: payload.personalEmail ?? null,
         workPhone: payload.workPhone ?? null,
         mobilePhone: payload.mobilePhone ?? null,
-        communicationPreferences: payload.communicationPreferences
-      }
+        communicationPreferences: payload.communicationPreferences,
+      },
     });
 
     await this.upsertAddress(id, 'PRIMARY', payload.primaryAddress ?? null);
@@ -721,26 +850,35 @@ export class EmployeeProfileService {
       entity: 'employee',
       entityId: id,
       action: 'profile.contact.updated',
-      changes: { payload }
+      changes: { payload },
     });
     return this.getEmployeeProfile(id);
   }
 
   private async updateJob(id: string, payload: EmployeeJob) {
-    if (!this.canEditJob()) throw new ForbiddenException('Insufficient permissions');
+    if (!this.canEditJob())
+      throw new ForbiddenException('Insufficient permissions');
     const employee = await this.ensureEmployeeExists(id);
-    const employment = await this.prisma.employment.findFirst({
-      where: { employeeId: id },
-      orderBy: { startDate: 'desc' }
-    }).catch(() => null);
+    const employment = await this.prisma.employment
+      .findFirst({
+        where: { employeeId: id },
+        orderBy: { startDate: 'desc' },
+      })
+      .catch(() => null);
 
     const data: Prisma.EmployeeUpdateInput = {
       jobTitle: payload.jobTitle ?? null,
       status: payload.status,
-      serviceDate: payload.serviceDate ? new Date(payload.serviceDate) : employee.serviceDate,
-      probationEndDate: payload.probationEndDate ? new Date(payload.probationEndDate) : employee.probationEndDate,
-      contractEndDate: payload.contractEndDate ? new Date(payload.contractEndDate) : employee.contractEndDate,
-      exempt: payload.exempt
+      serviceDate: payload.serviceDate
+        ? new Date(payload.serviceDate)
+        : employee.serviceDate,
+      probationEndDate: payload.probationEndDate
+        ? new Date(payload.probationEndDate)
+        : employee.probationEndDate,
+      contractEndDate: payload.contractEndDate
+        ? new Date(payload.contractEndDate)
+        : employee.contractEndDate,
+      exempt: payload.exempt,
     };
 
     const locationUpdate = payload.location?.id
@@ -781,8 +919,8 @@ export class EmployeeProfileService {
           workerType: payload.workerType,
           standardHours: payload.standardHours ?? employment.standardHours,
           schedule: payload.schedule ?? employment.schedule,
-          fte: payload.fte ?? employment.fte
-        }
+          fte: payload.fte ?? employment.fte,
+        },
       });
     }
 
@@ -791,16 +929,17 @@ export class EmployeeProfileService {
       entity: 'employee',
       entityId: id,
       action: 'profile.job.updated',
-      changes: { payload }
+      changes: { payload },
     });
     return this.getEmployeeProfile(id);
   }
 
   private async updateCompensation(id: string, payload: EmployeeCompensation) {
-    if (!this.canEditCompensation()) throw new ForbiddenException('Insufficient permissions');
+    if (!this.canEditCompensation())
+      throw new ForbiddenException('Insufficient permissions');
     const employment = await this.prisma.employment.findFirst({
       where: { employeeId: id },
-      orderBy: { startDate: 'desc' }
+      orderBy: { startDate: 'desc' },
     });
     if (!employment) throw new BadRequestException('Employment record missing');
 
@@ -813,8 +952,8 @@ export class EmployeeProfileService {
         grade: payload.payGrade ?? employment.grade,
         bonusTarget: payload.bonusTargetPercent ?? employment.bonusTarget,
         allowances: payload.allowances,
-        stockPlan: payload.stockPlan ?? employment.stockPlan
-      }
+        stockPlan: payload.stockPlan ?? employment.stockPlan,
+      },
     });
 
     await this.recordEvent(id, 'COMP_CHANGE', { payload });
@@ -822,13 +961,17 @@ export class EmployeeProfileService {
       entity: 'employee',
       entityId: id,
       action: 'profile.compensation.updated',
-      changes: { payload }
+      changes: { payload },
     });
     return this.getEmployeeProfile(id);
   }
 
-  private async updateTimeAndEligibility(id: string, payload: EmployeeTimeEligibility) {
-    if (!this.canEditJob()) throw new ForbiddenException('Insufficient permissions');
+  private async updateTimeAndEligibility(
+    id: string,
+    payload: EmployeeTimeEligibility,
+  ) {
+    if (!this.canEditJob())
+      throw new ForbiddenException('Insufficient permissions');
     await this.prisma.employee.update({
       where: { id },
       data: {
@@ -837,15 +980,15 @@ export class EmployeeProfileService {
         badgeId: payload.badgeId ?? null,
         overtimeEligible: payload.overtimeEligible,
         benefitsEligible: payload.benefitsEligible,
-        exempt: payload.exempt
-      }
+        exempt: payload.exempt,
+      },
     });
     await this.recordEvent(id, 'OTHER', { section: 'timeAndEligibility' });
     await this.audit.record({
       entity: 'employee',
       entityId: id,
       action: 'profile.timeEligibility.updated',
-      changes: { payload }
+      changes: { payload },
     });
     return this.getEmployeeProfile(id);
   }
@@ -853,11 +996,13 @@ export class EmployeeProfileService {
   private resolvePermissions() {
     const roles = new Set<string>(this.cls.get('actorAppRoles') ?? []);
     return {
-      canEditPersonal: roles.has('HR_ADMIN') || roles.has('HRBP') || roles.has('EMPLOYEE'),
+      canEditPersonal:
+        roles.has('HR_ADMIN') || roles.has('HRBP') || roles.has('EMPLOYEE'),
       canEditJob: roles.has('HR_ADMIN') || roles.has('HRBP'),
       canEditCompensation: roles.has('HR_ADMIN') || roles.has('HRBP'),
-      canManageCostSplits: roles.has('HR_ADMIN') || roles.has('HRBP') || roles.has('FINANCE'),
-      canGenerateDocuments: roles.has('HR_ADMIN') || roles.has('HRBP')
+      canManageCostSplits:
+        roles.has('HR_ADMIN') || roles.has('HRBP') || roles.has('FINANCE'),
+      canGenerateDocuments: roles.has('HR_ADMIN') || roles.has('HRBP'),
     };
   }
 
@@ -876,13 +1021,30 @@ export class EmployeeProfileService {
     return roles.has('HR_ADMIN') || roles.has('HRBP');
   }
 
-  private buildFullName(employee: { givenName: string; middleName?: string | null; familyName: string; nameSuffix?: string | null }) {
-    return [employee.givenName, employee.middleName, employee.familyName, employee.nameSuffix]
+  private buildFullName(employee: {
+    givenName: string;
+    middleName?: string | null;
+    familyName: string;
+    nameSuffix?: string | null;
+  }) {
+    return [
+      employee.givenName,
+      employee.middleName,
+      employee.familyName,
+      employee.nameSuffix,
+    ]
       .filter((part) => part && part.length > 0)
       .join(' ');
   }
 
-  private buildCostSplitSummary(splits: Array<{ costCode: { code: string }; percentage: number; startDate: string; endDate: string | null }>) {
+  private buildCostSplitSummary(
+    splits: Array<{
+      costCode: { code: string };
+      percentage: number;
+      startDate: string;
+      endDate: string | null;
+    }>,
+  ) {
     const active = splits.filter((split) => {
       const start = new Date(split.startDate);
       const end = split.endDate ? new Date(split.endDate) : null;
@@ -897,23 +1059,34 @@ export class EmployeeProfileService {
   }
 
   private validateCostSplits(splits: CostSplitInput[]) {
-    if (!splits.length) throw new BadRequestException('At least one cost split required');
+    if (!splits.length)
+      throw new BadRequestException('At least one cost split required');
     const events: Array<{ date: Date; change: number }> = [];
     for (const split of splits) {
       const start = new Date(split.startDate);
       const end = split.endDate ? new Date(split.endDate) : null;
-      if (Number.isNaN(start.getTime())) throw new BadRequestException('Invalid start date');
-      if (end && Number.isNaN(end.getTime())) throw new BadRequestException('Invalid end date');
-      if (end && end < start) throw new BadRequestException('End date must be after start date');
+      if (Number.isNaN(start.getTime()))
+        throw new BadRequestException('Invalid start date');
+      if (end && Number.isNaN(end.getTime()))
+        throw new BadRequestException('Invalid end date');
+      if (end && end < start)
+        throw new BadRequestException('End date must be after start date');
       events.push({ date: start, change: split.percentage });
-      events.push({ date: end ? new Date(end.getTime() + 1) : MAX_DATE, change: -split.percentage });
+      events.push({
+        date: end ? new Date(end.getTime() + 1) : MAX_DATE,
+        change: -split.percentage,
+      });
     }
-    events.sort((a, b) => a.date.getTime() - b.date.getTime() || b.change - a.change);
+    events.sort(
+      (a, b) => a.date.getTime() - b.date.getTime() || b.change - a.change,
+    );
     let current = 0;
     for (const event of events) {
       current += event.change;
       if (current > 100.0001) {
-        throw new BadRequestException('Cost split percentages exceed 100% for overlapping periods');
+        throw new BadRequestException(
+          'Cost split percentages exceed 100% for overlapping periods',
+        );
       }
     }
   }
@@ -943,12 +1116,14 @@ export class EmployeeProfileService {
       state: string;
       postcode: string;
       country: string;
-    } | null
+    } | null,
   ) {
     const tenantId = this.cls.get('tenantId');
     if (!tenantId) throw new BadRequestException('Tenant context missing');
     if (!address) {
-      await this.prisma.employeeAddress.deleteMany({ where: { employeeId, type } });
+      await this.prisma.employeeAddress.deleteMany({
+        where: { employeeId, type },
+      });
       return;
     }
     await this.prisma.employeeAddress.upsert({
@@ -956,8 +1131,8 @@ export class EmployeeProfileService {
         tenantId_employeeId_type: {
           tenantId,
           employeeId,
-          type
-        }
+          type,
+        },
       },
       create: {
         tenantId,
@@ -968,7 +1143,7 @@ export class EmployeeProfileService {
         suburb: address.suburb,
         state: address.state,
         postcode: address.postcode,
-        country: address.country
+        country: address.country,
       },
       update: {
         line1: address.line1,
@@ -976,18 +1151,26 @@ export class EmployeeProfileService {
         suburb: address.suburb,
         state: address.state,
         postcode: address.postcode,
-        country: address.country
-      }
+        country: address.country,
+      },
     });
   }
 
   private async syncEmergencyContacts(
     employeeId: string,
-    contacts: Array<{ id?: string; name: string; relationship: string; phone: string; email?: string | null }>
+    contacts: Array<{
+      id?: string;
+      name: string;
+      relationship: string;
+      phone: string;
+      email?: string | null;
+    }>,
   ) {
     const tenantId = this.cls.get('tenantId');
     if (!tenantId) throw new BadRequestException('Tenant context missing');
-    const existing = await this.prisma.employeeEmergencyContact.findMany({ where: { employeeId } });
+    const existing = await this.prisma.employeeEmergencyContact.findMany({
+      where: { employeeId },
+    });
     const keep = new Set<string>();
     for (const contact of contacts) {
       if (contact.id) {
@@ -998,8 +1181,8 @@ export class EmployeeProfileService {
             name: contact.name,
             relationship: contact.relationship,
             phone: contact.phone,
-            email: contact.email ?? null
-          }
+            email: contact.email ?? null,
+          },
         });
       } else {
         const created = await this.prisma.employeeEmergencyContact.create({
@@ -1009,20 +1192,26 @@ export class EmployeeProfileService {
             name: contact.name,
             relationship: contact.relationship,
             phone: contact.phone,
-            email: contact.email ?? null
-          }
+            email: contact.email ?? null,
+          },
         });
         keep.add(created.id);
       }
     }
     for (const contact of existing) {
       if (!keep.has(contact.id)) {
-        await this.prisma.employeeEmergencyContact.delete({ where: { id: contact.id } });
+        await this.prisma.employeeEmergencyContact.delete({
+          where: { id: contact.id },
+        });
       }
     }
   }
 
-  private async recordEvent(employeeId: string, type: EmploymentEventType, payload: Record<string, unknown>) {
+  private async recordEvent(
+    employeeId: string,
+    type: EmploymentEventType,
+    payload: Record<string, unknown>,
+  ) {
     const tenantId = this.cls.get('tenantId');
     if (!tenantId) throw new BadRequestException('Tenant context missing');
     await this.prisma.employmentEvent.create({
@@ -1034,8 +1223,8 @@ export class EmployeeProfileService {
         payload: asJson(payload),
         actorId: this.cls.get('actorId') ?? 'system',
         source: 'UI',
-        createdBy: this.cls.get('actorId') ?? 'system'
-      }
+        createdBy: this.cls.get('actorId') ?? 'system',
+      },
     });
   }
 }

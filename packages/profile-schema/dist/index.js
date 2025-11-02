@@ -25,6 +25,10 @@ __export(index_exports, {
   costSplitInputSchema: () => costSplitInputSchema,
   costSplitSchema: () => costSplitSchema,
   documentFormatSchema: () => documentFormatSchema,
+  documentTemplateCategorySchema: () => documentTemplateCategorySchema,
+  documentTemplateFieldSchema: () => documentTemplateFieldSchema,
+  documentTemplateFiltersSchema: () => documentTemplateFiltersSchema,
+  documentTemplateRevisionSchema: () => documentTemplateRevisionSchema,
   documentTemplateSchema: () => documentTemplateSchema,
   employeeCompensationSchema: () => employeeCompensationSchema,
   employeeContactSchema: () => employeeContactSchema,
@@ -38,10 +42,17 @@ __export(index_exports, {
   employmentEventSchema: () => employmentEventSchema,
   employmentEventTypeSchema: () => employmentEventTypeSchema,
   generateDocumentInputSchema: () => generateDocumentInputSchema,
+  generateDocumentPreviewSchema: () => generateDocumentPreviewSchema,
   generatedDocumentSchema: () => generatedDocumentSchema,
   historyCsvResponseSchema: () => historyCsvResponseSchema,
+  signGeneratedDocumentSchema: () => signGeneratedDocumentSchema,
+  tenantBrandingAssetSchema: () => tenantBrandingAssetSchema,
+  tenantBrandingSchema: () => tenantBrandingSchema,
+  updateDocumentTemplateMetadataSchema: () => updateDocumentTemplateMetadataSchema,
   updateEmployeeProfileSchema: () => updateEmployeeProfileSchema,
-  upsertCostSplitSchema: () => upsertCostSplitSchema
+  updateTenantBrandingSchema: () => updateTenantBrandingSchema,
+  upsertCostSplitSchema: () => upsertCostSplitSchema,
+  upsertDocumentTemplateSchema: () => upsertDocumentTemplateSchema
 });
 module.exports = __toCommonJS(index_exports);
 var import_zod = require("zod");
@@ -193,12 +204,51 @@ var employmentEventSchema = import_zod.z.object({
   payload: import_zod.z.record(import_zod.z.any()).default({}),
   source: import_zod.z.enum(["UI", "API", "INTEGRATION"]).default("UI")
 });
+var documentTemplateCategorySchema = import_zod.z.enum(["HR", "Payroll", "Compliance", "Legal", "Custom"]);
+var documentTemplateFieldSchema = import_zod.z.object({
+  key: import_zod.z.string().min(1),
+  label: import_zod.z.string().min(1),
+  description: import_zod.z.string().optional().nullable(),
+  required: import_zod.z.boolean().default(false)
+});
 var documentTemplateSchema = import_zod.z.object({
   id: import_zod.z.string(),
   name: import_zod.z.string(),
-  format: documentFormatSchema,
   description: import_zod.z.string().optional().nullable(),
-  lastUpdatedAt: import_zod.z.string()
+  format: documentFormatSchema,
+  category: documentTemplateCategorySchema,
+  version: import_zod.z.number().int().positive(),
+  isActive: import_zod.z.boolean(),
+  placeholders: import_zod.z.array(documentTemplateFieldSchema).default([]),
+  lastUpdatedAt: import_zod.z.string(),
+  createdBy: import_zod.z.string().optional().nullable(),
+  body: import_zod.z.string().optional()
+});
+var documentTemplateRevisionSchema = documentTemplateSchema.extend({
+  version: import_zod.z.number().int().positive(),
+  body: import_zod.z.string(),
+  createdAt: import_zod.z.string()
+});
+var upsertDocumentTemplateSchema = import_zod.z.object({
+  id: import_zod.z.string().optional(),
+  name: import_zod.z.string().min(3),
+  description: import_zod.z.string().optional().nullable(),
+  format: documentFormatSchema,
+  category: documentTemplateCategorySchema,
+  placeholders: import_zod.z.array(documentTemplateFieldSchema).default([]),
+  body: import_zod.z.string().min(1),
+  isActive: import_zod.z.boolean().optional()
+});
+var updateDocumentTemplateMetadataSchema = import_zod.z.object({
+  name: import_zod.z.string().min(3).optional(),
+  description: import_zod.z.string().optional().nullable(),
+  category: documentTemplateCategorySchema.optional(),
+  isActive: import_zod.z.boolean().optional()
+});
+var documentTemplateFiltersSchema = import_zod.z.object({
+  category: documentTemplateCategorySchema.optional(),
+  active: import_zod.z.coerce.boolean().optional(),
+  createdBy: import_zod.z.string().optional()
 });
 var generatedDocumentSchema = import_zod.z.object({
   id: import_zod.z.string(),
@@ -208,7 +258,11 @@ var generatedDocumentSchema = import_zod.z.object({
   filename: import_zod.z.string(),
   storageUrl: import_zod.z.string().url(),
   createdAt: import_zod.z.string(),
-  createdBy: import_zod.z.string().optional().nullable()
+  createdBy: import_zod.z.string().optional().nullable(),
+  status: import_zod.z.string(),
+  signed: import_zod.z.boolean(),
+  signedAt: import_zod.z.string().optional().nullable(),
+  signedBy: import_zod.z.string().optional().nullable()
 });
 var employeeHistoryFiltersSchema = import_zod.z.object({
   type: employmentEventTypeSchema.optional(),
@@ -219,6 +273,54 @@ var generateDocumentInputSchema = import_zod.z.object({
   templateId: import_zod.z.string(),
   format: documentFormatSchema.default("PDF"),
   mergeFields: import_zod.z.record(import_zod.z.any()).optional()
+});
+var generateDocumentPreviewSchema = import_zod.z.object({
+  templateId: import_zod.z.string().optional(),
+  body: import_zod.z.string().optional(),
+  name: import_zod.z.string().optional(),
+  format: documentFormatSchema.default("PDF"),
+  data: import_zod.z.record(import_zod.z.any()).default({})
+});
+var signGeneratedDocumentSchema = import_zod.z.object({
+  documentId: import_zod.z.string(),
+  signedBy: import_zod.z.string().min(1),
+  note: import_zod.z.string().optional().nullable()
+});
+var tenantBrandingAssetSchema = import_zod.z.object({
+  filename: import_zod.z.string().min(1),
+  mimeType: import_zod.z.string().min(3),
+  data: import_zod.z.string().min(10)
+});
+var tenantBrandingSchema = import_zod.z.object({
+  primaryColor: import_zod.z.string(),
+  accentColor: import_zod.z.string(),
+  surfaceColor: import_zod.z.string(),
+  darkMode: import_zod.z.boolean(),
+  logoUrl: import_zod.z.string().url().optional().nullable(),
+  emailLogoUrl: import_zod.z.string().url().optional().nullable(),
+  loginHeroUrl: import_zod.z.string().url().optional().nullable(),
+  faviconUrl: import_zod.z.string().url().optional().nullable(),
+  supportEmail: import_zod.z.string().email(),
+  legalAddress: import_zod.z.string().optional().nullable(),
+  subjectPrefix: import_zod.z.string().optional().nullable(),
+  updatedAt: import_zod.z.string()
+});
+var updateTenantBrandingSchema = import_zod.z.object({
+  primaryColor: import_zod.z.string(),
+  accentColor: import_zod.z.string(),
+  surfaceColor: import_zod.z.string().optional(),
+  darkMode: import_zod.z.boolean().optional(),
+  supportEmail: import_zod.z.string().email(),
+  legalAddress: import_zod.z.string().optional().nullable(),
+  subjectPrefix: import_zod.z.string().optional().nullable(),
+  logo: tenantBrandingAssetSchema.optional(),
+  emailLogo: tenantBrandingAssetSchema.optional(),
+  loginHero: tenantBrandingAssetSchema.optional(),
+  favicon: tenantBrandingAssetSchema.optional(),
+  removeLogo: import_zod.z.boolean().optional(),
+  removeEmailLogo: import_zod.z.boolean().optional(),
+  removeLoginHero: import_zod.z.boolean().optional(),
+  removeFavicon: import_zod.z.boolean().optional()
 });
 var employeeProfileSchema = import_zod.z.object({
   employee: import_zod.z.object({
@@ -287,6 +389,10 @@ var employeeDocumentUploadSchema = import_zod.z.object({
   costSplitInputSchema,
   costSplitSchema,
   documentFormatSchema,
+  documentTemplateCategorySchema,
+  documentTemplateFieldSchema,
+  documentTemplateFiltersSchema,
+  documentTemplateRevisionSchema,
   documentTemplateSchema,
   employeeCompensationSchema,
   employeeContactSchema,
@@ -300,8 +406,15 @@ var employeeDocumentUploadSchema = import_zod.z.object({
   employmentEventSchema,
   employmentEventTypeSchema,
   generateDocumentInputSchema,
+  generateDocumentPreviewSchema,
   generatedDocumentSchema,
   historyCsvResponseSchema,
+  signGeneratedDocumentSchema,
+  tenantBrandingAssetSchema,
+  tenantBrandingSchema,
+  updateDocumentTemplateMetadataSchema,
   updateEmployeeProfileSchema,
-  upsertCostSplitSchema
+  updateTenantBrandingSchema,
+  upsertCostSplitSchema,
+  upsertDocumentTemplateSchema
 });

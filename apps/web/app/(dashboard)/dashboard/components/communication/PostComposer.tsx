@@ -9,17 +9,17 @@ import {
   CommunicationContext,
   CommunicationPost,
   CommunicationAttachment,
-  CommunicationMention
+  CommunicationMention,
 } from '../../../../../lib/api/communications';
 
 const attachmentSchema = z.object({
   url: z.string().url('Provide a valid URL'),
   name: z.string().min(1, 'Attachment name is required'),
-  type: z.string().optional().nullable()
+  type: z.string().optional().nullable(),
 });
 
 const mentionSchema = z.object({
-  userId: z.string().min(1, 'User ID is required')
+  userId: z.string().min(1, 'User ID is required'),
 });
 
 const composerSchema = z.object({
@@ -29,7 +29,7 @@ const composerSchema = z.object({
   attachments: z.array(attachmentSchema).optional().default([]),
   mentions: z.array(mentionSchema).optional().default([]),
   requireAck: z.boolean().optional().default(false),
-  ackDueAt: z.string().optional().nullable()
+  ackDueAt: z.string().optional().nullable(),
 });
 
 export type ComposerSubmitData = z.infer<typeof composerSchema>;
@@ -43,14 +43,23 @@ interface PostComposerProps {
   onCancelEdit?: () => void;
 }
 
-const EMPTY_ATTACHMENT: CommunicationAttachment = { url: '', name: '', type: '' };
+const EMPTY_ATTACHMENT: CommunicationAttachment = {
+  url: '',
+  name: '',
+  type: '',
+};
 const EMPTY_MENTION: CommunicationMention = { userId: '' };
 
-function buildDefaultTargets(context: CommunicationContext, post?: CommunicationPost) {
+function buildDefaultTargets(
+  context: CommunicationContext,
+  post?: CommunicationPost,
+) {
   if (post) {
     return post.targetTeams.map((team) => team.id);
   }
-  const defaultIds = context.teamIds.length ? context.teamIds : context.supervisorTeamIds;
+  const defaultIds = context.teamIds.length
+    ? context.teamIds
+    : context.supervisorTeamIds;
   return defaultIds.length ? Array.from(new Set(defaultIds)) : [];
 }
 
@@ -60,7 +69,7 @@ export default function PostComposer({
   initialPost,
   isSubmitting,
   onSubmit,
-  onCancelEdit
+  onCancelEdit,
 }: PostComposerProps) {
   const form = useForm<ComposerSubmitData>({
     resolver: zodResolver(composerSchema),
@@ -71,8 +80,8 @@ export default function PostComposer({
       attachments: initialPost?.attachments ?? [],
       mentions: initialPost?.mentions ?? [],
       requireAck: initialPost?.requireAck ?? false,
-      ackDueAt: initialPost?.ackDueAt ?? undefined
-    }
+      ackDueAt: initialPost?.ackDueAt ?? undefined,
+    },
   });
 
   const {
@@ -81,7 +90,7 @@ export default function PostComposer({
     watch,
     control,
     setValue,
-    formState: { errors }
+    formState: { errors },
   } = form;
 
   const attachmentsField = useFieldArray({ control, name: 'attachments' });
@@ -104,17 +113,24 @@ export default function PostComposer({
   const requireAck = watch('requireAck');
 
   const isEmployee = context.role === 'EMPLOYEE';
-  const teamLimitExplanation = isEmployee && !context.allowMultiTeamCommunication ? (
-    <p className="text-xs text-muted-foreground">Employees can only post to the teams they belong to.</p>
-  ) : null;
+  const teamLimitExplanation =
+    isEmployee && !context.allowMultiTeamCommunication ? (
+      <p className="text-xs text-muted-foreground">
+        Employees can only post to the teams they belong to.
+      </p>
+    ) : null;
 
   return (
     <form
       onSubmit={handleSubmit(async (values) => {
         const trimmed: ComposerSubmitData = {
           ...values,
-          attachments: values.attachments?.filter((attachment) => attachment.url && attachment.name),
-          mentions: values.mentions?.filter((mention) => mention.userId.trim().length > 0)
+          attachments: values.attachments?.filter(
+            (attachment) => attachment.url && attachment.name,
+          ),
+          mentions: values.mentions?.filter(
+            (mention) => mention.userId.trim().length > 0,
+          ),
         };
         await onSubmit(trimmed);
         if (mode === 'create') {
@@ -125,7 +141,7 @@ export default function PostComposer({
             attachments: [],
             mentions: [],
             requireAck: false,
-            ackDueAt: undefined
+            ackDueAt: undefined,
           });
         }
       })}
@@ -142,7 +158,9 @@ export default function PostComposer({
             placeholder="What should people know?"
             {...register('title')}
           />
-          {errors.title ? <p className="text-xs text-destructive">{errors.title.message}</p> : null}
+          {errors.title ? (
+            <p className="text-xs text-destructive">{errors.title.message}</p>
+          ) : null}
         </div>
 
         <div className="space-y-1">
@@ -156,7 +174,9 @@ export default function PostComposer({
             placeholder="Write a brief update. Markdown supported."
             {...register('body')}
           />
-          {errors.body ? <p className="text-xs text-destructive">{errors.body.message}</p> : null}
+          {errors.body ? (
+            <p className="text-xs text-destructive">{errors.body.message}</p>
+          ) : null}
         </div>
 
         <div className="space-y-2">
@@ -166,7 +186,10 @@ export default function PostComposer({
           </div>
           <div className="grid gap-2 sm:grid-cols-2">
             {context.teams.map((team) => {
-              const disabled = isEmployee && !context.allowMultiTeamCommunication && !team.isMember;
+              const disabled =
+                isEmployee &&
+                !context.allowMultiTeamCommunication &&
+                !team.isMember;
               const checked = selectedTeamIds?.includes(team.id);
               return (
                 <label
@@ -174,7 +197,7 @@ export default function PostComposer({
                   className={cn(
                     'flex cursor-pointer items-start gap-3 rounded-lg border border-border px-3 py-2 text-sm transition',
                     disabled ? 'opacity-50' : 'hover:border-primary',
-                    checked && 'border-primary bg-primary/5'
+                    checked && 'border-primary bg-primary/5',
                   )}
                 >
                   <input
@@ -185,27 +208,42 @@ export default function PostComposer({
                     {...register('targetTeamIds')}
                   />
                   <span>
-                    <span className="font-medium text-foreground">{team.name}</span>
-                    <span className="block text-xs text-muted-foreground">{team.departmentName ?? '—'}</span>
-                    {team.isMember ? <Badge className="mt-1" variant="secondary">My team</Badge> : null}
+                    <span className="font-medium text-foreground">
+                      {team.name}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {team.departmentName ?? '—'}
+                    </span>
+                    {team.isMember ? (
+                      <Badge className="mt-1 border-border bg-muted/60 text-foreground">
+                        My team
+                      </Badge>
+                    ) : null}
                   </span>
                 </label>
               );
             })}
           </div>
           {errors.targetTeamIds ? (
-            <p className="text-xs text-destructive">{errors.targetTeamIds.message}</p>
+            <p className="text-xs text-destructive">
+              {errors.targetTeamIds.message}
+            </p>
           ) : null}
         </div>
 
         {context.canRequireAck ? (
           <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
             <label className="flex items-center gap-2 text-sm font-medium">
-              <input type="checkbox" className="h-4 w-4" {...register('requireAck')} />
+              <input
+                type="checkbox"
+                className="h-4 w-4"
+                {...register('requireAck')}
+              />
               Require acknowledgement
             </label>
             <p className="text-xs text-muted-foreground">
-              Recipients must click acknowledge. Recommended for policy changes and safety alerts.
+              Recipients must click acknowledge. Recommended for policy changes
+              and safety alerts.
             </p>
             {requireAck ? (
               <div className="flex flex-col gap-1">
@@ -223,7 +261,8 @@ export default function PostComposer({
           </div>
         ) : (
           <div className="rounded-lg border border-dashed border-muted-foreground/40 p-3 text-xs text-muted-foreground">
-            Acknowledgements can be requested by managers, supervisors or administrators.
+            Acknowledgements can be requested by managers, supervisors or
+            administrators.
           </div>
         )}
 
@@ -240,11 +279,16 @@ export default function PostComposer({
             </Button>
           </div>
           {attachmentsField.fields.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Link to documents stored in your document library.</p>
+            <p className="text-xs text-muted-foreground">
+              Link to documents stored in your document library.
+            </p>
           ) : null}
           <div className="grid gap-3">
             {attachmentsField.fields.map((field, index) => (
-              <div key={field.id} className="grid gap-2 rounded-md border border-border p-3 text-xs sm:grid-cols-3">
+              <div
+                key={field.id}
+                className="grid gap-2 rounded-md border border-border p-3 text-xs sm:grid-cols-3"
+              >
                 <input
                   placeholder="https://example.com/document.pdf"
                   className="rounded-md border border-border bg-background px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -278,12 +322,19 @@ export default function PostComposer({
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm font-medium">
             <span>@ Mentions</span>
-            <Button type="button" variant="ghost" size="sm" onClick={() => mentionsField.append({ ...EMPTY_MENTION })}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => mentionsField.append({ ...EMPTY_MENTION })}
+            >
               Add mention
             </Button>
           </div>
           {mentionsField.fields.length === 0 ? (
-            <p className="text-xs text-muted-foreground">Enter a user ID to notify a specific teammate.</p>
+            <p className="text-xs text-muted-foreground">
+              Enter a user ID to notify a specific teammate.
+            </p>
           ) : null}
           <div className="grid gap-2">
             {mentionsField.fields.map((field, index) => (
@@ -293,7 +344,12 @@ export default function PostComposer({
                   className="flex-1 rounded-md border border-border bg-background px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   {...register(`mentions.${index}.userId` as const)}
                 />
-                <Button type="button" variant="ghost" size="sm" onClick={() => mentionsField.remove(index)}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => mentionsField.remove(index)}
+                >
                   Remove
                 </Button>
               </div>
@@ -304,12 +360,21 @@ export default function PostComposer({
 
       <div className="flex flex-col justify-end gap-3 border-t border-border pt-4 sm:flex-row">
         {mode === 'edit' ? (
-          <Button type="button" variant="ghost" onClick={onCancelEdit} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onCancelEdit}
+            disabled={isSubmitting}
+          >
             Cancel edit
           </Button>
         ) : null}
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Saving…' : mode === 'edit' ? 'Update post' : 'Post update'}
+          {isSubmitting
+            ? 'Saving…'
+            : mode === 'edit'
+              ? 'Update post'
+              : 'Post update'}
         </Button>
       </div>
     </form>

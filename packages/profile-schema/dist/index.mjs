@@ -148,12 +148,51 @@ var employmentEventSchema = z.object({
   payload: z.record(z.any()).default({}),
   source: z.enum(["UI", "API", "INTEGRATION"]).default("UI")
 });
+var documentTemplateCategorySchema = z.enum(["HR", "Payroll", "Compliance", "Legal", "Custom"]);
+var documentTemplateFieldSchema = z.object({
+  key: z.string().min(1),
+  label: z.string().min(1),
+  description: z.string().optional().nullable(),
+  required: z.boolean().default(false)
+});
 var documentTemplateSchema = z.object({
   id: z.string(),
   name: z.string(),
-  format: documentFormatSchema,
   description: z.string().optional().nullable(),
-  lastUpdatedAt: z.string()
+  format: documentFormatSchema,
+  category: documentTemplateCategorySchema,
+  version: z.number().int().positive(),
+  isActive: z.boolean(),
+  placeholders: z.array(documentTemplateFieldSchema).default([]),
+  lastUpdatedAt: z.string(),
+  createdBy: z.string().optional().nullable(),
+  body: z.string().optional()
+});
+var documentTemplateRevisionSchema = documentTemplateSchema.extend({
+  version: z.number().int().positive(),
+  body: z.string(),
+  createdAt: z.string()
+});
+var upsertDocumentTemplateSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(3),
+  description: z.string().optional().nullable(),
+  format: documentFormatSchema,
+  category: documentTemplateCategorySchema,
+  placeholders: z.array(documentTemplateFieldSchema).default([]),
+  body: z.string().min(1),
+  isActive: z.boolean().optional()
+});
+var updateDocumentTemplateMetadataSchema = z.object({
+  name: z.string().min(3).optional(),
+  description: z.string().optional().nullable(),
+  category: documentTemplateCategorySchema.optional(),
+  isActive: z.boolean().optional()
+});
+var documentTemplateFiltersSchema = z.object({
+  category: documentTemplateCategorySchema.optional(),
+  active: z.coerce.boolean().optional(),
+  createdBy: z.string().optional()
 });
 var generatedDocumentSchema = z.object({
   id: z.string(),
@@ -163,7 +202,11 @@ var generatedDocumentSchema = z.object({
   filename: z.string(),
   storageUrl: z.string().url(),
   createdAt: z.string(),
-  createdBy: z.string().optional().nullable()
+  createdBy: z.string().optional().nullable(),
+  status: z.string(),
+  signed: z.boolean(),
+  signedAt: z.string().optional().nullable(),
+  signedBy: z.string().optional().nullable()
 });
 var employeeHistoryFiltersSchema = z.object({
   type: employmentEventTypeSchema.optional(),
@@ -174,6 +217,54 @@ var generateDocumentInputSchema = z.object({
   templateId: z.string(),
   format: documentFormatSchema.default("PDF"),
   mergeFields: z.record(z.any()).optional()
+});
+var generateDocumentPreviewSchema = z.object({
+  templateId: z.string().optional(),
+  body: z.string().optional(),
+  name: z.string().optional(),
+  format: documentFormatSchema.default("PDF"),
+  data: z.record(z.any()).default({})
+});
+var signGeneratedDocumentSchema = z.object({
+  documentId: z.string(),
+  signedBy: z.string().min(1),
+  note: z.string().optional().nullable()
+});
+var tenantBrandingAssetSchema = z.object({
+  filename: z.string().min(1),
+  mimeType: z.string().min(3),
+  data: z.string().min(10)
+});
+var tenantBrandingSchema = z.object({
+  primaryColor: z.string(),
+  accentColor: z.string(),
+  surfaceColor: z.string(),
+  darkMode: z.boolean(),
+  logoUrl: z.string().url().optional().nullable(),
+  emailLogoUrl: z.string().url().optional().nullable(),
+  loginHeroUrl: z.string().url().optional().nullable(),
+  faviconUrl: z.string().url().optional().nullable(),
+  supportEmail: z.string().email(),
+  legalAddress: z.string().optional().nullable(),
+  subjectPrefix: z.string().optional().nullable(),
+  updatedAt: z.string()
+});
+var updateTenantBrandingSchema = z.object({
+  primaryColor: z.string(),
+  accentColor: z.string(),
+  surfaceColor: z.string().optional(),
+  darkMode: z.boolean().optional(),
+  supportEmail: z.string().email(),
+  legalAddress: z.string().optional().nullable(),
+  subjectPrefix: z.string().optional().nullable(),
+  logo: tenantBrandingAssetSchema.optional(),
+  emailLogo: tenantBrandingAssetSchema.optional(),
+  loginHero: tenantBrandingAssetSchema.optional(),
+  favicon: tenantBrandingAssetSchema.optional(),
+  removeLogo: z.boolean().optional(),
+  removeEmailLogo: z.boolean().optional(),
+  removeLoginHero: z.boolean().optional(),
+  removeFavicon: z.boolean().optional()
 });
 var employeeProfileSchema = z.object({
   employee: z.object({
@@ -241,6 +332,10 @@ export {
   costSplitInputSchema,
   costSplitSchema,
   documentFormatSchema,
+  documentTemplateCategorySchema,
+  documentTemplateFieldSchema,
+  documentTemplateFiltersSchema,
+  documentTemplateRevisionSchema,
   documentTemplateSchema,
   employeeCompensationSchema,
   employeeContactSchema,
@@ -254,8 +349,15 @@ export {
   employmentEventSchema,
   employmentEventTypeSchema,
   generateDocumentInputSchema,
+  generateDocumentPreviewSchema,
   generatedDocumentSchema,
   historyCsvResponseSchema,
+  signGeneratedDocumentSchema,
+  tenantBrandingAssetSchema,
+  tenantBrandingSchema,
+  updateDocumentTemplateMetadataSchema,
   updateEmployeeProfileSchema,
-  upsertCostSplitSchema
+  updateTenantBrandingSchema,
+  upsertCostSplitSchema,
+  upsertDocumentTemplateSchema
 };

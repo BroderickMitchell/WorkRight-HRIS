@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { fetchEmployeeProfile } from '@/lib/directory';
+import { fetchEmployeeProfile } from '@/lib/employee-profile';
 import EmployeeDocumentsClient from './employee-documents-client';
 
 interface Props {

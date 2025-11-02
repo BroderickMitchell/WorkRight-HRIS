@@ -1,7 +1,7 @@
 import {
   BadRequestException,
   Injectable,
-  NotFoundException
+  NotFoundException,
 } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import {
@@ -14,7 +14,7 @@ import {
   generateDocumentPreviewSchema,
   signGeneratedDocumentSchema,
   type DocumentTemplate,
-  type DocumentTemplateRevision
+  type DocumentTemplateRevision,
 } from '@workright/profile-schema';
 import { PrismaService } from '../../common/prisma.service.js';
 import { AuditService } from '../../common/audit.service.js';
@@ -32,14 +32,17 @@ interface DownloadDescriptor {
 @Injectable()
 export class DocumentsService {
   private readonly storageRoot = join(process.cwd(), 'apps/api/storage');
-  private readonly templateAssetsDir = join(this.storageRoot, 'template-assets');
+  private readonly templateAssetsDir = join(
+    this.storageRoot,
+    'template-assets',
+  );
   private readonly generatedDir = join(this.storageRoot, 'generated-documents');
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly cls: ClsService,
-    private readonly generator: DocumentGenerationService
+    private readonly generator: DocumentGenerationService,
   ) {
     this.ensureStorage();
   }
@@ -79,22 +82,31 @@ export class DocumentsService {
     return value
       .map((item) => {
         if (typeof item !== 'object' || item === null) return null;
-        const key = 'key' in item ? String((item as Record<string, unknown>).key ?? '') : '';
-        const label = 'label' in item ? String((item as Record<string, unknown>).label ?? key) : key;
-        return {
+        const record = item as Record<string, unknown>;
+        const key = 'key' in record ? String(record.key ?? '') : '';
+        if (!key) return null;
+        const label = 'label' in record ? String(record.label ?? key) : key;
+        const description =
+          'description' in record && record.description != null
+            ? String(record.description)
+            : null;
+        const normalised: DocumentTemplate['placeholders'][number] = {
           key,
           label,
-          description:
-            'description' in item && item.description != null
-              ? String((item as Record<string, unknown>).description)
-              : null,
-          required: Boolean((item as Record<string, unknown>).required ?? false)
+          required: Boolean(record.required ?? false),
+          ...(description !== null ? { description } : { description: null }),
         };
+        return normalised;
       })
-      .filter((item): item is DocumentTemplate['placeholders'][number] => Boolean(item));
+      .filter(
+        (item): item is DocumentTemplate['placeholders'][number] =>
+          item !== null,
+      );
   }
 
-  private mapTemplate(template: Prisma.DocumentTemplateGetPayload<Prisma.DocumentTemplateDefaultArgs>): DocumentTemplate {
+  private mapTemplate(
+    template: Prisma.DocumentTemplateGetPayload<Prisma.DocumentTemplateDefaultArgs>,
+  ): DocumentTemplate {
     return documentTemplateSchema.parse({
       id: template.id,
       name: template.name,
@@ -106,30 +118,37 @@ export class DocumentsService {
       placeholders: this.normalisePlaceholders(template.placeholders),
       lastUpdatedAt: template.updatedAt.toISOString(),
       createdBy: template.createdBy ?? null,
-      body: template.body
+      body: template.body,
     });
   }
 
-  async listTemplates(rawFilters: Record<string, unknown>): Promise<DocumentTemplate[]> {
+  async listTemplates(
+    rawFilters: Record<string, unknown>,
+  ): Promise<DocumentTemplate[]> {
     const tenantId = this.getTenantId();
-    const filters = documentTemplateFiltersSchema.partial().parse(rawFilters ?? {});
+    const filters = documentTemplateFiltersSchema
+      .partial()
+      .parse(rawFilters ?? {});
     const templates = await this.prisma.documentTemplate.findMany({
       where: {
         tenantId,
         ...(filters.category ? { category: filters.category } : {}),
         ...(filters.active !== undefined ? { isActive: filters.active } : {}),
-        ...(filters.createdBy ? { createdBy: filters.createdBy } : {})
+        ...(filters.createdBy ? { createdBy: filters.createdBy } : {}),
       },
-      orderBy: [{ category: 'asc' }, { name: 'asc' }]
+      orderBy: [{ category: 'asc' }, { name: 'asc' }],
     });
     return templates.map((template) => this.mapTemplate(template));
   }
 
-  async getTemplate(id: string): Promise<{ template: DocumentTemplate; revisions: DocumentTemplateRevision[] }> {
+  async getTemplate(id: string): Promise<{
+    template: DocumentTemplate;
+    revisions: DocumentTemplateRevision[];
+  }> {
     const tenantId = this.getTenantId();
     const template = await this.prisma.documentTemplate.findFirst({
       where: { id, tenantId },
-      include: { revisions: { orderBy: { version: 'desc' } } }
+      include: { revisions: { orderBy: { version: 'desc' } } },
     });
     if (!template) {
       throw new NotFoundException('Template not found');
@@ -148,16 +167,20 @@ export class DocumentsService {
         lastUpdatedAt: template.updatedAt.toISOString(),
         createdBy: revision.createdBy ?? null,
         body: revision.body,
-        createdAt: revision.createdAt.toISOString()
-      })
+        createdAt: revision.createdAt.toISOString(),
+      }),
     );
     return { template: mapped, revisions };
   }
 
-  async createTemplate(rawInput: Record<string, unknown>): Promise<DocumentTemplate> {
+  async createTemplate(
+    rawInput: Record<string, unknown>,
+  ): Promise<DocumentTemplate> {
     const input = upsertDocumentTemplateSchema.parse(rawInput);
     if (input.id) {
-      throw new BadRequestException('Use the version endpoint to update an existing template');
+      throw new BadRequestException(
+        'Use the version endpoint to update an existing template',
+      );
     }
     const tenantId = this.getTenantId();
     const actor = this.actorId();
@@ -172,8 +195,8 @@ export class DocumentsService {
         placeholders: DocumentsService.toJson(input.placeholders ?? []),
         isActive: input.isActive ?? true,
         version: 1,
-        createdBy: actor
-      }
+        createdBy: actor,
+      },
     });
     await this.prisma.documentTemplateRevision.create({
       data: {
@@ -182,22 +205,31 @@ export class DocumentsService {
         version: 1,
         body: input.body,
         placeholders: DocumentsService.toJson(input.placeholders ?? []),
-        createdBy: actor
-      }
+        createdBy: actor,
+      },
     });
     await this.audit.record({
       entity: 'documentTemplate',
       entityId: created.id,
       action: 'created',
-      changes: { name: input.name, category: input.category, format: input.format }
+      changes: {
+        name: input.name,
+        category: input.category,
+        format: input.format,
+      },
     });
     return this.mapTemplate(created);
   }
 
-  async createVersion(id: string, rawInput: Record<string, unknown>): Promise<DocumentTemplate> {
+  async createVersion(
+    id: string,
+    rawInput: Record<string, unknown>,
+  ): Promise<DocumentTemplate> {
     const input = upsertDocumentTemplateSchema.parse({ ...rawInput, id });
     const tenantId = this.getTenantId();
-    const template = await this.prisma.documentTemplate.findFirst({ where: { id, tenantId } });
+    const template = await this.prisma.documentTemplate.findFirst({
+      where: { id, tenantId },
+    });
     if (!template) {
       throw new NotFoundException('Template not found');
     }
@@ -213,8 +245,8 @@ export class DocumentsService {
         body: input.body,
         placeholders: DocumentsService.toJson(input.placeholders ?? []),
         isActive: input.isActive ?? template.isActive,
-        version: nextVersion
-      }
+        version: nextVersion,
+      },
     });
     await this.prisma.documentTemplateRevision.create({
       data: {
@@ -223,22 +255,27 @@ export class DocumentsService {
         version: nextVersion,
         body: input.body,
         placeholders: DocumentsService.toJson(input.placeholders ?? []),
-        createdBy: actor
-      }
+        createdBy: actor,
+      },
     });
     await this.audit.record({
       entity: 'documentTemplate',
       entityId: template.id,
       action: 'version.created',
-      changes: { version: nextVersion }
+      changes: { version: nextVersion },
     });
     return this.mapTemplate(updated);
   }
 
-  async updateMetadata(id: string, rawInput: Record<string, unknown>): Promise<DocumentTemplate> {
+  async updateMetadata(
+    id: string,
+    rawInput: Record<string, unknown>,
+  ): Promise<DocumentTemplate> {
     const input = updateDocumentTemplateMetadataSchema.parse(rawInput);
     const tenantId = this.getTenantId();
-    const template = await this.prisma.documentTemplate.findFirst({ where: { id, tenantId } });
+    const template = await this.prisma.documentTemplate.findFirst({
+      where: { id, tenantId },
+    });
     if (!template) {
       throw new NotFoundException('Template not found');
     }
@@ -248,14 +285,14 @@ export class DocumentsService {
         name: input.name ?? template.name,
         description: input.description ?? template.description,
         category: input.category ?? template.category,
-        isActive: input.isActive ?? template.isActive
-      }
+        isActive: input.isActive ?? template.isActive,
+      },
     });
     await this.audit.record({
       entity: 'documentTemplate',
       entityId: id,
       action: 'metadata.updated',
-      changes: input
+      changes: input,
     });
     return this.mapTemplate(updated);
   }
@@ -266,7 +303,9 @@ export class DocumentsService {
     let body = input.body ?? '';
     let name = input.name ?? 'Document Preview';
     if (input.templateId) {
-      const template = await this.prisma.documentTemplate.findFirst({ where: { id: input.templateId, tenantId } });
+      const template = await this.prisma.documentTemplate.findFirst({
+        where: { id: input.templateId, tenantId },
+      });
       if (!template) throw new NotFoundException('Template not found');
       body = template.body;
       name = template.name;
@@ -274,12 +313,17 @@ export class DocumentsService {
     if (!body) {
       throw new BadRequestException('Template body is required for preview');
     }
-    const artifact = await this.generator.generate(input.format, name, body, input.data ?? {});
+    const artifact = await this.generator.generate(
+      input.format,
+      name,
+      body,
+      input.data ?? {},
+    );
     const base64 = Buffer.from(artifact.buffer).toString('base64');
     return {
       filename: artifact.filename,
       mimeType: artifact.mimeType,
-      base64
+      base64,
     };
   }
 
@@ -288,7 +332,7 @@ export class DocumentsService {
     const tenantId = this.getTenantId();
     const document = await this.prisma.generatedDocument.findFirst({
       where: { id: input.documentId, tenantId },
-      include: { template: true }
+      include: { template: true },
     });
     if (!document) {
       throw new NotFoundException('Document not found');
@@ -306,7 +350,7 @@ export class DocumentsService {
         status: document.status,
         signed: document.signed,
         signedAt: document.signedAt ? document.signedAt.toISOString() : null,
-        signedBy: document.signedBy ?? null
+        signedBy: document.signedBy ?? null,
       });
     }
     const updated = await this.prisma.generatedDocument.update({
@@ -316,15 +360,13 @@ export class DocumentsService {
         signedBy: input.signedBy,
         signedAt: new Date(),
         status: 'signed',
-        payload: document.payload,
-        data: document.data
-      }
+      },
     });
     await this.audit.record({
       entity: 'generatedDocument',
       entityId: document.id,
       action: 'signed',
-      changes: { signedBy: input.signedBy }
+      changes: { signedBy: input.signedBy },
     });
     return generatedDocumentSchema.parse({
       id: updated.id,
@@ -338,13 +380,15 @@ export class DocumentsService {
       status: updated.status,
       signed: updated.signed,
       signedAt: updated.signedAt ? updated.signedAt.toISOString() : null,
-      signedBy: updated.signedBy ?? null
+      signedBy: updated.signedBy ?? null,
     });
   }
 
   async getDownloadDescriptor(id: string): Promise<DownloadDescriptor> {
     const tenantId = this.getTenantId();
-    const document = await this.prisma.generatedDocument.findFirst({ where: { id, tenantId } });
+    const document = await this.prisma.generatedDocument.findFirst({
+      where: { id, tenantId },
+    });
     if (!document) {
       throw new NotFoundException('Document not found');
     }
@@ -356,20 +400,32 @@ export class DocumentsService {
     if (!existsSync(filePath)) {
       throw new NotFoundException('Document artifact not found');
     }
-    const mimeType = document.format === 'PDF'
-      ? 'application/pdf'
-      : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    return { filename: document.filename, mimeType, stream: createReadStream(filePath) };
+    const mimeType =
+      document.format === 'PDF'
+        ? 'application/pdf'
+        : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    return {
+      filename: document.filename,
+      mimeType,
+      stream: createReadStream(filePath),
+    };
   }
 
   async deleteTemplate(id: string) {
     const tenantId = this.getTenantId();
-    const template = await this.prisma.documentTemplate.findFirst({ where: { id, tenantId } });
+    const template = await this.prisma.documentTemplate.findFirst({
+      where: { id, tenantId },
+    });
     if (!template) throw new NotFoundException('Template not found');
     await this.prisma.documentTemplate.update({
       where: { id },
-      data: { isActive: false }
+      data: { isActive: false },
     });
-    await this.audit.record({ entity: 'documentTemplate', entityId: id, action: 'archived', changes: {} });
+    await this.audit.record({
+      entity: 'documentTemplate',
+      entityId: id,
+      action: 'archived',
+      changes: {},
+    });
   }
 }

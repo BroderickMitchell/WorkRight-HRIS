@@ -625,26 +625,240 @@ declare const employmentEventSchema: z.ZodObject<{
     source?: "UI" | "API" | "INTEGRATION" | undefined;
 }>;
 type EmploymentEvent = z.infer<typeof employmentEventSchema>;
+declare const documentTemplateCategorySchema: z.ZodEnum<["HR", "Payroll", "Compliance", "Legal", "Custom"]>;
+type DocumentTemplateCategory = z.infer<typeof documentTemplateCategorySchema>;
+declare const documentTemplateFieldSchema: z.ZodObject<{
+    key: z.ZodString;
+    label: z.ZodString;
+    description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    required: z.ZodDefault<z.ZodBoolean>;
+}, "strip", z.ZodTypeAny, {
+    label: string;
+    key: string;
+    required: boolean;
+    description?: string | null | undefined;
+}, {
+    label: string;
+    key: string;
+    description?: string | null | undefined;
+    required?: boolean | undefined;
+}>;
+type DocumentTemplateField = z.infer<typeof documentTemplateFieldSchema>;
 declare const documentTemplateSchema: z.ZodObject<{
     id: z.ZodString;
     name: z.ZodString;
-    format: z.ZodEnum<["PDF", "DOCX"]>;
     description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    format: z.ZodEnum<["PDF", "DOCX"]>;
+    category: z.ZodEnum<["HR", "Payroll", "Compliance", "Legal", "Custom"]>;
+    version: z.ZodNumber;
+    isActive: z.ZodBoolean;
+    placeholders: z.ZodDefault<z.ZodArray<z.ZodObject<{
+        key: z.ZodString;
+        label: z.ZodString;
+        description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        required: z.ZodDefault<z.ZodBoolean>;
+    }, "strip", z.ZodTypeAny, {
+        label: string;
+        key: string;
+        required: boolean;
+        description?: string | null | undefined;
+    }, {
+        label: string;
+        key: string;
+        description?: string | null | undefined;
+        required?: boolean | undefined;
+    }>, "many">>;
     lastUpdatedAt: z.ZodString;
+    createdBy: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    body: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     id: string;
     name: string;
     format: "PDF" | "DOCX";
+    category: "HR" | "Payroll" | "Compliance" | "Legal" | "Custom";
+    version: number;
+    isActive: boolean;
+    placeholders: {
+        label: string;
+        key: string;
+        required: boolean;
+        description?: string | null | undefined;
+    }[];
     lastUpdatedAt: string;
     description?: string | null | undefined;
+    createdBy?: string | null | undefined;
+    body?: string | undefined;
 }, {
     id: string;
     name: string;
     format: "PDF" | "DOCX";
+    category: "HR" | "Payroll" | "Compliance" | "Legal" | "Custom";
+    version: number;
+    isActive: boolean;
     lastUpdatedAt: string;
     description?: string | null | undefined;
+    createdBy?: string | null | undefined;
+    placeholders?: {
+        label: string;
+        key: string;
+        description?: string | null | undefined;
+        required?: boolean | undefined;
+    }[] | undefined;
+    body?: string | undefined;
 }>;
 type DocumentTemplate = z.infer<typeof documentTemplateSchema>;
+declare const documentTemplateRevisionSchema: z.ZodObject<{
+    id: z.ZodString;
+    name: z.ZodString;
+    description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    format: z.ZodEnum<["PDF", "DOCX"]>;
+    category: z.ZodEnum<["HR", "Payroll", "Compliance", "Legal", "Custom"]>;
+    isActive: z.ZodBoolean;
+    placeholders: z.ZodDefault<z.ZodArray<z.ZodObject<{
+        key: z.ZodString;
+        label: z.ZodString;
+        description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        required: z.ZodDefault<z.ZodBoolean>;
+    }, "strip", z.ZodTypeAny, {
+        label: string;
+        key: string;
+        required: boolean;
+        description?: string | null | undefined;
+    }, {
+        label: string;
+        key: string;
+        description?: string | null | undefined;
+        required?: boolean | undefined;
+    }>, "many">>;
+    lastUpdatedAt: z.ZodString;
+    createdBy: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+} & {
+    version: z.ZodNumber;
+    body: z.ZodString;
+    createdAt: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    id: string;
+    name: string;
+    createdAt: string;
+    format: "PDF" | "DOCX";
+    category: "HR" | "Payroll" | "Compliance" | "Legal" | "Custom";
+    version: number;
+    isActive: boolean;
+    placeholders: {
+        label: string;
+        key: string;
+        required: boolean;
+        description?: string | null | undefined;
+    }[];
+    lastUpdatedAt: string;
+    body: string;
+    description?: string | null | undefined;
+    createdBy?: string | null | undefined;
+}, {
+    id: string;
+    name: string;
+    createdAt: string;
+    format: "PDF" | "DOCX";
+    category: "HR" | "Payroll" | "Compliance" | "Legal" | "Custom";
+    version: number;
+    isActive: boolean;
+    lastUpdatedAt: string;
+    body: string;
+    description?: string | null | undefined;
+    createdBy?: string | null | undefined;
+    placeholders?: {
+        label: string;
+        key: string;
+        description?: string | null | undefined;
+        required?: boolean | undefined;
+    }[] | undefined;
+}>;
+type DocumentTemplateRevision = z.infer<typeof documentTemplateRevisionSchema>;
+declare const upsertDocumentTemplateSchema: z.ZodObject<{
+    id: z.ZodOptional<z.ZodString>;
+    name: z.ZodString;
+    description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    format: z.ZodEnum<["PDF", "DOCX"]>;
+    category: z.ZodEnum<["HR", "Payroll", "Compliance", "Legal", "Custom"]>;
+    placeholders: z.ZodDefault<z.ZodArray<z.ZodObject<{
+        key: z.ZodString;
+        label: z.ZodString;
+        description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        required: z.ZodDefault<z.ZodBoolean>;
+    }, "strip", z.ZodTypeAny, {
+        label: string;
+        key: string;
+        required: boolean;
+        description?: string | null | undefined;
+    }, {
+        label: string;
+        key: string;
+        description?: string | null | undefined;
+        required?: boolean | undefined;
+    }>, "many">>;
+    body: z.ZodString;
+    isActive: z.ZodOptional<z.ZodBoolean>;
+}, "strip", z.ZodTypeAny, {
+    name: string;
+    format: "PDF" | "DOCX";
+    category: "HR" | "Payroll" | "Compliance" | "Legal" | "Custom";
+    placeholders: {
+        label: string;
+        key: string;
+        required: boolean;
+        description?: string | null | undefined;
+    }[];
+    body: string;
+    id?: string | undefined;
+    description?: string | null | undefined;
+    isActive?: boolean | undefined;
+}, {
+    name: string;
+    format: "PDF" | "DOCX";
+    category: "HR" | "Payroll" | "Compliance" | "Legal" | "Custom";
+    body: string;
+    id?: string | undefined;
+    description?: string | null | undefined;
+    isActive?: boolean | undefined;
+    placeholders?: {
+        label: string;
+        key: string;
+        description?: string | null | undefined;
+        required?: boolean | undefined;
+    }[] | undefined;
+}>;
+type UpsertDocumentTemplateInput = z.infer<typeof upsertDocumentTemplateSchema>;
+declare const updateDocumentTemplateMetadataSchema: z.ZodObject<{
+    name: z.ZodOptional<z.ZodString>;
+    description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    category: z.ZodOptional<z.ZodEnum<["HR", "Payroll", "Compliance", "Legal", "Custom"]>>;
+    isActive: z.ZodOptional<z.ZodBoolean>;
+}, "strip", z.ZodTypeAny, {
+    name?: string | undefined;
+    description?: string | null | undefined;
+    category?: "HR" | "Payroll" | "Compliance" | "Legal" | "Custom" | undefined;
+    isActive?: boolean | undefined;
+}, {
+    name?: string | undefined;
+    description?: string | null | undefined;
+    category?: "HR" | "Payroll" | "Compliance" | "Legal" | "Custom" | undefined;
+    isActive?: boolean | undefined;
+}>;
+type UpdateDocumentTemplateMetadataInput = z.infer<typeof updateDocumentTemplateMetadataSchema>;
+declare const documentTemplateFiltersSchema: z.ZodObject<{
+    category: z.ZodOptional<z.ZodEnum<["HR", "Payroll", "Compliance", "Legal", "Custom"]>>;
+    active: z.ZodOptional<z.ZodBoolean>;
+    createdBy: z.ZodOptional<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    createdBy?: string | undefined;
+    category?: "HR" | "Payroll" | "Compliance" | "Legal" | "Custom" | undefined;
+    active?: boolean | undefined;
+}, {
+    createdBy?: string | undefined;
+    category?: "HR" | "Payroll" | "Compliance" | "Legal" | "Custom" | undefined;
+    active?: boolean | undefined;
+}>;
+type DocumentTemplateFilters = z.infer<typeof documentTemplateFiltersSchema>;
 declare const generatedDocumentSchema: z.ZodObject<{
     id: z.ZodString;
     templateId: z.ZodNullable<z.ZodOptional<z.ZodString>>;
@@ -654,24 +868,36 @@ declare const generatedDocumentSchema: z.ZodObject<{
     storageUrl: z.ZodString;
     createdAt: z.ZodString;
     createdBy: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    status: z.ZodString;
+    signed: z.ZodBoolean;
+    signedAt: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    signedBy: z.ZodNullable<z.ZodOptional<z.ZodString>>;
 }, "strip", z.ZodTypeAny, {
+    status: string;
     id: string;
     createdAt: string;
     format: "PDF" | "DOCX";
     filename: string;
     storageUrl: string;
+    signed: boolean;
     createdBy?: string | null | undefined;
     templateId?: string | null | undefined;
     templateName?: string | null | undefined;
+    signedAt?: string | null | undefined;
+    signedBy?: string | null | undefined;
 }, {
+    status: string;
     id: string;
     createdAt: string;
     format: "PDF" | "DOCX";
     filename: string;
     storageUrl: string;
+    signed: boolean;
     createdBy?: string | null | undefined;
     templateId?: string | null | undefined;
     templateName?: string | null | undefined;
+    signedAt?: string | null | undefined;
+    signedBy?: string | null | undefined;
 }>;
 type GeneratedDocument = z.infer<typeof generatedDocumentSchema>;
 declare const employeeHistoryFiltersSchema: z.ZodObject<{
@@ -702,6 +928,225 @@ declare const generateDocumentInputSchema: z.ZodObject<{
     mergeFields?: Record<string, any> | undefined;
 }>;
 type GenerateDocumentInput = z.infer<typeof generateDocumentInputSchema>;
+declare const generateDocumentPreviewSchema: z.ZodObject<{
+    templateId: z.ZodOptional<z.ZodString>;
+    body: z.ZodOptional<z.ZodString>;
+    name: z.ZodOptional<z.ZodString>;
+    format: z.ZodDefault<z.ZodEnum<["PDF", "DOCX"]>>;
+    data: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodAny>>;
+}, "strip", z.ZodTypeAny, {
+    format: "PDF" | "DOCX";
+    data: Record<string, any>;
+    name?: string | undefined;
+    body?: string | undefined;
+    templateId?: string | undefined;
+}, {
+    name?: string | undefined;
+    format?: "PDF" | "DOCX" | undefined;
+    body?: string | undefined;
+    templateId?: string | undefined;
+    data?: Record<string, any> | undefined;
+}>;
+type GenerateDocumentPreviewInput = z.infer<typeof generateDocumentPreviewSchema>;
+declare const signGeneratedDocumentSchema: z.ZodObject<{
+    documentId: z.ZodString;
+    signedBy: z.ZodString;
+    note: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+}, "strip", z.ZodTypeAny, {
+    signedBy: string;
+    documentId: string;
+    note?: string | null | undefined;
+}, {
+    signedBy: string;
+    documentId: string;
+    note?: string | null | undefined;
+}>;
+type SignGeneratedDocumentInput = z.infer<typeof signGeneratedDocumentSchema>;
+declare const tenantBrandingAssetSchema: z.ZodObject<{
+    filename: z.ZodString;
+    mimeType: z.ZodString;
+    data: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    filename: string;
+    data: string;
+    mimeType: string;
+}, {
+    filename: string;
+    data: string;
+    mimeType: string;
+}>;
+type TenantBrandingAssetUpload = z.infer<typeof tenantBrandingAssetSchema>;
+declare const tenantBrandingSchema: z.ZodObject<{
+    primaryColor: z.ZodString;
+    accentColor: z.ZodString;
+    surfaceColor: z.ZodString;
+    darkMode: z.ZodBoolean;
+    logoUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    emailLogoUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    loginHeroUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    faviconUrl: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    supportEmail: z.ZodString;
+    legalAddress: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    subjectPrefix: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    updatedAt: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    updatedAt: string;
+    primaryColor: string;
+    accentColor: string;
+    surfaceColor: string;
+    darkMode: boolean;
+    supportEmail: string;
+    logoUrl?: string | null | undefined;
+    emailLogoUrl?: string | null | undefined;
+    loginHeroUrl?: string | null | undefined;
+    faviconUrl?: string | null | undefined;
+    legalAddress?: string | null | undefined;
+    subjectPrefix?: string | null | undefined;
+}, {
+    updatedAt: string;
+    primaryColor: string;
+    accentColor: string;
+    surfaceColor: string;
+    darkMode: boolean;
+    supportEmail: string;
+    logoUrl?: string | null | undefined;
+    emailLogoUrl?: string | null | undefined;
+    loginHeroUrl?: string | null | undefined;
+    faviconUrl?: string | null | undefined;
+    legalAddress?: string | null | undefined;
+    subjectPrefix?: string | null | undefined;
+}>;
+type TenantBranding = z.infer<typeof tenantBrandingSchema>;
+declare const updateTenantBrandingSchema: z.ZodObject<{
+    primaryColor: z.ZodString;
+    accentColor: z.ZodString;
+    surfaceColor: z.ZodOptional<z.ZodString>;
+    darkMode: z.ZodOptional<z.ZodBoolean>;
+    supportEmail: z.ZodString;
+    legalAddress: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    subjectPrefix: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+    logo: z.ZodOptional<z.ZodObject<{
+        filename: z.ZodString;
+        mimeType: z.ZodString;
+        data: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        filename: string;
+        data: string;
+        mimeType: string;
+    }, {
+        filename: string;
+        data: string;
+        mimeType: string;
+    }>>;
+    emailLogo: z.ZodOptional<z.ZodObject<{
+        filename: z.ZodString;
+        mimeType: z.ZodString;
+        data: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        filename: string;
+        data: string;
+        mimeType: string;
+    }, {
+        filename: string;
+        data: string;
+        mimeType: string;
+    }>>;
+    loginHero: z.ZodOptional<z.ZodObject<{
+        filename: z.ZodString;
+        mimeType: z.ZodString;
+        data: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        filename: string;
+        data: string;
+        mimeType: string;
+    }, {
+        filename: string;
+        data: string;
+        mimeType: string;
+    }>>;
+    favicon: z.ZodOptional<z.ZodObject<{
+        filename: z.ZodString;
+        mimeType: z.ZodString;
+        data: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        filename: string;
+        data: string;
+        mimeType: string;
+    }, {
+        filename: string;
+        data: string;
+        mimeType: string;
+    }>>;
+    removeLogo: z.ZodOptional<z.ZodBoolean>;
+    removeEmailLogo: z.ZodOptional<z.ZodBoolean>;
+    removeLoginHero: z.ZodOptional<z.ZodBoolean>;
+    removeFavicon: z.ZodOptional<z.ZodBoolean>;
+}, "strip", z.ZodTypeAny, {
+    primaryColor: string;
+    accentColor: string;
+    supportEmail: string;
+    surfaceColor?: string | undefined;
+    darkMode?: boolean | undefined;
+    legalAddress?: string | null | undefined;
+    subjectPrefix?: string | null | undefined;
+    logo?: {
+        filename: string;
+        data: string;
+        mimeType: string;
+    } | undefined;
+    emailLogo?: {
+        filename: string;
+        data: string;
+        mimeType: string;
+    } | undefined;
+    loginHero?: {
+        filename: string;
+        data: string;
+        mimeType: string;
+    } | undefined;
+    favicon?: {
+        filename: string;
+        data: string;
+        mimeType: string;
+    } | undefined;
+    removeLogo?: boolean | undefined;
+    removeEmailLogo?: boolean | undefined;
+    removeLoginHero?: boolean | undefined;
+    removeFavicon?: boolean | undefined;
+}, {
+    primaryColor: string;
+    accentColor: string;
+    supportEmail: string;
+    surfaceColor?: string | undefined;
+    darkMode?: boolean | undefined;
+    legalAddress?: string | null | undefined;
+    subjectPrefix?: string | null | undefined;
+    logo?: {
+        filename: string;
+        data: string;
+        mimeType: string;
+    } | undefined;
+    emailLogo?: {
+        filename: string;
+        data: string;
+        mimeType: string;
+    } | undefined;
+    loginHero?: {
+        filename: string;
+        data: string;
+        mimeType: string;
+    } | undefined;
+    favicon?: {
+        filename: string;
+        data: string;
+        mimeType: string;
+    } | undefined;
+    removeLogo?: boolean | undefined;
+    removeEmailLogo?: boolean | undefined;
+    removeLoginHero?: boolean | undefined;
+    removeFavicon?: boolean | undefined;
+}>;
+type UpdateTenantBrandingInput = z.infer<typeof updateTenantBrandingSchema>;
 declare const employeeProfileSchema: z.ZodObject<{
     employee: z.ZodObject<{
         id: z.ZodString;
@@ -1338,79 +1783,164 @@ declare const employeeProfileSchema: z.ZodObject<{
             storageUrl: z.ZodString;
             createdAt: z.ZodString;
             createdBy: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+            status: z.ZodString;
+            signed: z.ZodBoolean;
+            signedAt: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+            signedBy: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         }, "strip", z.ZodTypeAny, {
+            status: string;
             id: string;
             createdAt: string;
             format: "PDF" | "DOCX";
             filename: string;
             storageUrl: string;
+            signed: boolean;
             createdBy?: string | null | undefined;
             templateId?: string | null | undefined;
             templateName?: string | null | undefined;
+            signedAt?: string | null | undefined;
+            signedBy?: string | null | undefined;
         }, {
+            status: string;
             id: string;
             createdAt: string;
             format: "PDF" | "DOCX";
             filename: string;
             storageUrl: string;
+            signed: boolean;
             createdBy?: string | null | undefined;
             templateId?: string | null | undefined;
             templateName?: string | null | undefined;
+            signedAt?: string | null | undefined;
+            signedBy?: string | null | undefined;
         }>, "many">;
         templates: z.ZodArray<z.ZodObject<{
             id: z.ZodString;
             name: z.ZodString;
-            format: z.ZodEnum<["PDF", "DOCX"]>;
             description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+            format: z.ZodEnum<["PDF", "DOCX"]>;
+            category: z.ZodEnum<["HR", "Payroll", "Compliance", "Legal", "Custom"]>;
+            version: z.ZodNumber;
+            isActive: z.ZodBoolean;
+            placeholders: z.ZodDefault<z.ZodArray<z.ZodObject<{
+                key: z.ZodString;
+                label: z.ZodString;
+                description: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+                required: z.ZodDefault<z.ZodBoolean>;
+            }, "strip", z.ZodTypeAny, {
+                label: string;
+                key: string;
+                required: boolean;
+                description?: string | null | undefined;
+            }, {
+                label: string;
+                key: string;
+                description?: string | null | undefined;
+                required?: boolean | undefined;
+            }>, "many">>;
             lastUpdatedAt: z.ZodString;
+            createdBy: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+            body: z.ZodOptional<z.ZodString>;
         }, "strip", z.ZodTypeAny, {
             id: string;
             name: string;
             format: "PDF" | "DOCX";
+            category: "HR" | "Payroll" | "Compliance" | "Legal" | "Custom";
+            version: number;
+            isActive: boolean;
+            placeholders: {
+                label: string;
+                key: string;
+                required: boolean;
+                description?: string | null | undefined;
+            }[];
             lastUpdatedAt: string;
             description?: string | null | undefined;
+            createdBy?: string | null | undefined;
+            body?: string | undefined;
         }, {
             id: string;
             name: string;
             format: "PDF" | "DOCX";
+            category: "HR" | "Payroll" | "Compliance" | "Legal" | "Custom";
+            version: number;
+            isActive: boolean;
             lastUpdatedAt: string;
             description?: string | null | undefined;
+            createdBy?: string | null | undefined;
+            placeholders?: {
+                label: string;
+                key: string;
+                description?: string | null | undefined;
+                required?: boolean | undefined;
+            }[] | undefined;
+            body?: string | undefined;
         }>, "many">;
     }, "strip", z.ZodTypeAny, {
         generated: {
+            status: string;
             id: string;
             createdAt: string;
             format: "PDF" | "DOCX";
             filename: string;
             storageUrl: string;
+            signed: boolean;
             createdBy?: string | null | undefined;
             templateId?: string | null | undefined;
             templateName?: string | null | undefined;
+            signedAt?: string | null | undefined;
+            signedBy?: string | null | undefined;
         }[];
         templates: {
             id: string;
             name: string;
             format: "PDF" | "DOCX";
+            category: "HR" | "Payroll" | "Compliance" | "Legal" | "Custom";
+            version: number;
+            isActive: boolean;
+            placeholders: {
+                label: string;
+                key: string;
+                required: boolean;
+                description?: string | null | undefined;
+            }[];
             lastUpdatedAt: string;
             description?: string | null | undefined;
+            createdBy?: string | null | undefined;
+            body?: string | undefined;
         }[];
     }, {
         generated: {
+            status: string;
             id: string;
             createdAt: string;
             format: "PDF" | "DOCX";
             filename: string;
             storageUrl: string;
+            signed: boolean;
             createdBy?: string | null | undefined;
             templateId?: string | null | undefined;
             templateName?: string | null | undefined;
+            signedAt?: string | null | undefined;
+            signedBy?: string | null | undefined;
         }[];
         templates: {
             id: string;
             name: string;
             format: "PDF" | "DOCX";
+            category: "HR" | "Payroll" | "Compliance" | "Legal" | "Custom";
+            version: number;
+            isActive: boolean;
             lastUpdatedAt: string;
             description?: string | null | undefined;
+            createdBy?: string | null | undefined;
+            placeholders?: {
+                label: string;
+                key: string;
+                description?: string | null | undefined;
+                required?: boolean | undefined;
+            }[] | undefined;
+            body?: string | undefined;
         }[];
     }>;
     permissions: z.ZodObject<{
@@ -1602,21 +2132,36 @@ declare const employeeProfileSchema: z.ZodObject<{
     }[];
     documents: {
         generated: {
+            status: string;
             id: string;
             createdAt: string;
             format: "PDF" | "DOCX";
             filename: string;
             storageUrl: string;
+            signed: boolean;
             createdBy?: string | null | undefined;
             templateId?: string | null | undefined;
             templateName?: string | null | undefined;
+            signedAt?: string | null | undefined;
+            signedBy?: string | null | undefined;
         }[];
         templates: {
             id: string;
             name: string;
             format: "PDF" | "DOCX";
+            category: "HR" | "Payroll" | "Compliance" | "Legal" | "Custom";
+            version: number;
+            isActive: boolean;
+            placeholders: {
+                label: string;
+                key: string;
+                required: boolean;
+                description?: string | null | undefined;
+            }[];
             lastUpdatedAt: string;
             description?: string | null | undefined;
+            createdBy?: string | null | undefined;
+            body?: string | undefined;
         }[];
     };
     permissions: {
@@ -1796,21 +2341,36 @@ declare const employeeProfileSchema: z.ZodObject<{
     }[];
     documents: {
         generated: {
+            status: string;
             id: string;
             createdAt: string;
             format: "PDF" | "DOCX";
             filename: string;
             storageUrl: string;
+            signed: boolean;
             createdBy?: string | null | undefined;
             templateId?: string | null | undefined;
             templateName?: string | null | undefined;
+            signedAt?: string | null | undefined;
+            signedBy?: string | null | undefined;
         }[];
         templates: {
             id: string;
             name: string;
             format: "PDF" | "DOCX";
+            category: "HR" | "Payroll" | "Compliance" | "Legal" | "Custom";
+            version: number;
+            isActive: boolean;
             lastUpdatedAt: string;
             description?: string | null | undefined;
+            createdBy?: string | null | undefined;
+            placeholders?: {
+                label: string;
+                key: string;
+                description?: string | null | undefined;
+                required?: boolean | undefined;
+            }[] | undefined;
+            body?: string | undefined;
         }[];
     };
     permissions: {
@@ -2648,18 +3208,18 @@ declare const employeeDocumentUploadSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     name: string;
     format: "PDF" | "DOCX";
-    storageUrl: string;
     category: string;
+    storageUrl: string;
     uploadedAt: string;
     uploadedBy: string;
 }, {
     name: string;
     format: "PDF" | "DOCX";
-    storageUrl: string;
     category: string;
+    storageUrl: string;
     uploadedAt: string;
     uploadedBy: string;
 }>;
 type EmployeeDocumentUpload = z.infer<typeof employeeDocumentUploadSchema>;
 
-export { type CostCodeType, type CostSplit, type CostSplitInput, type DocumentFormat, type DocumentTemplate, type EmployeeCompensation, type EmployeeContact, type EmployeeDocumentUpload, type EmployeeHistoryFilters, type EmployeeJob, type EmployeePersonal, type EmployeeProfilePayload, type EmployeeStatus, type EmployeeTimeEligibility, type EmploymentEvent, type EmploymentEventType, type GenerateDocumentInput, type GeneratedDocument, type HistoryCsvResponse, type UpdateEmployeeProfileInput, type UpsertCostSplitInput, compensationComponentSchema, costCodeTypeSchema, costSplitInputSchema, costSplitSchema, documentFormatSchema, documentTemplateSchema, employeeCompensationSchema, employeeContactSchema, employeeDocumentUploadSchema, employeeHistoryFiltersSchema, employeeJobSchema, employeePersonalSchema, employeeProfileSchema, employeeStatusSchema, employeeTimeEligibilitySchema, employmentEventSchema, employmentEventTypeSchema, generateDocumentInputSchema, generatedDocumentSchema, historyCsvResponseSchema, updateEmployeeProfileSchema, upsertCostSplitSchema };
+export { type CostCodeType, type CostSplit, type CostSplitInput, type DocumentFormat, type DocumentTemplate, type DocumentTemplateCategory, type DocumentTemplateField, type DocumentTemplateFilters, type DocumentTemplateRevision, type EmployeeCompensation, type EmployeeContact, type EmployeeDocumentUpload, type EmployeeHistoryFilters, type EmployeeJob, type EmployeePersonal, type EmployeeProfilePayload, type EmployeeStatus, type EmployeeTimeEligibility, type EmploymentEvent, type EmploymentEventType, type GenerateDocumentInput, type GenerateDocumentPreviewInput, type GeneratedDocument, type HistoryCsvResponse, type SignGeneratedDocumentInput, type TenantBranding, type TenantBrandingAssetUpload, type UpdateDocumentTemplateMetadataInput, type UpdateEmployeeProfileInput, type UpdateTenantBrandingInput, type UpsertCostSplitInput, type UpsertDocumentTemplateInput, compensationComponentSchema, costCodeTypeSchema, costSplitInputSchema, costSplitSchema, documentFormatSchema, documentTemplateCategorySchema, documentTemplateFieldSchema, documentTemplateFiltersSchema, documentTemplateRevisionSchema, documentTemplateSchema, employeeCompensationSchema, employeeContactSchema, employeeDocumentUploadSchema, employeeHistoryFiltersSchema, employeeJobSchema, employeePersonalSchema, employeeProfileSchema, employeeStatusSchema, employeeTimeEligibilitySchema, employmentEventSchema, employmentEventTypeSchema, generateDocumentInputSchema, generateDocumentPreviewSchema, generatedDocumentSchema, historyCsvResponseSchema, signGeneratedDocumentSchema, tenantBrandingAssetSchema, tenantBrandingSchema, updateDocumentTemplateMetadataSchema, updateEmployeeProfileSchema, updateTenantBrandingSchema, upsertCostSplitSchema, upsertDocumentTemplateSchema };

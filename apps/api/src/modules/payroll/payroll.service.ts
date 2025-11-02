@@ -1,11 +1,18 @@
-import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service.js';
 import { CreatePayrollRunDto, UpsertPayProfileDto } from './payroll.dto.js';
 import { ClsService } from 'nestjs-cls';
 
 @Injectable()
 export class PayrollService {
-  constructor(private readonly prisma: PrismaService, private readonly cls: ClsService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cls: ClsService,
+  ) {}
 
   private getTenantId(): string {
     const tenantId = this.cls.get<string>('tenantId');
@@ -21,8 +28,8 @@ export class PayrollService {
       where: {
         tenantId,
         date: { gte: start, lte: end },
-        ...(dto.locationId ? { locationId: dto.locationId } : {})
-      }
+        ...(dto.locationId ? { locationId: dto.locationId } : {}),
+      },
     });
 
     // Group by employee
@@ -37,16 +44,15 @@ export class PayrollService {
       data: {
         periodStart: start,
         periodEnd: end,
-        tenant: { connect: { id: tenantId } }
-      }
+        tenant: { connect: { id: tenantId } },
+      },
     });
     let total = 0;
     for (const [employeeId, hours] of byEmp.entries()) {
       const profile = await this.prisma.payProfile.findUnique({
-        where: { employeeId }
+        where: { employeeId },
       });
-      const rate =
-        profile && profile.tenantId === tenantId ? profile.baseRateCents : undefined;
+      const rate = profile?.tenantId === tenantId ? profile.baseRateCents : 0;
       const amount = Math.round(rate * hours);
       total += amount;
       await this.prisma.payrollLine.create({
@@ -55,15 +61,18 @@ export class PayrollService {
           employeeId,
           hours,
           amountCents: amount,
-          tenant: { connect: { id: tenantId } },
-          details: { note: 'Roster-driven calc' } as any
-        }
+          tenantId,
+          details: { note: 'Roster-driven calc' } as any,
+        },
       });
     }
-    await this.prisma.payrollRun.update({ where: { id: run.id }, data: { totalCents: total } });
+    await this.prisma.payrollRun.update({
+      where: { id: run.id },
+      data: { totalCents: total },
+    });
     return this.prisma.payrollRun.findUnique({
       where: { id: run.id },
-      include: { lines: true }
+      include: { lines: true },
     });
   }
 
@@ -72,7 +81,7 @@ export class PayrollService {
     return this.prisma.payrollRun.findMany({
       where: { tenantId },
       orderBy: { createdAt: 'desc' },
-      include: { lines: true }
+      include: { lines: true },
     });
   }
 
@@ -80,14 +89,14 @@ export class PayrollService {
     const tenantId = this.getTenantId();
     return this.prisma.payrollRun.findFirst({
       where: { id, tenantId },
-      include: { lines: true }
+      include: { lines: true },
     });
   }
 
   async getProfile(employeeId: string) {
     const tenantId = this.getTenantId();
     const profile = await this.prisma.payProfile.findUnique({
-      where: { employeeId }
+      where: { employeeId },
     });
     if (profile && profile.tenantId === tenantId) return profile;
     return { employeeId, baseRateCents: null, tenantId } as any;
@@ -96,10 +105,12 @@ export class PayrollService {
   async upsertProfile(dto: UpsertPayProfileDto) {
     const tenantId = this.getTenantId();
     const existing = await this.prisma.payProfile.findUnique({
-      where: { employeeId: dto.employeeId }
+      where: { employeeId: dto.employeeId },
     });
     if (existing && existing.tenantId !== tenantId) {
-      throw new ForbiddenException('Cannot modify pay profile belonging to another tenant');
+      throw new ForbiddenException(
+        'Cannot modify pay profile belonging to another tenant',
+      );
     }
     return this.prisma.payProfile.upsert({
       where: { employeeId: dto.employeeId },
@@ -107,8 +118,8 @@ export class PayrollService {
       create: {
         employeeId: dto.employeeId,
         baseRateCents: dto.baseRateCents,
-        tenantId
-      }
+        tenantId,
+      },
     });
   }
 }

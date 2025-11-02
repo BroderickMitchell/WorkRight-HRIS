@@ -1,9 +1,23 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import type { InfiniteData } from '@tanstack/react-query';
 import { Loader2, SendHorizonal } from 'lucide-react';
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, EmptyState } from '@workright/ui';
-import { CommunicationPost, CommunicationContext } from '../../../../../lib/api/communications';
+import {
+  Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  EmptyState,
+} from '@workright/ui';
+import {
+  CommunicationPost,
+  CommunicationContext,
+  CommunicationListResponse,
+  CreateCommunicationPayload,
+} from '../../../../../lib/api/communications';
 import {
   useCommunicationFeed,
   useCommunicationContext,
@@ -11,7 +25,7 @@ import {
   useUpdateCommunication,
   useDeleteCommunication,
   useAcknowledgeCommunication,
-  useMyPendingAcks
+  useMyPendingAcks,
 } from '../../../../../lib/hooks/useCommunications';
 import PostComposer, { ComposerSubmitData } from './PostComposer';
 import PostCard from './PostCard';
@@ -20,9 +34,11 @@ interface EditingState {
   post: CommunicationPost;
 }
 
-function flattenFeed(pages?: { pages: { items: CommunicationPost[] }[] }): CommunicationPost[] {
-  if (!pages) return [];
-  return pages.pages.flatMap((page) => page.items);
+function flattenFeed(
+  data?: InfiniteData<CommunicationListResponse>,
+): CommunicationPost[] {
+  if (!data) return [];
+  return data.pages.flatMap((page) => page.items);
 }
 
 export default function CommunicationFeed() {
@@ -36,14 +52,41 @@ export default function CommunicationFeed() {
   const acknowledgeMutation = useAcknowledgeCommunication();
   const pendingAcksQuery = useMyPendingAcks();
 
-  const posts = useMemo(() => flattenFeed(feedQuery.data), [feedQuery.data]);
+  const posts = useMemo(
+    () =>
+      flattenFeed(
+        feedQuery.data as InfiniteData<CommunicationListResponse> | undefined,
+      ),
+    [feedQuery.data],
+  );
+
+  const normalisePayload = (
+    payload: ComposerSubmitData,
+  ): CreateCommunicationPayload => {
+    const attachments = payload.attachments?.map(({ type, ...rest }) => ({
+      ...rest,
+      ...(type ? { type } : {}),
+    }));
+    return {
+      title: payload.title,
+      body: payload.body,
+      targetTeamIds: payload.targetTeamIds,
+      requireAck: payload.requireAck,
+      ackDueAt: payload.ackDueAt ?? undefined,
+      ...(attachments?.length ? { attachments } : {}),
+      ...(payload.mentions?.length ? { mentions: payload.mentions } : {}),
+    };
+  };
 
   const handleCreate = async (payload: ComposerSubmitData) => {
-    await createMutation.mutateAsync(payload);
+    await createMutation.mutateAsync(normalisePayload(payload));
   };
 
   const handleUpdate = async (postId: string, payload: ComposerSubmitData) => {
-    await updateMutation.mutateAsync({ id: postId, payload });
+    await updateMutation.mutateAsync({
+      id: postId,
+      payload: normalisePayload(payload),
+    });
     setEditing(null);
   };
 
@@ -68,24 +111,28 @@ export default function CommunicationFeed() {
             <SendHorizonal className="h-5 w-5 text-primary" />
             Communications
           </CardTitle>
-          <CardDescription>Share updates with the teams you collaborate with.</CardDescription>
+          <CardDescription>
+            Share updates with the teams you collaborate with.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading context…
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading context...
             </div>
           ) : contextQuery.isError ? (
             <EmptyState
               title="Unable to load context"
-              description="We couldn’t determine your teams. Try refreshing the page."
+              description="We couldn't determine your teams. Try refreshing the page."
             />
           ) : contextQuery.data ? (
             <PostComposer
               context={contextQuery.data as CommunicationContext}
               mode={editing ? 'edit' : 'create'}
               initialPost={editing?.post}
-              isSubmitting={createMutation.isPending || updateMutation.isPending}
+              isSubmitting={
+                createMutation.isPending || updateMutation.isPending
+              }
               onSubmit={async (values) => {
                 if (editing) {
                   await handleUpdate(editing.post.id, values);
@@ -126,13 +173,13 @@ export default function CommunicationFeed() {
         {hasMore ? (
           <div className="flex justify-center">
             <Button
-              variant="outline"
+              variant="secondary"
               onClick={() => feedQuery.fetchNextPage()}
               disabled={feedQuery.isFetchingNextPage}
             >
               {feedQuery.isFetchingNextPage ? (
                 <span className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading...
                 </span>
               ) : (
                 'Load older updates'
@@ -155,14 +202,20 @@ interface PendingAcknowledgementsTrayProps {
   onAcknowledge: (post: CommunicationPost) => void | Promise<void>;
 }
 
-function PendingAcknowledgementsTray({ isLoading, items, onAcknowledge }: PendingAcknowledgementsTrayProps) {
+function PendingAcknowledgementsTray({
+  isLoading,
+  items,
+  onAcknowledge,
+}: PendingAcknowledgementsTrayProps) {
   if (isLoading) {
     return (
       <Card>
         <CardHeader className="flex-row items-center justify-between gap-3">
           <div>
             <CardTitle>Your required acknowledgements</CardTitle>
-            <CardDescription>We’re checking for pending updates…</CardDescription>
+            <CardDescription>
+              We&apos;re checking for pending updates...
+            </CardDescription>
           </div>
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         </CardHeader>
@@ -178,7 +231,9 @@ function PendingAcknowledgementsTray({ isLoading, items, onAcknowledge }: Pendin
     <Card>
       <CardHeader>
         <CardTitle>Your required acknowledgements</CardTitle>
-        <CardDescription>Review and confirm updates shared with your teams.</CardDescription>
+        <CardDescription>
+          Review and confirm updates shared with your teams.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {items.map(({ post }) => (
@@ -189,14 +244,20 @@ function PendingAcknowledgementsTray({ isLoading, items, onAcknowledge }: Pendin
             <div>
               <p className="font-medium text-foreground">{post.title}</p>
               <p className="text-sm text-muted-foreground">
-                {post.targetTeams.map((team) => team.name).join(', ')} • Shared by {post.author.givenName}{' '}
-                {post.author.familyName}
+                {post.targetTeams.map((team) => team.name).join(', ')} - Shared
+                by {post.author.givenName} {post.author.familyName}
               </p>
               {post.ackDueAt ? (
-                <p className="text-sm text-warning">Due by {new Date(post.ackDueAt).toLocaleDateString()}</p>
+                <p className="text-sm text-warning">
+                  Due by {new Date(post.ackDueAt).toLocaleDateString()}
+                </p>
               ) : null}
             </div>
-            <Button size="sm" onClick={() => onAcknowledge(post)} disabled={post.myAck?.acknowledged}>
+            <Button
+              size="sm"
+              onClick={() => onAcknowledge(post)}
+              disabled={post.myAck?.acknowledged}
+            >
               {post.myAck?.acknowledged ? 'Acknowledged' : 'Acknowledge'}
             </Button>
           </div>
