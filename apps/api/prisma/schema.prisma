@@ -11,6 +11,7 @@ enum RoleKey {
   SYSTEM_OWNER
   HR_BUSINESS_PARTNER
   MANAGER
+  SUPERVISOR
   EMPLOYEE
   AUDITOR
 }
@@ -82,6 +83,7 @@ model Tenant {
   generatedDocuments GeneratedDocument[]
   employments     Employment[]
   departments     Department[]
+  teams           Team[]
   positions       Position[]
   locations       Location[]
   leavePolicies   LeavePolicy[]
@@ -105,6 +107,8 @@ model Tenant {
   webhookEndpoints      WebhookEndpoint[]
   webhookDeliveries     WebhookDelivery[]
   notifications         Notification[]
+  communicationPosts    CommunicationPost[]
+  communicationRecipients CommunicationPostRecipient[]
   // Org structure
   orgUnits              OrgUnit[]
   // Positions workflow & admin
@@ -147,6 +151,13 @@ model User {
   givenName   String
   familyName  String
   roles       RoleKey[]
+  departmentId String?
+  department   Department?   @relation(fields: [departmentId], references: [id])
+  allowMultiTeamCommunication Boolean @default(false)
+  supervisorOf Team[]         @relation("SupervisorTeams")
+  teams      Team[]           @relation("TeamMembers")
+  posts      CommunicationPost[] @relation("AuthorPosts")
+  communicationRecipients CommunicationPostRecipient[]
   mfaEnabled  Boolean    @default(false)
   lastLoginAt DateTime?
   employees   Employee[]
@@ -185,12 +196,33 @@ model Department {
   status             DepartmentStatus   @default(ACTIVE)
   managerId          String?
   employees          Employee[]
+  teams              Team[]
+  users              User[]
+  communicationPosts CommunicationPost[]
   positions          Position[]
   positionIdCounter  PositionIdCounter?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
   @@index([tenantId, name])
+}
+
+model Team {
+  id           String        @id @default(cuid())
+  tenantId     String
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  name         String
+  description  String?
+  departmentId String
+  department   Department    @relation(fields: [departmentId], references: [id])
+  supervisors  User[]        @relation("SupervisorTeams")
+  members      User[]        @relation("TeamMembers")
+  posts        CommunicationPost[] @relation("PostTeams")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([tenantId, name])
+  @@index([tenantId, departmentId])
 }
 
 model Location {
@@ -972,6 +1004,50 @@ model Completion {
   completedAt DateTime  @default(now())
   score       Float?
   evidenceUrl String?
+}
+
+model CommunicationPost {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  authorId     String
+  author       User      @relation("AuthorPosts", fields: [authorId], references: [id])
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  title        String
+  body         String
+  attachments  Json?
+  mentions     Json?
+  requireAck   Boolean   @default(false)
+  ackDueAt     DateTime?
+  createdAt    DateTime  @default(now())
+  editedAt     DateTime?
+  deletedAt    DateTime?
+  lastEditedBy String?
+  targetTeams  Team[]    @relation("PostTeams")
+  recipients   CommunicationPostRecipient[]
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, deletedAt])
+}
+
+model CommunicationPostRecipient {
+  tenantId       String
+  tenant         Tenant             @relation(fields: [tenantId], references: [id])
+  postId         String
+  post           CommunicationPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teamIds        String[]           @default([])
+  acknowledged   Boolean            @default(false)
+  acknowledgedAt DateTime?
+  firstSeenAt    DateTime?
+  remindedAt     DateTime?
+
+  @@id([postId, userId])
+  @@index([tenantId, userId, acknowledged])
+  @@index([postId, acknowledged])
+  @@index([acknowledged, acknowledgedAt])
 }
 
 model Notification {

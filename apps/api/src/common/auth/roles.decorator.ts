@@ -7,6 +7,7 @@ export type AppRole =
   | 'FINANCE'
   | 'EXEC'
   | 'MANAGER'
+  | 'SUPERVISOR'
   | 'EMPLOYEE'
   | 'COMPLIANCE_OFFICER'
   | 'IT_ASSET_ADMIN'

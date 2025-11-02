@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import CommunicationFeed from './components/communication/CommunicationFeed';
 import {
   Badge,
   Button,
@@ -54,6 +55,8 @@ export default function DashboardPage() {
           </PageActions>
         }
       />
+
+      <CommunicationFeed />
 
       <StatGrid columns={4}>
         <KpiCard
