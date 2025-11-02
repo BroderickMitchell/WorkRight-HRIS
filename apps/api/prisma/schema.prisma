@@ -72,6 +72,10 @@ model Tenant {
   region          String          @default("ap-southeast-2")
   dataResidencyAU Boolean         @default(true)
   settings        Json
+  supportEmail    String?         @db.VarChar(255)
+  address         String?
+  timezone        String          @default("Australia/Sydney")
+  currency        String          @default("AUD")
   users           User[]
   employees       Employee[]
   employeeAddresses EmployeeAddress[]
@@ -81,6 +85,7 @@ model Tenant {
   employmentEvents EmploymentEvent[]
   documentTemplates DocumentTemplate[]
   generatedDocuments GeneratedDocument[]
+  documentTemplateRevisions DocumentTemplateRevision[]
   employments     Employment[]
   departments     Department[]
   teams           Team[]
@@ -688,14 +693,36 @@ model DocumentTemplate {
   tenant      Tenant          @relation(fields: [tenantId], references: [id])
   name        String
   description String?
+  category    String          @default("HR")
+  version     Int             @default(1)
+  isActive    Boolean         @default(true)
   format      DocumentFormat
   body        String
+  placeholders Json?
   createdBy   String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
+  revisions   DocumentTemplateRevision[]
   documents   GeneratedDocument[]
 
   @@unique([tenantId, name])
+  @@index([tenantId, category])
+}
+
+model DocumentTemplateRevision {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  templateId  String
+  template    DocumentTemplate @relation(fields: [templateId], references: [id])
+  version     Int
+  body        String
+  placeholders Json?
+  createdBy   String?
+  createdAt   DateTime @default(now())
+
+  @@unique([templateId, version])
+  @@index([tenantId, templateId])
 }
 
 model GeneratedDocument {
@@ -710,6 +737,11 @@ model GeneratedDocument {
   filename    String
   storageUrl  String
   payload     Json
+  data        Json?
+  status      String          @default("draft")
+  signed      Boolean         @default(false)
+  signedAt    DateTime?
+  signedBy    String?
   createdBy   String?
   createdAt   DateTime        @default(now())
 

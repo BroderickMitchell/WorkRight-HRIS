@@ -19,6 +19,8 @@ import { RecruitmentModule } from './recruitment/recruitment.module.js';
 import { AuditLogModule } from './auditlog/auditlog.module.js';
 import { EmployeeProfileModule } from './employee-profile/employee-profile.module.js';
 import { CommunicationsModule } from './communications/communications.module.js';
+import { DocumentsModule } from './documents/documents.module.js';
+import { TenantBrandingModule } from './tenant-branding/tenant-branding.module.js';
 import { PrismaModule } from '../common/prisma.module.js';
 import { TenantGuard } from '../common/tenant.guard.js';
 import { RolesGuard } from '../common/auth/roles.guard.js';
@@ -54,7 +56,9 @@ import { RedactionInterceptor } from '../common/security/redaction.interceptor.j
     RecruitmentModule,
     AuditLogModule,
     EmployeeProfileModule,
-    CommunicationsModule
+    CommunicationsModule,
+    DocumentsModule,
+    TenantBrandingModule
   ],
   controllers: [HealthController],
   providers: [

@@ -20,6 +20,30 @@ export class CreateTenantDto {
 
   @IsString()
   @IsOptional()
+  accentColor?: string;
+
+  @IsString()
+  @IsOptional()
+  surfaceColor?: string;
+
+  @IsEmail()
+  @IsOptional()
+  supportEmail?: string;
+
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @IsString()
+  @IsOptional()
+  timezone?: string;
+
+  @IsString()
+  @IsOptional()
+  currency?: string;
+
+  @IsString()
+  @IsOptional()
   locale?: string;
 }
 
