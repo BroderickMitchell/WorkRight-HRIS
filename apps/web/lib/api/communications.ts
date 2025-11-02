@@ -1,4 +1,4 @@
-import { apiDelete, apiFetch, apiPatch, apiPost } from './api';
+import { apiDelete, apiFetch, apiPatch, apiPost } from '../api';
 
 export interface CommunicationAttachment {
   url: string;
