@@ -43,7 +43,6 @@ services:
     environment:
       PORT: "3001"
       NODE_ENV: "production"
-      PRISMA_CLIENT_ENGINE_TYPE: "binary"
       DATABASE_URL: "postgresql://postgres:postgres@db:5432/workright?schema=public"
       REDIS_URL: "redis://redis:6379"
       S3_ENDPOINT: "http://minio:9000"
@@ -62,7 +61,7 @@ services:
       - redis
     ports:
       - "3001:3001"
-    command: ["node", "main.js"]
+    command: ["node", "deploy/api/main.js"]
 
   web:
     build:
@@ -76,7 +75,6 @@ services:
       - api
     ports:
       - "3000:3000"
-    command: ["node", "apps/web/server.js"]
 
 volumes:
   pgdata:
