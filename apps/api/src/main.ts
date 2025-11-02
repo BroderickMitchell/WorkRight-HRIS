@@ -4,56 +4,63 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './modules/app.module.js';
-import { PrismaService } from './common/prisma.service.js';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  // Logging
   const logger = new Logger('Bootstrap');
   app.useLogger(logger);
+
+  // Security headers
   app.use(helmet());
 
+  // Config
   const configService = app.get(ConfigService);
   const demoMode = configService.get<boolean>('demoMode') ?? false;
   const allowedOrigins = configService.get<string[]>('security.allowedOrigins') ?? [];
   const corsAllowList: Array<string | RegExp> =
     allowedOrigins.length > 0 ? allowedOrigins : [/^https?:\/\/localhost:\d+$/];
 
+  // CORS with allow-list
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin) {
-        return callback(null, true);
-      }
+      if (!origin) return callback(null, true);
       const permitted = corsAllowList.some((entry) =>
         entry instanceof RegExp ? entry.test(origin) : entry === origin
       );
-      if (permitted) {
-        return callback(null, true);
-      }
-      return callback(new Error(`CORS origin not allowed: ${origin}`), false);
+      return permitted
+        ? callback(null, true)
+        : callback(new Error(`CORS origin not allowed: ${origin}`), false);
     },
-    credentials: true
+    credentials: true,
   });
+
+  // Global validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      transformOptions: { enableImplicitConversion: true }
+      transformOptions: { enableImplicitConversion: true },
     })
   );
+
+  // API prefix (keep /health unprefixed)
   app.setGlobalPrefix('v1', { exclude: ['health'] });
 
-  const config = new DocumentBuilder()
+  // Swagger
+  const swaggerConfig = new DocumentBuilder()
     .setTitle('WorkRight HRIS API')
     .setDescription('Versioned API for WorkRight HRIS tenants')
     .setVersion('1.0.0')
     .addBearerAuth()
     .build();
-
-  const document = SwaggerModule.createDocument(app, config);
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document);
 
+  // Auth guard (only when not in demo mode)
   if (demoMode) {
     logger.warn('API running with DEMO_MODE enabled. Header-based tenant and role overrides are accepted.');
   } else {
@@ -61,11 +68,11 @@ async function bootstrap() {
     app.useGlobalGuards(jwtGuard);
   }
 
-  const prismaService = app.get(PrismaService);
-  await prismaService.enableShutdownHooks(app);
+  // ✅ Let Nest handle SIGINT/SIGTERM and call OnModuleDestroy on providers (e.g. PrismaService)
+  app.enableShutdownHooks();
 
-  const port = process.env.PORT || 3001;
-  await app.listen(port);
+  const port = Number(process.env.PORT ?? 3001);
+  await app.listen(port, '0.0.0.0');
   logger.log(`API listening on http://localhost:${port}`);
 }
 

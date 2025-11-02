@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "@types/node": "20.14.11",
+    "picocolors": "1.1.1",
     "prettier": "^3.1.1",
     "tsup": "8.5.0",
     "typescript": "^5.9.0",
