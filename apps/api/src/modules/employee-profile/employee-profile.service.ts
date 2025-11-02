@@ -80,6 +80,9 @@ export class EmployeeProfileService {
   }
 
   async getEmployeeProfile(id: string): Promise<EmployeeProfilePayload> {
+    const tenantId = this.cls.get('tenantId');
+    if (!tenantId) throw new BadRequestException('Tenant context missing');
+
     const employee = (await this.prisma.employee.findFirst({
       where: { id },
       include: {
@@ -118,7 +121,10 @@ export class EmployeeProfileService {
       throw new NotFoundException('Employee not found');
     }
 
-    const templates = await this.prisma.documentTemplate.findMany({ orderBy: { name: 'asc' } });
+    const templates = await this.prisma.documentTemplate.findMany({
+      where: { tenantId, isActive: true },
+      orderBy: [{ category: 'asc' }, { name: 'asc' }]
+    });
     const employment = employee.employments[0];
     const primaryAddress = employee.addresses.find(
       (addr: EmployeeAddressRecord) => addr.type === 'PRIMARY'
@@ -162,7 +168,11 @@ export class EmployeeProfileService {
       filename: doc.filename,
       storageUrl: doc.storageUrl,
       createdAt: doc.createdAt.toISOString(),
-      createdBy: doc.createdBy ?? null
+      createdBy: doc.createdBy ?? null,
+      status: doc.status,
+      signed: doc.signed,
+      signedAt: doc.signedAt ? doc.signedAt.toISOString() : null,
+      signedBy: doc.signedBy ?? null
     }));
 
     const permissions = this.resolvePermissions();
@@ -318,9 +328,21 @@ export class EmployeeProfileService {
         templates: templates.map((template: DocumentTemplateRecord) => ({
           id: template.id,
           name: template.name,
-          format: template.format,
           description: template.description ?? null,
-          lastUpdatedAt: template.updatedAt.toISOString()
+          format: template.format,
+          category: template.category,
+          version: template.version,
+          isActive: template.isActive,
+          placeholders: Array.isArray(template.placeholders)
+            ? (template.placeholders as Array<Record<string, unknown>>).map((field) => ({
+                key: String(field.key ?? ''),
+                label: String(field.label ?? field.key ?? ''),
+                description: field.description ? String(field.description) : null,
+                required: Boolean(field.required ?? false)
+              }))
+            : [],
+          lastUpdatedAt: template.updatedAt.toISOString(),
+          createdBy: template.createdBy ?? null
         }))
       },
       permissions
@@ -573,6 +595,9 @@ export class EmployeeProfileService {
         filename: artifact.filename,
         storageUrl: '',
         payload: asJson({ path: artifact.filename, merge }),
+        data: asJson(input.mergeFields ?? {}),
+        status: 'issued',
+        signed: false,
         createdBy: this.cls.get('actorId') ?? 'system'
       }
     });
@@ -598,7 +623,11 @@ export class EmployeeProfileService {
       filename: updated.filename,
       storageUrl: updated.storageUrl,
       createdAt: updated.createdAt.toISOString(),
-      createdBy: updated.createdBy ?? null
+      createdBy: updated.createdBy ?? null,
+      status: updated.status,
+      signed: updated.signed,
+      signedAt: updated.signedAt ? updated.signedAt.toISOString() : null,
+      signedBy: updated.signedBy ?? null
     });
   }
 
@@ -618,7 +647,11 @@ export class EmployeeProfileService {
         filename: doc.filename,
         storageUrl: doc.storageUrl,
         createdAt: doc.createdAt.toISOString(),
-        createdBy: doc.createdBy ?? null
+        createdBy: doc.createdBy ?? null,
+        status: doc.status,
+        signed: doc.signed,
+        signedAt: doc.signedAt ? doc.signedAt.toISOString() : null,
+        signedBy: doc.signedBy ?? null
       })
     );
   }
