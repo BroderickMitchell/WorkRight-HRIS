@@ -1,15 +1,19 @@
 import { INestApplication, Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
-// IMPORTANT: Prisma 5+ (library engine) does not support prisma.$on('beforeExit').
-// We bind to process signals instead.
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit {
   async onModuleInit() {
     await this.$connect();
   }
 
-  async enableShutdownHooks(app: INestApplication) {
+  enableShutdownHooks(app: INestApplication) {
+    const FLAG = '__WR_PRISMA_SHUTDOWN_HOOKS__';
+    // @ts-ignore
+    if ((global as any)[FLAG]) return;
+    // @ts-ignore
+    (global as any)[FLAG] = true;
+
     const shutdown = async () => {
       try {
         await this.$disconnect();
@@ -18,12 +22,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
       }
     };
 
-    // These are safe and supported
-    process.on('SIGINT', shutdown);
-    process.on('SIGTERM', shutdown);
-
-    // Use Node's beforeExit instead of prisma.$on('beforeExit')
-    process.on('beforeExit', async () => {
+    process.once('SIGINT', shutdown);
+    process.once('SIGTERM', shutdown);
+    process.once('beforeExit', async () => {
       await this.$disconnect();
     });
   }

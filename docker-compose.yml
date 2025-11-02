@@ -61,7 +61,8 @@ services:
       - redis
     ports:
       - "3001:3001"
-    command: ["node", "dist/main.js"]
+    # Do NOT override with dist/main.js — the Dockerfile CMD runs /app/main.js
+  
 
   web:
     build:
