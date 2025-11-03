@@ -4,8 +4,7 @@ services:
     restart: unless-stopped
     env_file:
       - .env.docker
-    ports:
-      - "5432:5432"
+    ports: ["5432:5432"]
     volumes:
       - pgdata:/var/lib/postgresql/data
     command: ["postgres", "-c", "shared_preload_libraries=pgcrypto"]
@@ -13,8 +12,7 @@ services:
   redis:
     image: redis:7
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    ports: ["6379:6379"]
 
   minio:
     image: minio/minio:latest
@@ -22,17 +20,13 @@ services:
     environment:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: minio123
-    ports:
-      - "9000:9000"
-      - "9001:9001"
+    ports: ["9000:9000", "9001:9001"]
     volumes:
       - minio-data:/data
 
   mailhog:
     image: mailhog/mailhog:latest
-    ports:
-      - "1025:1025"
-      - "8025:8025"
+    ports: ["1025:1025", "8025:8025"]
 
   api:
     build:
@@ -61,8 +55,6 @@ services:
       - redis
     ports:
       - "3001:3001"
-    # Do NOT override with dist/main.js — the Dockerfile CMD runs /app/main.js
-  
 
   web:
     build:
@@ -72,10 +64,8 @@ services:
     env_file: ./apps/web/.env
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3001
-    depends_on:
-      - api
-    ports:
-      - "3000:3000"
+    depends_on: [api]
+    ports: ["3000:3000"]
 
 volumes:
   pgdata:
