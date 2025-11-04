@@ -21,11 +21,8 @@ RUN apt-get update \
 FROM base AS deps
 
 COPY package.json pnpm-workspace.yaml ./
-
-RUN --mount=type=bind,source=.,target=/tmp/context,ro \
-  if [ -f /tmp/context/pnpm-lock.yaml ]; then \
-    cp /tmp/context/pnpm-lock.yaml ./pnpm-lock.yaml; \
-  fi
+# To leverage the workspace lockfile, copy it into /app (e.g. add "COPY pnpm-lock.yaml ./")
+# prior to this stage. BuildKit-specific mounts were removed to support classic builders.
 COPY apps/web/package.json apps/web/
 COPY packages/config/package.json packages/config/
 COPY packages/profile-schema/package.json packages/profile-schema/
