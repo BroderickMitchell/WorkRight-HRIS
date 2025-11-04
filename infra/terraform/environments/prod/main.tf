@@ -5,6 +5,10 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 5.32"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
   }
 }
 
@@ -104,8 +108,12 @@ resource "google_sql_user" "app" {
   password = var.db_password
 }
 
+resource "random_id" "attachments_suffix" {
+  byte_length = 4
+}
+
 resource "google_storage_bucket" "attachments" {
-  name          = "${var.project}-attachments"
+  name          = "${var.project}-attachments-${random_id.attachments_suffix.hex}"
   location      = var.region
   project       = var.project_id
   force_destroy = false
