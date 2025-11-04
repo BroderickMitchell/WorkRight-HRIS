@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.6
+
 # ---------- base: deps ----------
 FROM node:20-bullseye-slim AS base
 WORKDIR /app
@@ -12,8 +14,13 @@ RUN apt-get update \
 
 # Workspace metadata (cache-friendly)
 COPY pnpm-workspace.yaml package.json ./
-COPY pnpm-lock.yaml* ./
 COPY tsconfig.base.json ./
+
+# Optionally copy the workspace lockfile when present
+RUN --mount=type=bind,source=pnpm-lock.yaml,target=/tmp/pnpm-lock.yaml,required=false \
+  if [ -f /tmp/pnpm-lock.yaml ]; then \
+    cp /tmp/pnpm-lock.yaml ./pnpm-lock.yaml; \
+  fi
 
 # Package manifests (for workspace install)
 COPY apps/api/package.json apps/api/
