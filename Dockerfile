@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.6
+# syntax=docker/dockerfile:1.7
 
 # ---------- base: deps ----------
 FROM node:20-bullseye-slim AS base

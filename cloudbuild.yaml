@@ -1,0 +1,15 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    id: Build
+    env:
+      - DOCKER_BUILDKIT=1
+      - COMPOSE_DOCKER_CLI_BUILD=1
+    args:
+      - build
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/workright-hris:$(date +%Y%m%d-%H%M%S)'
+      - '-f'
+      - 'Dockerfile'
+      - '.'
+images:
+  - 'gcr.io/$PROJECT_ID/workright-hris:$(date +%Y%m%d-%H%M%S)'
