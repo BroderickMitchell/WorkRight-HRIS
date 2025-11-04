@@ -17,9 +17,9 @@ COPY pnpm-workspace.yaml package.json ./
 COPY tsconfig.base.json ./
 
 # Optionally copy the workspace lockfile when present
-RUN --mount=type=bind,source=pnpm-lock.yaml,target=/tmp/pnpm-lock.yaml,required=false \
-  if [ -f /tmp/pnpm-lock.yaml ]; then \
-    cp /tmp/pnpm-lock.yaml ./pnpm-lock.yaml; \
+RUN --mount=type=bind,source=.,target=/tmp/context,ro \
+  if [ -f /tmp/context/pnpm-lock.yaml ]; then \
+    cp /tmp/context/pnpm-lock.yaml ./pnpm-lock.yaml; \
   fi
 
 # Package manifests (for workspace install)

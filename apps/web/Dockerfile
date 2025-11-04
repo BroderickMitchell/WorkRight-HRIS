@@ -22,9 +22,9 @@ FROM base AS deps
 
 COPY package.json pnpm-workspace.yaml ./
 
-RUN --mount=type=bind,source=pnpm-lock.yaml,target=/tmp/pnpm-lock.yaml,required=false \
-  if [ -f /tmp/pnpm-lock.yaml ]; then \
-    cp /tmp/pnpm-lock.yaml ./pnpm-lock.yaml; \
+RUN --mount=type=bind,source=.,target=/tmp/context,ro \
+  if [ -f /tmp/context/pnpm-lock.yaml ]; then \
+    cp /tmp/context/pnpm-lock.yaml ./pnpm-lock.yaml; \
   fi
 COPY apps/web/package.json apps/web/
 COPY packages/config/package.json packages/config/
