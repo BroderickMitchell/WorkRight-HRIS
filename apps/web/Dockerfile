@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1.6
 
 FROM node:24.11.0-bullseye-slim AS base
 
@@ -21,7 +21,11 @@ RUN apt-get update \
 FROM base AS deps
 
 COPY package.json pnpm-workspace.yaml ./
-COPY pnpm-lock.yaml* ./
+
+RUN --mount=type=bind,source=pnpm-lock.yaml,target=/tmp/pnpm-lock.yaml,required=false \
+  if [ -f /tmp/pnpm-lock.yaml ]; then \
+    cp /tmp/pnpm-lock.yaml ./pnpm-lock.yaml; \
+  fi
 COPY apps/web/package.json apps/web/
 COPY packages/config/package.json packages/config/
 COPY packages/profile-schema/package.json packages/profile-schema/
