@@ -5,7 +5,7 @@ This repository now includes first-class Terraform support for deploying the Wor
 The stack provisions:
 
 - **Networking:** a dedicated VPC with separate public and private subnets, suitable for placing a public web tier, a middle-tier API, and privately addressed services.
-- **Platform services:** Cloud SQL for PostgreSQL with private service networking, automated backups, and Query Insights enabled, plus a regional Cloud Storage bucket for binary attachments.
+- **Platform services:** Cloud SQL for PostgreSQL with private service networking, automated backups, and Query Insights enabled, plus a regional Cloud Storage bucket for binary attachments (names are randomized so they are globally unique).
 - **Foundational services:** required Google APIs (Compute, Cloud SQL Admin, Service Networking, and Cloud Run) are enabled automatically so that application workloads can attach to the shared infrastructure.
 
 ## Prerequisites
