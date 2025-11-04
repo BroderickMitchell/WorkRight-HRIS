@@ -16,11 +16,8 @@ RUN apt-get update \
 COPY pnpm-workspace.yaml package.json ./
 COPY tsconfig.base.json ./
 
-# Optionally copy the workspace lockfile when present
-RUN --mount=type=bind,source=.,target=/tmp/context,ro \
-  if [ -f /tmp/context/pnpm-lock.yaml ]; then \
-    cp /tmp/context/pnpm-lock.yaml ./pnpm-lock.yaml; \
-  fi
+# To leverage the workspace lockfile, copy it into /app (e.g. add "COPY pnpm-lock.yaml ./")
+# prior to this stage. BuildKit-specific mounts were removed to support classic builders.
 
 # Package manifests (for workspace install)
 COPY apps/api/package.json apps/api/
