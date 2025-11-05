@@ -2,11 +2,43 @@ import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { PrismaClient } from '@prisma/client';
 import helmet from 'helmet';
 import { AppModule } from './modules/app.module.js';
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard.js';
 
+const DATABASE_URL = process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  console.error('DATABASE_URL missing');
+  process.exit(1);
+}
+
+const prisma = new PrismaClient();
+
+async function smokeTestDatabase() {
+  try {
+    const result = await prisma.$queryRawUnsafe<{ now: Date }[]>(
+      'SELECT NOW() as now'
+    );
+    console.log('DB OK, NOW() =', result?.[0]?.now);
+  } catch (err) {
+    console.error('DB connection failed:', err);
+    throw err;
+  } finally {
+    await prisma.$disconnect().catch((disconnectError) => {
+      console.error('Failed to disconnect Prisma after smoke test:', disconnectError);
+    });
+  }
+}
+
 async function bootstrap() {
+  try {
+    await smokeTestDatabase();
+  } catch {
+    process.exit(1);
+  }
+
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   // Logging
@@ -71,7 +103,7 @@ async function bootstrap() {
   // ✅ Let Nest handle SIGINT/SIGTERM and call OnModuleDestroy on providers (e.g. PrismaService)
   app.enableShutdownHooks();
 
-  const port = Number(process.env.PORT ?? 3001);
+  const port = Number(process.env.PORT ?? 8080);
   await app.listen(port, '0.0.0.0');
   logger.log(`API listening on http://localhost:${port}`);
 }

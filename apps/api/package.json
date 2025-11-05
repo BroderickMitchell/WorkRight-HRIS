@@ -6,7 +6,8 @@
     "prebuild": "pnpm run prisma:generate",
     "postinstall": "pnpm run postinstall:bootstrap && pnpm run prisma:generate",
     "postinstall:bootstrap": "node -e \"const fs=require('fs');const path=require('path');const {execFileSync}=require('child_process');const script=path.resolve(process.cwd(),'..','..','scripts','bootstrap-env.mjs');if(fs.existsSync(script)){execFileSync('node',[script],{stdio:'inherit'});}else{console.log('Skipping bootstrap-env setup (scripts/bootstrap-env.mjs not found).');}\"",
-    "start": "main.js",
+    "prestart": "prisma migrate deploy",
+    "start": "node dist/main.js",
     "start:dev": "nest start --watch",
     "build": "nest build",
     "lint": "eslint src --ext .ts",
@@ -74,6 +75,6 @@
     "zod": "^3.22.4"
   },
   "prisma": {
-  "seed": "tsx prisma/seed.ts"
-}
+    "seed": "tsx prisma/seed.ts"
   }
+}

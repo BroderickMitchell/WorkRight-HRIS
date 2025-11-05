@@ -1,15 +1,31 @@
 steps:
-  - name: gcr.io/cloud-builders/docker
-    id: Build
-    env:
-      - DOCKER_BUILDKIT=1
-      - COMPOSE_DOCKER_CLI_BUILD=1
+  - name: gcr.io/cloud-builders/gcloud
+    entrypoint: bash
     args:
-      - build
-      - '-t'
-      - 'gcr.io/$PROJECT_ID/workright-hris:$(date +%Y%m%d-%H%M%S)'
-      - '-f'
-      - 'Dockerfile'
-      - '.'
+      - -lc
+      - |
+        gcloud builds submit --tag gcr.io/$PROJECT_ID/workright-api:latest .
+
+  - name: gcr.io/cloud-builders/gcloud
+    args:
+      - run
+      - deploy
+      - workright-api
+      - --image=gcr.io/$PROJECT_ID/workright-api:latest
+      - --region=${_REGION}
+      - --service-account=${_SERVICE_ACCOUNT}
+      - --platform=managed
+      - --allow-unauthenticated
+      - --port=8080
+      - --set-env-vars=DB_NAME=${_DB_NAME},DB_USER=${_DB_USER},INSTANCE_CONNECTION_NAME=${_INSTANCE_CONNECTION_NAME}
+      - --set-env-vars=DATABASE_URL=postgresql://${_DB_USER}:$$DB_PASSWORD@/${_DB_NAME}?host=/cloudsql/${_INSTANCE_CONNECTION_NAME}&schema=public
+      - --set-secrets=DB_PASSWORD=DB_PASSWORD:latest
+      - --add-cloudsql-instances=${_INSTANCE_CONNECTION_NAME}
+substitutions:
+  _REGION: australia-southeast1
+  _SERVICE_ACCOUNT: workright-runner@workright-hris.iam.gserviceaccount.com
+  _INSTANCE_CONNECTION_NAME: workright-hris:australia-southeast1:hris-db-7937
+  _DB_NAME: workrightdb
+  _DB_USER: appuser
 images:
-  - 'gcr.io/$PROJECT_ID/workright-hris:$(date +%Y%m%d-%H%M%S)'
+  - gcr.io/$PROJECT_ID/workright-api:latest
