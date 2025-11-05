@@ -74,7 +74,7 @@ COPY --from=build /app/apps/api/dist ./dist
 COPY --from=build /app/apps/api/prisma ./apps/api/prisma
 
 ENV NODE_ENV=production
-EXPOSE 3001
+EXPOSE 8080
 
 # Verify the entry exists at build time (fail early if not)
 RUN test -f /app/dist/main.js || (echo "dist/main.js missing!" && ls -la /app/dist && exit 1)
