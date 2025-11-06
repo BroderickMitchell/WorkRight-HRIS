@@ -246,6 +246,35 @@ model Location {
   rooms             Room[]
 }
 
+model LegalEntity {
+  id        String       @id @default(cuid())
+  tenantId  String
+  tenant    Tenant       @relation(fields: [tenantId], references: [id])
+  name      String
+  parentId  String?
+  parent    LegalEntity? @relation("LegalEntityHierarchy", fields: [parentId], references: [id])
+  children  LegalEntity[] @relation("LegalEntityHierarchy")
+  employments Employment[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([tenantId, name])
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, isActive])
+  @@unique([tenantId, name])
+}
+
 enum DepartmentStatus {
   ACTIVE
   INACTIVE
@@ -435,6 +464,56 @@ enum ApplicationStage {
   UNSUCCESSFUL
 }
 
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum WorkflowVersionStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum WorkflowRunStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum WorkflowNodeRunStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+  SKIPPED
+  FAILED
+}
+
+enum WorkflowNodeType {
+  TASK           @map("task")
+  FORM           @map("form")
+  COURSE         @map("course")
+  EMAIL          @map("email")
+  PROFILE_TASK   @map("profile_task")
+  SURVEY         @map("survey")
+  CONDITION      @map("condition")
+  DUMMY_TASK     @map("dummy_task")
+}
+
+enum WorkflowAssignmentMode {
+  ASSIGNEE          @map("assignee")
+  ASSIGNEE_MANAGER  @map("assignee_manager")
+  USER              @map("user")
+  GROUP             @map("group")
+}
+
+enum FieldMapSource {
+  PROFILE           @map("profile")
+  EMAIL_PLACEHOLDER @map("email_placeholder")
+  EXTERNAL          @map("external")
+}
+
 model Application {
   id                         String                 @id @default(cuid())
   tenantId                   String
@@ -494,6 +573,211 @@ model OnboardingTask {
   completedAt   DateTime?
   assignee      String
   attachments   Json?
+}
+
+model TaskTemplate {
+  id                   String   @id @default(cuid())
+  tenantId             String
+  tenant               Tenant   @relation(fields: [tenantId], references: [id])
+  name                 String
+  description          String?
+  defaultNotifications Json?
+  defaultDueRules      Json?
+  createdById          String
+  createdBy            User     @relation("TaskTemplateCreatedBy", fields: [createdById], references: [id])
+  updatedById          String?
+  updatedBy            User?    @relation("TaskTemplateUpdatedBy", fields: [updatedById], references: [id])
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([tenantId, isActive])
+}
+
+model FormTemplate {
+  id             String   @id @default(cuid())
+  tenantId       String
+  tenant         Tenant   @relation(fields: [tenantId], references: [id])
+  name           String
+  schema         Json
+  notifications  Json?
+  version        Int      @default(1)
+  publishState   String   @default("draft")
+  createdById    String
+  createdBy      User     @relation("FormTemplateCreatedBy", fields: [createdById], references: [id])
+  updatedById    String?
+  updatedBy      User?    @relation("FormTemplateUpdatedBy", fields: [updatedById], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tenantId, publishState])
+}
+
+model EmailTemplate {
+  id             String    @id @default(cuid())
+  tenantId       String
+  tenant         Tenant    @relation(fields: [tenantId], references: [id])
+  name           String
+  subject        String
+  bodyHtml       String
+  placeholders   String[]  @default([])
+  attachments    Json?
+  scheduleRules  Json?
+  createdById    String
+  createdBy      User      @relation("EmailTemplateCreatedBy", fields: [createdById], references: [id])
+  updatedById    String?
+  updatedBy      User?     @relation("EmailTemplateUpdatedBy", fields: [updatedById], references: [id])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([tenantId, name])
+}
+
+model ProfileTaskTemplate {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  name         String
+  sections     String[] @default([])
+  countryScope String[] @default([])
+  createdById  String
+  createdBy    User     @relation("ProfileTaskTemplateCreatedBy", fields: [createdById], references: [id])
+  updatedById  String?
+  updatedBy    User?    @relation("ProfileTaskTemplateUpdatedBy", fields: [updatedById], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tenantId, name])
+}
+
+model Survey {
+  id                String   @id @default(cuid())
+  tenantId          String
+  tenant            Tenant   @relation(fields: [tenantId], references: [id])
+  name              String
+  collectors        Json?
+  enabledCollectors Json?   // { onboarding_workflow: boolean }
+  isArchived        Boolean @default(false)
+  createdById       String
+  createdBy         User     @relation("SurveyCreatedBy", fields: [createdById], references: [id])
+  updatedById       String?
+  updatedBy         User?    @relation("SurveyUpdatedBy", fields: [updatedById], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([tenantId, isArchived])
+}
+
+model FieldMap {
+  id         String         @id @default(cuid())
+  tenantId   String
+  tenant     Tenant         @relation(fields: [tenantId], references: [id])
+  source     FieldMapSource
+  sourceKey  String
+  targetPath String
+  transform  String?
+  required   Boolean        @default(false)
+  fallback   String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@unique([tenantId, source, sourceKey])
+  @@index([tenantId, source])
+}
+
+model Workflow {
+  id              String          @id @default(cuid())
+  tenantId        String
+  tenant          Tenant          @relation(fields: [tenantId], references: [id])
+  name            String
+  status          WorkflowStatus  @default(DRAFT)
+  currentVersion  Int             @default(0)
+  activeVersionId String?
+  activeVersion   WorkflowVersion? @relation("WorkflowActiveVersion", fields: [activeVersionId], references: [id])
+  draftVersionId  String?
+  draftVersion    WorkflowVersion? @relation("WorkflowDraftVersion", fields: [draftVersionId], references: [id])
+  createdById     String
+  createdBy       User            @relation("WorkflowCreatedBy", fields: [createdById], references: [id])
+  updatedById     String?
+  updatedBy       User?           @relation("WorkflowUpdatedBy", fields: [updatedById], references: [id])
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  versions        WorkflowVersion[]
+  runs            WorkflowRun[]
+
+  @@index([tenantId, status])
+  @@index([tenantId, name])
+}
+
+model WorkflowVersion {
+  id            String                 @id @default(cuid())
+  workflowId    String
+  workflow      Workflow               @relation(fields: [workflowId], references: [id])
+  versionNumber Int
+  status        WorkflowVersionStatus  @default(DRAFT)
+  graph         Json
+  metadata      Json?
+  createdById   String
+  createdBy     User                   @relation("WorkflowVersionCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime               @default(now())
+  publishedAt   DateTime?
+  runs          WorkflowRun[]
+  activeFor     Workflow?              @relation("WorkflowActiveVersion")
+  draftFor      Workflow?              @relation("WorkflowDraftVersion")
+
+  @@unique([workflowId, versionNumber])
+}
+
+model WorkflowRun {
+  id                 String            @id @default(cuid())
+  tenantId           String
+  tenant             Tenant            @relation(fields: [tenantId], references: [id])
+  workflowId         String
+  workflow           Workflow          @relation(fields: [workflowId], references: [id])
+  workflowVersionId  String
+  workflowVersion    WorkflowVersion   @relation(fields: [workflowVersionId], references: [id])
+  assigneeUserId     String
+  assigneeUser       User              @relation("WorkflowRunAssignee", fields: [assigneeUserId], references: [id])
+  startDate          DateTime
+  endDate            DateTime?
+  status             WorkflowRunStatus @default(ACTIVE)
+  createdAt          DateTime          @default(now())
+  createdById        String
+  createdBy          User              @relation("WorkflowRunCreatedBy", fields: [createdById], references: [id])
+  cancelledAt        DateTime?
+  cancelledById      String?
+  cancelledBy        User?             @relation("WorkflowRunCancelledBy", fields: [cancelledById], references: [id])
+  metadata           Json?
+  nodeRuns           NodeRun[]
+
+  @@index([tenantId, workflowId])
+  @@index([tenantId, status])
+}
+
+model NodeRun {
+  id              String                 @id @default(cuid())
+  tenantId        String
+  tenant          Tenant                 @relation(fields: [tenantId], references: [id])
+  runId           String
+  run             WorkflowRun            @relation(fields: [runId], references: [id])
+  nodeId          String
+  nodeType        WorkflowNodeType
+  status          WorkflowNodeRunStatus  @default(PENDING)
+  assignmentMode  WorkflowAssignmentMode
+  assignmentId    String?
+  dueAt           DateTime?
+  scheduledAt     DateTime?
+  activatedAt     DateTime?
+  completedAt     DateTime?
+  failedAt        DateTime?
+  metadata        Json?
+  orderIndex      Int?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([tenantId, status])
+  @@index([tenantId, scheduledAt])
+  @@index([runId, nodeId])
 }
 
 model RejectionReason {
@@ -754,6 +1038,8 @@ model Employment {
   tenant       Tenant    @relation(fields: [tenantId], references: [id])
   employeeId   String
   employee     Employee  @relation(fields: [employeeId], references: [id])
+  legalEntityId String?
+  legalEntity   LegalEntity? @relation(fields: [legalEntityId], references: [id])
   startDate    DateTime
   endDate      DateTime?
   contractType String
@@ -772,6 +1058,8 @@ model Employment {
   stockPlan    String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  @@index([tenantId, legalEntityId])
 }
 
 model Goal {
