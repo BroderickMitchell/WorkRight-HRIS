@@ -524,7 +524,7 @@ components:
             suffix: { type: string, nullable: true }
         preferredName: { type: string, nullable: true }
         pronouns: { type: string, nullable: true }
-        dateOfBirth: { type: string, format: date-time }
+        dateOfBirth: { type: string, format: date-time, nullable: true }
         nationalIdentifiers:
           type: array
           items:

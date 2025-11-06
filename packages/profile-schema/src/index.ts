@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+const isoDateString = z
+  .string()
+  .refine((value) => !Number.isNaN(Date.parse(value)), {
+    message: 'Invalid date'
+  });
+
 export const costCodeTypeSchema = z.enum(['COST_CENTER', 'GL', 'PROJECT', 'WORKTAG']);
 export type CostCodeType = z.infer<typeof costCodeTypeSchema>;
 
@@ -72,7 +78,7 @@ export const employeePersonalSchema = z.object({
   }),
   preferredName: z.string().optional().nullable(),
   pronouns: z.string().optional().nullable(),
-  dateOfBirth: z.string(),
+  dateOfBirth: isoDateString.nullable(),
   nationalIdentifiers: z.array(
     z.object({
       id: z.string(),

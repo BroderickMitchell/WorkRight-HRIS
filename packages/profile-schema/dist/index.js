@@ -56,6 +56,9 @@ __export(index_exports, {
 });
 module.exports = __toCommonJS(index_exports);
 var import_zod = require("zod");
+var isoDateString = import_zod.z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
+  message: "Invalid date"
+});
 var costCodeTypeSchema = import_zod.z.enum(["COST_CENTER", "GL", "PROJECT", "WORKTAG"]);
 var employmentEventTypeSchema = import_zod.z.enum([
   "HIRE",
@@ -110,7 +113,7 @@ var employeePersonalSchema = import_zod.z.object({
   }),
   preferredName: import_zod.z.string().optional().nullable(),
   pronouns: import_zod.z.string().optional().nullable(),
-  dateOfBirth: import_zod.z.string(),
+  dateOfBirth: isoDateString.nullable(),
   nationalIdentifiers: import_zod.z.array(
     import_zod.z.object({
       id: import_zod.z.string(),

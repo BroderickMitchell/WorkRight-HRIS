@@ -1,0 +1,43 @@
+# Employee Field Alignment Report
+
+## Scope and approach
+- Reviewed Prisma models under `apps/api/prisma/schema.prisma` for every employee-related entity (identity, employment, payroll, time, documents, recruitment, communication).
+- Cross-referenced API assembly in `apps/api/src/modules/employee-profile/employee-profile.service.ts` and supporting modules such as payroll services and onboarding workflows.
+- Audited frontend App Router components in `apps/web/components/employee` and dashboard/settings pages for forms collecting or displaying employee data.
+- Confirmed shared validation contracts in `packages/profile-schema` and generated OpenAPI types in `apps/api/openapi.yaml`.
+
+## Field alignment matrix
+| Field | Backend model(s) | API payload(s) | UI surface(s) | Issue(s) | Recommendation |
+| --- | --- | --- | --- | --- | --- |
+| `givenName` / `familyName` | `Employee` model persists `givenName`, `middleName`, `familyName`, `nameSuffix`. | Profile service exports as `personal.legalName.first/middle/last/suffix`. | Personal info card collects `firstName`, `middleName`, `lastName`, `suffix`. | Different naming across layers requires manual mapping helpers. | Continue using shared mapper in `PersonalInfoCard` and document mapping in shared schema utilities. |
+| `employeeNumber` | Optional identifier on `Employee`. | Returned in profile `employee.employeeNumber`. | Not displayed/editable in profile UI. | Hidden identifier can drift or be unknown to admins. | Surface as read-only badge in `ProfileHeader` and include in onboarding summary. |
+| `dateOfBirth` | Nullable `DateTime` on `Employee`. | Previously coerced to Unix epoch when missing; now returned as nullable string. | Personal info form now accepts empty DOB, trims and validates when provided. | Prior mismatch forced invalid epoch date to appear in UI. | Maintain nullable handling in schema/service and ensure downstream exports (PDF, history) accept `null`. |
+| `nationalIdentifiers` | JSON array on `Employee`. | Exposed read-only via `personal.nationalIdentifiers`. | Displayed read-only in personal card. | Users cannot add/edit despite schema support. | Extend UI with editable repeater when compliance allows, reuse schema array validation. |
+| `managerId` | Self-relation on `Employee`; `Position` also links to managers through assignments. | Profile payload returns resolved manager name/id. | Job card shows read-only manager badge. | No UI affordance to change manager even though backend supports relation. | Add manager selector referencing `/directory/managers` endpoint and update job service to persist `managerId`. |
+| `departmentId` | Stored on `Employee` *and* `Position`. | API returns `job.department` derived from whichever side populated. | Job form cannot edit department directly (read-only). | Dual storage risks divergence between employee and position records. | Treat `departmentId` as derived from position; enforce sync via transaction or remove direct `employee.departmentId`. |
+| `positionId` | FK on `Employee` referencing `Position`. | Profile payload returns `employee.positionId` and `job.positionId`. | Job form allows editing raw ID. | Editing raw ID lacks lookup context and fails to update department/org-unit cascade. | Replace free-text `positionId` input with async select listing positions. |
+| `baseRateCents` vs `baseSalary.amount` | Payroll `PayProfile` stores hourly cents; `Employment` stores decimal salary and allowances. | Payroll APIs consume `baseRateCents`; profile payload exposes `compensation.baseSalary.amount`. | Compensation card edits decimal amount, payroll settings form edits cents. | Two canonical pay sources easily drift, `payType` unused. | Consolidate pay rate inside employment profile payload and use single update service to write both tables. |
+| `overtimeEligible` / `exempt` / `benefitsEligible` | Flags stored on `Employee`. | Profile payload exposes booleans in `timeAndEligibility`. | Time & eligibility card toggles booleans. | Duplicated `exempt` state also managed under job form, risking inconsistent toggles. | Keep single toggle source (time card) and remove redundant job form field or ensure shared mutation. |
+| `locationId` | `Employee` has FK and roster assignment stores optional `locationId`. | Profile payload returns resolved location object. | Job card displays location read-only; roster assignment UI accepts free text `locationId`. | Roster free text can break FK integrity. | Replace roster input with select filtered by `Location` records. |
+| `payGroup` / `payFrequency` | Employment stores `payFrequency`; PayProfile lacks group. | Profile payload hardcodes `payGroup: 'Default'`. | Compensation card shows `frequency` free text; payroll module requires frequency alignment. | Free text increases chance of mismatches. | Replace with enum-backed select shared between compensation card and payroll settings. |
+| `personalEmail` / `workEmail` | `Employee` stores `email` (work) and optional `personalEmail`. | Contact section surfaces both. | Contact form allows editing personal email, not work email. | Aligns with identity provider control. | Keep as-is; ensure onboarding collects personal email for notifications. |
+| `communicationPreferences` | String array on `Employee`. | Profile payload exposes array. | Contact card toggles between `EMAIL`, `SMS`, `PUSH`. | Mapping consistent; no issue. | Maintain enumeration in shared schema for reuse in notifications. |
+| `payType` | Field on `Employment`. | Not used in profile payload or UI. | No UI reference. | Field likely stale. | Deprecate or wire into compensation card if business wants to manage pay type. |
+| `OnboardingTask.assignee` vs employee linkage | Onboarding tasks store assignee string and application context. | Workflow service exposes `assigneeUserId` during run. | Onboarding dashboards show tasks per workflow, not employee. | Lack of employee FK prevents linking onboarding status to profile. | Store `employeeId` alongside tasks post-hire and expose in API for UI cross-link. |
+| `PayrollRun` references | Payroll lines link to `employeeId`, `payrollRunId`. | Payroll service reads pay profile and employment snapshot. | Payroll UI (settings/pay run page) fetches base rates using `baseRateCents`. | Misalignment with compensation editor fosters stale rates. | Include `PayProfile` data in employee profile payload and drive payroll UI from shared schema. |
+| `Time tracking badgeId` | Field on `Employee`. | Profile payload returns `timeAndEligibility.badgeId`. | Time card allows editing `Badge/Clock ID`. | Alignment in place. | Continue using shared optional date validator to ensure consistent format. |
+| `Recruitment candidate fields` | Candidate stores `firstName`, `lastName`, `email`, `phone`. | `jobs.controller` expects same shape. | Public job application form collects matching fields. | Consistent. | No action required. |
+| `DocumentTemplate` placeholders | Templates store JSON placeholders. | Profile service normalises placeholders for UI. | Document generation modals use same structure. | Alignment holds. | Keep normaliser in service. |
+
+## Standardisation updates implemented
+- Updated shared profile schema to accept nullable ISO date-of-birth values and expose a reusable validator.
+- Adjusted API profile service to stop substituting epoch defaults, returning `null` when DOB is unknown.
+- Relaxed personal info card validation so admins can clear unknown DOBs while preserving ISO formatting when provided.
+- Refreshed OpenAPI contract and generated package dist to reflect nullable DOB support.
+
+## Unified schema recommendations
+1. **Promote shared enums** for pay frequency, worker type, employment type, and communication preference, ensuring both UI selects and backend DTOs reference the same enumerations.
+2. **Derive organisational hierarchy** from `Position` relations (`Position.departmentId`, `Position.orgUnitId`) and remove redundant `Employee.departmentId` mutations in favour of transactional updates through job service helpers.
+3. **Expose pay profile snapshot** within `EmployeeProfilePayload.compensation` so payroll and compensation modules consume identical structures, removing the need for `baseRateCents` vs `baseSalary.amount` reconciliation.
+4. **Persist onboarding-to-employee linkage** by adding `employeeId` on `OnboardingTask` once a candidate is hired, enabling cross-module dashboards to present a single source of truth.
+5. **Centralise identifier metadata** by enhancing `nationalIdentifiers` editing, ensuring compliance modules, onboarding forms, and document generators reference the same audited identifier list.

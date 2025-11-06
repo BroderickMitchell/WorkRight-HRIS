@@ -156,7 +156,7 @@ declare const employeePersonalSchema: z.ZodObject<{
     }>;
     preferredName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
     pronouns: z.ZodNullable<z.ZodOptional<z.ZodString>>;
-    dateOfBirth: z.ZodString;
+    dateOfBirth: z.ZodNullable<z.ZodEffects<z.ZodString, string, string>>;
     nationalIdentifiers: z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         type: z.ZodString;
@@ -184,7 +184,7 @@ declare const employeePersonalSchema: z.ZodObject<{
         middle?: string | null | undefined;
         suffix?: string | null | undefined;
     };
-    dateOfBirth: string;
+    dateOfBirth: string | null;
     nationalIdentifiers: {
         value: string;
         type: string;
@@ -204,7 +204,7 @@ declare const employeePersonalSchema: z.ZodObject<{
         middle?: string | null | undefined;
         suffix?: string | null | undefined;
     };
-    dateOfBirth: string;
+    dateOfBirth: string | null;
     nationalIdentifiers: {
         value: string;
         type: string;
@@ -1225,7 +1225,7 @@ declare const employeeProfileSchema: z.ZodObject<{
         }>;
         preferredName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         pronouns: z.ZodNullable<z.ZodOptional<z.ZodString>>;
-        dateOfBirth: z.ZodString;
+        dateOfBirth: z.ZodNullable<z.ZodEffects<z.ZodString, string, string>>;
         nationalIdentifiers: z.ZodArray<z.ZodObject<{
             id: z.ZodString;
             type: z.ZodString;
@@ -1253,7 +1253,7 @@ declare const employeeProfileSchema: z.ZodObject<{
             middle?: string | null | undefined;
             suffix?: string | null | undefined;
         };
-        dateOfBirth: string;
+        dateOfBirth: string | null;
         nationalIdentifiers: {
             value: string;
             type: string;
@@ -1273,7 +1273,7 @@ declare const employeeProfileSchema: z.ZodObject<{
             middle?: string | null | undefined;
             suffix?: string | null | undefined;
         };
-        dateOfBirth: string;
+        dateOfBirth: string | null;
         nationalIdentifiers: {
             value: string;
             type: string;
@@ -1988,7 +1988,7 @@ declare const employeeProfileSchema: z.ZodObject<{
             middle?: string | null | undefined;
             suffix?: string | null | undefined;
         };
-        dateOfBirth: string;
+        dateOfBirth: string | null;
         nationalIdentifiers: {
             value: string;
             type: string;
@@ -2197,7 +2197,7 @@ declare const employeeProfileSchema: z.ZodObject<{
             middle?: string | null | undefined;
             suffix?: string | null | undefined;
         };
-        dateOfBirth: string;
+        dateOfBirth: string | null;
         nationalIdentifiers: {
             value: string;
             type: string;
@@ -2403,7 +2403,7 @@ declare const updateEmployeeProfileSchema: z.ZodDiscriminatedUnion<"section", [z
         }>;
         preferredName: z.ZodNullable<z.ZodOptional<z.ZodString>>;
         pronouns: z.ZodNullable<z.ZodOptional<z.ZodString>>;
-        dateOfBirth: z.ZodString;
+        dateOfBirth: z.ZodNullable<z.ZodEffects<z.ZodString, string, string>>;
         nationalIdentifiers: z.ZodArray<z.ZodObject<{
             id: z.ZodString;
             type: z.ZodString;
@@ -2431,7 +2431,7 @@ declare const updateEmployeeProfileSchema: z.ZodDiscriminatedUnion<"section", [z
             middle?: string | null | undefined;
             suffix?: string | null | undefined;
         };
-        dateOfBirth: string;
+        dateOfBirth: string | null;
         nationalIdentifiers: {
             value: string;
             type: string;
@@ -2451,7 +2451,7 @@ declare const updateEmployeeProfileSchema: z.ZodDiscriminatedUnion<"section", [z
             middle?: string | null | undefined;
             suffix?: string | null | undefined;
         };
-        dateOfBirth: string;
+        dateOfBirth: string | null;
         nationalIdentifiers: {
             value: string;
             type: string;
@@ -2473,7 +2473,7 @@ declare const updateEmployeeProfileSchema: z.ZodDiscriminatedUnion<"section", [z
             middle?: string | null | undefined;
             suffix?: string | null | undefined;
         };
-        dateOfBirth: string;
+        dateOfBirth: string | null;
         nationalIdentifiers: {
             value: string;
             type: string;
@@ -2496,7 +2496,7 @@ declare const updateEmployeeProfileSchema: z.ZodDiscriminatedUnion<"section", [z
             middle?: string | null | undefined;
             suffix?: string | null | undefined;
         };
-        dateOfBirth: string;
+        dateOfBirth: string | null;
         nationalIdentifiers: {
             value: string;
             type: string;
