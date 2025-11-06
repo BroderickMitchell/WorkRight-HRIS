@@ -328,10 +328,10 @@ model JobRole {
   tenant        Tenant    @relation(fields: [tenantId], references: [id])
   title         String
   description   String?
-  skills        Json?     @default(json('[]'))
-  goals         Json?     @default(json('[]'))
-  courses       Json?     @default(json('[]'))
-  competencies  Json?     @default(json('[]'))
+  skills        Json?     @default(json("[]"))
+  goals         Json?     @default(json("[]"))
+  courses       Json?     @default(json("[]"))
+  competencies  Json?     @default(json("[]"))
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   positions     Position[]
