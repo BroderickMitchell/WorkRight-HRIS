@@ -1387,16 +1387,19 @@ export class OnboardingWorkflowsService {
   ) {
     const ancestors = new Set<string>();
     const descendants = new Set<string>();
-    const positions = await tx.position.findMany({ where: { tenantId }, select: { id: true, reportsToId: true } });
+    const positions = await tx.position.findMany({
+      where: { tenantId },
+      select: { id: true, parentPositionId: true },
+    });
     const parentMap = new Map<string, string | null>();
     const childMap = new Map<string, string[]>();
     for (const pos of positions) {
-      parentMap.set(pos.id, pos.reportsToId ?? null);
+      parentMap.set(pos.id, pos.parentPositionId ?? null);
       childMap.set(pos.id, []);
     }
     for (const pos of positions) {
-      if (pos.reportsToId) {
-        childMap.get(pos.reportsToId)?.push(pos.id);
+      if (pos.parentPositionId) {
+        childMap.get(pos.parentPositionId)?.push(pos.id);
       }
     }
     let current = parentMap.get(valueId) ?? null;

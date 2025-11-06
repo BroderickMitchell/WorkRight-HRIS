@@ -1,4 +1,4 @@
-import { BudgetStatus, FieldMapSource, LeaveStatus, Prisma, PrismaClient, RoleKey } from '@prisma/client';
+import { FieldMapSource, LeaveStatus, PositionManagementMode, Prisma, PrismaClient, RoleKey } from '@prisma/client';
 import { addDays } from 'date-fns';
 
 const prisma = new PrismaClient();
@@ -42,7 +42,10 @@ async function main() {
     prisma.employment.deleteMany({}),
     prisma.employee.deleteMany({}),
     prisma.costCode.deleteMany({}),
+    prisma.userPositionAssignment.deleteMany({}),
     prisma.position.deleteMany({}),
+    prisma.jobRole.deleteMany({}),
+    prisma.positionManagementConfig.deleteMany({}),
     prisma.department.deleteMany({}),
     prisma.completion.deleteMany({}),
     prisma.enrolment.deleteMany({}),
@@ -153,6 +156,17 @@ async function main() {
     }
   });
 
+  const perthHq = await prisma.location.create({
+    data: {
+      id: 'loc-acme-hq',
+      tenantId: acme.id,
+      name: 'Perth Headquarters',
+      state: 'WA',
+      country: 'Australia',
+      timezone: 'Australia/Perth'
+    }
+  });
+
   const acmeLegal = await prisma.legalEntity.create({
     data: {
       tenantId: acme.id,
@@ -190,31 +204,112 @@ async function main() {
     ]
   });
 
-  const superintendent = await prisma.position.create({
+  await prisma.positionManagementConfig.createMany({
+    data: [
+      {
+        tenantId: acme.id,
+        mode: PositionManagementMode.POSITION_LED,
+        showPositionIds: true,
+        autoGeneratePositionIds: true,
+        idPrefix: 'OPS',
+        startingNumber: 10000,
+        nextSequenceNumber: 10002,
+        enableBudgeting: true,
+        enableConcurrentPositions: false
+      },
+      {
+        tenantId: demo.id,
+        mode: PositionManagementMode.EMPLOYEE_LED,
+        showPositionIds: true,
+        autoGeneratePositionIds: false,
+        idPrefix: 'POS',
+        startingNumber: 20000,
+        nextSequenceNumber: 20000,
+        enableBudgeting: false,
+        enableConcurrentPositions: true
+      }
+    ]
+  });
+
+  const superintendentRole = await prisma.jobRole.create({
     data: {
       tenantId: acme.id,
       title: 'Superintendent',
-      positionHumanId: 'OPS-0001',
+      description: 'Leads the operations team for site production.',
+      skills: asJson(['Leadership', 'Production Planning']),
+      goals: asJson(['Maintain production targets', 'Improve safety reporting']),
+      courses: asJson(['leadership-101']),
+      competencies: asJson(['Strategic Thinking', 'People Leadership'])
+    }
+  });
+
+  const supervisorRole = await prisma.jobRole.create({
+    data: {
+      tenantId: acme.id,
+      title: 'Shift Supervisor',
+      description: 'Supervises daily shift operations.',
+      skills: asJson(['Crew Leadership', 'Safety Compliance']),
+      goals: asJson(['Zero LTIs per swing']),
+      courses: asJson(['safety-supervisor']),
+      competencies: asJson(['Coaching', 'Operational Excellence'])
+    }
+  });
+
+  const hrAdvisorRole = await prisma.jobRole.create({
+    data: {
+      tenantId: acme.id,
+      title: 'HR Advisor',
+      description: 'Supports site HR needs including onboarding and learning.',
+      skills: asJson(['Employee Relations', 'Recruitment']),
+      goals: asJson(['Reduce time-to-fill vacancies']),
+      courses: asJson(['hr-essentials']),
+      competencies: asJson(['Stakeholder Management'])
+    }
+  });
+
+  const superintendent = await prisma.position.create({
+    data: {
+      tenantId: acme.id,
+      positionId: 'OPS-10000',
+      title: 'Operations Superintendent',
+      jobRoleId: superintendentRole.id,
       departmentId: operations.id,
-      orgUnitId: operationsOrg.id,
-      employmentType: 'Permanent',
-      workType: 'Onsite',
-      budgetStatus: BudgetStatus.BUDGETED,
-      effectiveFrom: addDays(new Date(), -365)
+      locationId: camp.id,
+      headcount: 1,
+      budgetedFte: new Prisma.Decimal(1),
+      budgetedSalary: new Prisma.Decimal(220000),
+      inheritRoleData: true
+    }
+  });
+
+  const shiftSupervisor = await prisma.position.create({
+    data: {
+      tenantId: acme.id,
+      positionId: 'OPS-10001',
+      title: 'Shift Supervisor',
+      jobRoleId: supervisorRole.id,
+      departmentId: operations.id,
+      locationId: camp.id,
+      parentPositionId: superintendent.id,
+      headcount: 2,
+      budgetedFte: new Prisma.Decimal(2),
+      budgetedSalary: new Prisma.Decimal(350000),
+      inheritRoleData: true
     }
   });
 
   const hrAdvisor = await prisma.position.create({
     data: {
       tenantId: acme.id,
+      positionId: 'HR-10000',
       title: 'HR Advisor',
-      positionHumanId: 'HR-0001',
+      jobRoleId: hrAdvisorRole.id,
       departmentId: pnc.id,
-      orgUnitId: pncOrg.id,
-      employmentType: 'Permanent',
-      workType: 'Hybrid',
-      budgetStatus: BudgetStatus.BUDGETED,
-      effectiveFrom: addDays(new Date(), -180)
+      locationId: perthHq.id,
+      headcount: 1,
+      budgetedFte: new Prisma.Decimal(1),
+      budgetedSalary: new Prisma.Decimal(140000),
+      inheritRoleData: true
     }
   });
 
@@ -244,6 +339,7 @@ async function main() {
       benefitsEligible: true,
       exempt: true,
       locationId: camp.id,
+      departmentId: operations.id,
       positionId: superintendent.id
     }
   });
@@ -266,7 +362,8 @@ async function main() {
         startDate: addDays(new Date(), -120),
         serviceDate: addDays(new Date(), -110),
         managerId: manager.id,
-        positionId: superintendent.id,
+        departmentId: operations.id,
+        positionId: shiftSupervisor.id,
         citizenships: ['Australia'],
         languages: ['English', 'Pitjantjatjara'],
         communicationPreferences: ['EMAIL'],
@@ -293,6 +390,7 @@ async function main() {
         startDate: addDays(new Date(), -90),
         serviceDate: addDays(new Date(), -85),
         managerId: manager.id,
+        departmentId: pnc.id,
         positionId: hrAdvisor.id,
         citizenships: ['Australia'],
         languages: ['English'],
@@ -303,7 +401,7 @@ async function main() {
       overtimeEligible: false,
       benefitsEligible: true,
       exempt: false,
-      locationId: camp.id
+      locationId: perthHq.id
     }
   ]
 });
@@ -318,6 +416,39 @@ async function main() {
   if (!sienna || !noah) {
     throw new Error('Employee records missing after seed');
   }
+
+  await prisma.userPositionAssignment.createMany({
+    data: [
+      {
+        tenantId: acme.id,
+        employeeId: manager.id,
+        positionId: superintendent.id,
+        fte: new Prisma.Decimal(1),
+        baseSalary: new Prisma.Decimal(220000),
+        startDate: addDays(new Date(), -400),
+        isPrimary: true
+      },
+      {
+        tenantId: acme.id,
+        employeeId: sienna.id,
+        positionId: shiftSupervisor.id,
+        fte: new Prisma.Decimal(1),
+        baseSalary: new Prisma.Decimal(165000),
+        startDate: addDays(new Date(), -120),
+        isPrimary: true
+      },
+      {
+        tenantId: acme.id,
+        employeeId: noah.id,
+        positionId: hrAdvisor.id,
+        fte: new Prisma.Decimal(1),
+        baseSalary: new Prisma.Decimal(120000),
+        startDate: addDays(new Date(), -90),
+        isPrimary: true,
+        reportsToOverrideId: manager.id
+      }
+    ]
+  });
 
   await prisma.payProfile.upsert({
     where: { employeeId: manager.id },

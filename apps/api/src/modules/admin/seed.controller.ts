@@ -1,4 +1,5 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Controller, Post } from '@nestjs/common';
+import { Prisma, PositionManagementMode } from '@prisma/client';
 import { PrismaService } from '../../common/prisma.service.js';
 
 @Controller('admin')
@@ -8,150 +9,399 @@ export class SeedController {
   @Post('seed-mining')
   async seed() {
     try {
-      // Create or reuse a deterministic demo tenant so clients can call with X-Tenant-Id: tenant-demo
       const tenant = await this.prisma.tenant.upsert({
         where: { slug: 'demo' },
         update: {},
         create: ({ id: 'tenant-demo', slug: 'demo', name: 'Demo Mining AU', settings: {} } as any)
       });
 
-    // Create location
-    const location = await this.prisma.location.upsert({
-      where: { id: 'loc-karratha' },
-      update: {},
-      create: ({ id: 'loc-karratha', name: 'Karratha Camp', state: 'WA', country: 'Australia', timezone: 'Australia/Perth' } as any)
-    });
+      const [camp, perthHq] = await Promise.all([
+        this.prisma.location.upsert({
+          where: { id: 'loc-karratha' },
+          update: {},
+          create: ({
+            id: 'loc-karratha',
+            tenantId: tenant.id,
+            name: 'Karratha Camp',
+            state: 'WA',
+            country: 'Australia',
+            timezone: 'Australia/Perth'
+          } as any)
+        }),
+        this.prisma.location.upsert({
+          where: { id: 'loc-perth-hq' },
+          update: {},
+          create: ({
+            id: 'loc-perth-hq',
+            tenantId: tenant.id,
+            name: 'Perth HQ',
+            state: 'WA',
+            country: 'Australia',
+            timezone: 'Australia/Perth'
+          } as any)
+        })
+      ]);
 
-    // Departments
-    const deptCOM = await (this.prisma as any).department.upsert({
-      where: { id: 'dept-com' },
-      update: {},
-      create: ({ id: 'dept-com', name: 'Commercial', codePrefix: 'COM', status: 'ACTIVE' } as any)
-    });
-    const deptOPS = await (this.prisma as any).department.upsert({
-      where: { id: 'dept-ops' },
-      update: {},
-      create: ({ id: 'dept-ops', name: 'Operations', codePrefix: 'OPS', status: 'ACTIVE' } as any)
-    });
+      const [deptCom, deptOps] = await Promise.all([
+        (this.prisma as any).department.upsert({
+          where: { id: 'dept-com' },
+          update: {},
+          create: ({ id: 'dept-com', tenantId: tenant.id, name: 'Commercial', codePrefix: 'COM', status: 'ACTIVE' } as any)
+        }),
+        (this.prisma as any).department.upsert({
+          where: { id: 'dept-ops' },
+          update: {},
+          create: ({ id: 'dept-ops', tenantId: tenant.id, name: 'Operations', codePrefix: 'OPS', status: 'ACTIVE' } as any)
+        })
+      ]);
 
-    // Org units
-    const orgRoot = await (this.prisma as any).orgUnit.upsert({ where: { id: 'ou-root' }, update: {}, create: ({ id: 'ou-root', name: 'Head Office' } as any) });
-    const orgOps = await (this.prisma as any).orgUnit.upsert({ where: { id: 'ou-ops' }, update: {}, create: ({ id: 'ou-ops', name: 'Operations', parentId: orgRoot.id } as any) });
+      await this.prisma.positionManagementConfig.upsert({
+        where: { tenantId: tenant.id },
+        update: ({
+          mode: PositionManagementMode.POSITION_LED,
+          autoGeneratePositionIds: true,
+          positionIdFormat: 'prefix',
+          idPrefix: 'OPS',
+          startingNumber: 32000,
+          nextSequenceNumber: 32010,
+          enableBudgeting: true,
+          enableConcurrentPositions: true
+        } as any),
+        create: ({
+          tenantId: tenant.id,
+          mode: PositionManagementMode.POSITION_LED,
+          showPositionIds: true,
+          autoGeneratePositionIds: true,
+          positionIdFormat: 'prefix',
+          idPrefix: 'OPS',
+          startingNumber: 32000,
+          nextSequenceNumber: 32010,
+          enableBudgeting: true,
+          enableConcurrentPositions: true
+        } as any)
+      });
 
-    // Create employee
-    const employee = await this.prisma.employee.upsert({
-      where: { id: 'emp-2' },
-      update: {},
-      create: ({ id: 'emp-2', givenName: 'Sienna', familyName: 'Surveyor', email: 'sienna.surveyor@acme.example.au', startDate: new Date('2024-08-01') } as any)
-    });
-    // pay profile (e.g., $120/hr)
-    await this.prisma.payProfile.upsert({
-      where: { employeeId: employee.id },
-      update: { baseRateCents: 12000 },
-      create: ({ employeeId: employee.id, baseRateCents: 12000 } as any)
-    });
+      const [opsRole, commRole, hrRole] = await Promise.all([
+        this.prisma.jobRole.upsert({
+          where: { id: 'role-ops-super' },
+          update: {},
+          create: ({
+            id: 'role-ops-super',
+            tenantId: tenant.id,
+            title: 'Operations Superintendent',
+            description: 'Leads the end-to-end production team for the Karratha site.',
+            skills: ['Leadership', 'Production planning'] as any,
+            goals: ['Maintain 95% production availability'] as any,
+            courses: ['leadership-101', 'ops-risk'] as any,
+            competencies: ['Strategic Thinking', 'Safety Stewardship'] as any
+          } as any)
+        }),
+        this.prisma.jobRole.upsert({
+          where: { id: 'role-commercial-manager' },
+          update: {},
+          create: ({
+            id: 'role-commercial-manager',
+            tenantId: tenant.id,
+            title: 'Commercial Manager',
+            description: 'Owns site budgeting, capital projects and vendor strategy.',
+            skills: ['Capital allocation', 'Contract negotiation'] as any,
+            goals: ['Deliver quarterly cost variance < 2%'] as any,
+            courses: ['commercial-acumen'] as any,
+            competencies: ['Financial Acumen', 'Business Partnering'] as any
+          } as any)
+        }),
+        this.prisma.jobRole.upsert({
+          where: { id: 'role-hr-advisor' },
+          update: {},
+          create: ({
+            id: 'role-hr-advisor',
+            tenantId: tenant.id,
+            title: 'HR Advisor',
+            description: 'Coordinates onboarding, learning and employee relations for site.',
+            skills: ['Employee relations', 'Onboarding'] as any,
+            goals: ['Reduce time-to-fill to 30 days'] as any,
+            courses: ['hr-essentials'] as any,
+            competencies: ['Stakeholder Management', 'Coaching'] as any
+          } as any)
+        })
+      ]);
 
-    // Roster template (8/6 from 2024-11-04)
-    const tmpl = await this.prisma.rosterTemplate.upsert({
-      where: { id: 'tmpl-8-6' },
-      update: {},
-      create: ({ id: 'tmpl-8-6', name: '8/6 Day Shifts', seedDate: new Date('2024-11-04'), pattern: ['D','D','D','D','D','D','D','D','R','R','R','R','R','R'] } as any)
-    });
+      const superintendent = await this.prisma.position.upsert({
+        where: { id: 'pos-demo-superintendent' },
+        update: {},
+        create: ({
+          id: 'pos-demo-superintendent',
+          tenantId: tenant.id,
+          positionId: 'OPS-32000',
+          title: 'Operations Superintendent',
+          jobRoleId: opsRole.id,
+          departmentId: deptOps.id,
+          locationId: camp.id,
+          headcount: 1,
+          budgetedFte: new Prisma.Decimal(1),
+          budgetedSalary: new Prisma.Decimal(235000),
+          inheritRoleData: true,
+          isActive: true
+        } as any)
+      });
 
-    // Assignment
-    await this.prisma.rosterAssignment.upsert({
-      where: { id: 'asn-emp2-8-6' },
-      update: {},
-      create: ({ id: 'asn-emp2-8-6', templateId: tmpl.id, employeeId: employee.id, locationId: location.id, effectiveFrom: new Date('2024-11-04') } as any)
-    });
+      const shiftSupervisor = await this.prisma.position.upsert({
+        where: { id: 'pos-demo-shift-supervisor' },
+        update: {},
+        create: ({
+          id: 'pos-demo-shift-supervisor',
+          tenantId: tenant.id,
+          positionId: 'OPS-32001',
+          title: 'Shift Supervisor',
+          jobRoleId: opsRole.id,
+          departmentId: deptOps.id,
+          locationId: camp.id,
+          parentPositionId: superintendent.id,
+          headcount: 2,
+          budgetedFte: new Prisma.Decimal(2),
+          budgetedSalary: new Prisma.Decimal(360000),
+          inheritRoleData: true,
+          isActive: true
+        } as any)
+      });
 
-    // Accommodation room & booking for first swing
-    const room = await this.prisma.room.upsert({
-      where: { id: 'room-a' },
-      update: {},
-      create: ({ id: 'room-a', locationId: location.id, name: 'Room A', capacity: 1 } as any)
-    });
-    await this.prisma.roomBooking.create({
-      data: ({ roomId: room.id, employeeId: employee.id, startDate: new Date('2024-11-04'), endDate: new Date('2024-11-12') } as any)
-    });
+      const commercialManager = await this.prisma.position.upsert({
+        where: { id: 'pos-demo-commercial-manager' },
+        update: {},
+        create: ({
+          id: 'pos-demo-commercial-manager',
+          tenantId: tenant.id,
+          positionId: 'COM-32002',
+          title: 'Commercial Manager',
+          jobRoleId: commRole.id,
+          departmentId: deptCom.id,
+          locationId: perthHq.id,
+          headcount: 1,
+          budgetedFte: new Prisma.Decimal(1),
+          budgetedSalary: new Prisma.Decimal(210000),
+          inheritRoleData: true,
+          isActive: true
+        } as any)
+      });
 
-    // Flights & bookings
-    const dep = await this.prisma.flight.create({ data: ({ carrier: 'QF', flightNumber: 'QF100', depAirport: 'PER', arrAirport: 'KTA' } as any) });
-    const ret = await this.prisma.flight.create({ data: ({ carrier: 'QF', flightNumber: 'QF101', depAirport: 'KTA', arrAirport: 'PER' } as any) });
-    await this.prisma.flightBooking.createMany({
-      data: [
-        ({ flightId: dep.id, employeeId: employee.id, depTime: new Date('2024-11-04T08:00:00+08:00'), arrTime: new Date('2024-11-04T10:30:00+08:00') } as any),
-        ({ flightId: ret.id, employeeId: employee.id, depTime: new Date('2024-11-12T15:00:00+08:00'), arrTime: new Date('2024-11-12T17:30:00+08:00') } as any)
-      ]
-    });
+      const hrAdvisor = await this.prisma.position.upsert({
+        where: { id: 'pos-demo-hr-advisor' },
+        update: {},
+        create: ({
+          id: 'pos-demo-hr-advisor',
+          tenantId: tenant.id,
+          positionId: 'PPL-32003',
+          title: 'HR Advisor',
+          jobRoleId: hrRole.id,
+          departmentId: deptCom.id,
+          locationId: perthHq.id,
+          parentPositionId: commercialManager.id,
+          headcount: 1,
+          budgetedFte: new Prisma.Decimal(1),
+          budgetedSalary: new Prisma.Decimal(150000),
+          inheritRoleData: true,
+          isActive: true
+        } as any)
+      });
 
-    // Approval workflow (positions): HRBP -> Finance -> Executive
-    await (this.prisma as any).approvalStep.deleteMany({});
-    await (this.prisma as any).approvalStep.createMany({
-      data: [
-        ({ name: 'HRBP', roleRequired: 'HRBP', sequence: 1, slaDays: 3 } as any),
-        ({ name: 'Finance', roleRequired: 'FINANCE', sequence: 2, slaDays: 3 } as any),
-        ({ name: 'Executive', roleRequired: 'EXEC', sequence: 3, slaDays: 5 } as any)
-      ]
-    });
+      const superintendentEmployee = await this.prisma.employee.upsert({
+        where: { id: 'emp-demo-superintendent' },
+        update: ({ departmentId: deptOps.id, locationId: camp.id, positionId: superintendent.id } as any),
+        create: ({
+          id: 'emp-demo-superintendent',
+          tenantId: tenant.id,
+          givenName: 'Morgan',
+          familyName: 'Marshall',
+          preferredName: 'Morgan',
+          email: 'morgan.marshall@demo.example.au',
+          startDate: new Date('2024-01-08'),
+          jobTitle: 'Operations Superintendent',
+          departmentId: deptOps.id,
+          locationId: camp.id,
+          positionId: superintendent.id
+        } as any)
+      });
 
-    // Position ID counters
-    await (this.prisma as any).positionIdCounter.upsert({ where: { departmentId: deptCOM.id }, update: {}, create: ({ departmentId: deptCOM.id, nextNumber: 1, width: 3, hyphenStyle: false } as any) });
-    await (this.prisma as any).positionIdCounter.upsert({ where: { departmentId: deptOPS.id }, update: {}, create: ({ departmentId: deptOPS.id, nextNumber: 1, width: 3, hyphenStyle: false } as any) });
+      const shiftLeadEmployee = await this.prisma.employee.upsert({
+        where: { id: 'emp-demo-shift-lead' },
+        update: ({ managerId: superintendentEmployee.id, departmentId: deptOps.id, locationId: camp.id, positionId: shiftSupervisor.id } as any),
+        create: ({
+          id: 'emp-demo-shift-lead',
+          tenantId: tenant.id,
+          givenName: 'Sienna',
+          familyName: 'Surveyor',
+          preferredName: 'Sienna',
+          email: 'sienna.surveyor@demo.example.au',
+          startDate: new Date('2024-03-01'),
+          jobTitle: 'Shift Supervisor',
+          managerId: superintendentEmployee.id,
+          departmentId: deptOps.id,
+          locationId: camp.id,
+          positionId: shiftSupervisor.id
+        } as any)
+      });
 
-    // Seed positions
-    const comHuman = 'COM001';
-    await (this.prisma as any).position.upsert({
-      where: { id: 'pos-com-001' },
-      update: {},
-      create: ({
-        id: 'pos-com-001',
-        positionHumanId: comHuman,
-        title: 'Commercial Manager',
-        departmentId: deptCOM.id,
-        orgUnitId: orgRoot.id,
-        employmentType: 'Full-time',
-        workType: 'Permanent',
-        fte: 1,
-        budgetStatus: 'UNBUDGETED',
-        status: 'PENDING',
-        effectiveFrom: new Date('2024-11-01')
-      } as any)
-    });
+      const hrAdvisorEmployee = await this.prisma.employee.upsert({
+        where: { id: 'emp-demo-hr-advisor' },
+        update: ({ managerId: superintendentEmployee.id, departmentId: deptCom.id, locationId: perthHq.id, positionId: hrAdvisor.id } as any),
+        create: ({
+          id: 'emp-demo-hr-advisor',
+          tenantId: tenant.id,
+          givenName: 'Noah',
+          familyName: 'Navigator',
+          preferredName: 'Noah',
+          email: 'noah.navigator@demo.example.au',
+          startDate: new Date('2024-05-06'),
+          jobTitle: 'HR Advisor',
+          managerId: superintendentEmployee.id,
+          departmentId: deptCom.id,
+          locationId: perthHq.id,
+          positionId: hrAdvisor.id
+        } as any)
+      });
 
-    const opsHuman = 'OPS001';
-    await (this.prisma as any).position.upsert({
-      where: { id: 'pos-ops-001' },
-      update: {},
-      create: ({
-        id: 'pos-ops-001',
-        positionHumanId: opsHuman,
-        title: 'Shift Supervisor',
-        departmentId: deptOPS.id,
-        orgUnitId: orgOps.id,
-        employmentType: 'Full-time',
-        workType: 'Permanent',
-        fte: 1,
-        budgetStatus: 'BUDGETED',
-        status: 'ACTIVE',
-        effectiveFrom: new Date('2024-10-01')
-      } as any)
-    });
+      await Promise.all([
+        this.prisma.userPositionAssignment.upsert({
+          where: { id: 'upa-demo-superintendent' },
+          update: ({
+            fte: new Prisma.Decimal(1),
+            baseSalary: new Prisma.Decimal(235000),
+            startDate: new Date('2024-01-08'),
+            endDate: null,
+            isPrimary: true
+          } as any),
+          create: ({
+            id: 'upa-demo-superintendent',
+            tenantId: tenant.id,
+            employeeId: superintendentEmployee.id,
+            positionId: superintendent.id,
+            fte: new Prisma.Decimal(1),
+            baseSalary: new Prisma.Decimal(235000),
+            startDate: new Date('2024-01-08'),
+            isPrimary: true
+          } as any)
+        }),
+        this.prisma.userPositionAssignment.upsert({
+          where: { id: 'upa-demo-shift-lead' },
+          update: ({
+            fte: new Prisma.Decimal(1),
+            baseSalary: new Prisma.Decimal(165000),
+            startDate: new Date('2024-03-01'),
+            endDate: null,
+            isPrimary: true
+          } as any),
+          create: ({
+            id: 'upa-demo-shift-lead',
+            tenantId: tenant.id,
+            employeeId: shiftLeadEmployee.id,
+            positionId: shiftSupervisor.id,
+            fte: new Prisma.Decimal(1),
+            baseSalary: new Prisma.Decimal(165000),
+            startDate: new Date('2024-03-01'),
+            isPrimary: true
+          } as any)
+        }),
+        this.prisma.userPositionAssignment.upsert({
+          where: { id: 'upa-demo-hr-advisor' },
+          update: ({
+            fte: new Prisma.Decimal(1),
+            baseSalary: new Prisma.Decimal(135000),
+            startDate: new Date('2024-05-06'),
+            endDate: null,
+            isPrimary: true,
+            reportsToOverrideId: superintendentEmployee.id
+          } as any),
+          create: ({
+            id: 'upa-demo-hr-advisor',
+            tenantId: tenant.id,
+            employeeId: hrAdvisorEmployee.id,
+            positionId: hrAdvisor.id,
+            fte: new Prisma.Decimal(1),
+            baseSalary: new Prisma.Decimal(135000),
+            startDate: new Date('2024-05-06'),
+            isPrimary: true,
+            reportsToOverrideId: superintendentEmployee.id
+          } as any)
+        })
+      ]);
 
-    // Recruitment seed: one approved requisition and posting
-    const req = await (this.prisma as any).requisition.upsert({
-      where: { id: 'req-ops-001' },
-      update: {},
-      create: ({ id: 'req-ops-001', positionId: 'pos-ops-001', title: 'Shift Supervisor - Karratha', employmentType: 'Full-time', workType: 'Permanent', vacancyCount: 1, location: 'Karratha, WA', description: 'Lead a production shift safely and efficiently at our Karratha site.', selectionCriteria: ['Supervision', 'Safety', 'FIFO experience'] } as any)
-    });
-    await (this.prisma as any).jobPosting.upsert({ where: { externalSlug: 'shift-supervisor-karratha' }, update: {}, create: ({ requisitionId: req.id, externalSlug: 'shift-supervisor-karratha', visibility: 'public', channels: ['website'], status: 'active' } as any) });
+      const rosterTemplate = await this.prisma.rosterTemplate.upsert({
+        where: { id: 'tmpl-8-6' },
+        update: {},
+        create: ({
+          id: 'tmpl-8-6',
+          tenantId: tenant.id,
+          name: '8/6 Day Shifts',
+          seedDate: new Date('2024-11-04'),
+          pattern: ['D', 'D', 'D', 'D', 'D', 'D', 'D', 'D', 'R', 'R', 'R', 'R', 'R', 'R']
+        } as any)
+      });
 
-    // Rejection reasons
-    await (this.prisma as any).rejectionReason.upsert({ where: { code: 'NOT_SHORTLISTED' }, update: {}, create: ({ code: 'NOT_SHORTLISTED', label: 'Not shortlisted', visibleToCandidate: false } as any) });
-    await (this.prisma as any).rejectionReason.upsert({ where: { code: 'INTERVIEW_OUTCOME' }, update: {}, create: ({ code: 'INTERVIEW_OUTCOME', label: 'Interview outcome', visibleToCandidate: false } as any) });
-    await (this.prisma as any).rejectionReason.upsert({ where: { code: 'ROLE_WITHDRAWN' }, update: {}, create: ({ code: 'ROLE_WITHDRAWN', label: 'Role withdrawn', visibleToCandidate: false } as any) });
+      await this.prisma.rosterAssignment.upsert({
+        where: { id: 'asn-demo-shift-lead' },
+        update: {},
+        create: ({
+          id: 'asn-demo-shift-lead',
+          tenantId: tenant.id,
+          templateId: rosterTemplate.id,
+          employeeId: shiftLeadEmployee.id,
+          locationId: camp.id,
+          effectiveFrom: new Date('2024-11-04')
+        } as any)
+      });
 
-      return { ok: true, tenantId: tenant.id, employeeId: employee.id, locationId: location.id, templateId: tmpl.id };
+      const requisition = await (this.prisma as any).requisition.upsert({
+        where: { id: 'req-demo-shift-supervisor' },
+        update: ({ positionId: shiftSupervisor.id } as any),
+        create: ({
+          id: 'req-demo-shift-supervisor',
+          tenantId: tenant.id,
+          positionId: shiftSupervisor.id,
+          title: 'Shift Supervisor - Karratha',
+          employmentType: 'Full-time',
+          workType: 'Permanent',
+          vacancyCount: 1,
+          location: 'Karratha, WA',
+          description: 'Lead a production shift safely and efficiently at our Karratha site.',
+          selectionCriteria: ['Supervision experience', 'Safety leadership', 'FIFO readiness']
+        } as any)
+      });
+
+      await (this.prisma as any).jobPosting.upsert({
+        where: { externalSlug: 'shift-supervisor-karratha' },
+        update: {},
+        create: ({
+          requisitionId: requisition.id,
+          tenantId: tenant.id,
+          externalSlug: 'shift-supervisor-karratha',
+          visibility: 'public',
+          channels: ['website'],
+          status: 'active'
+        } as any)
+      });
+
+      await (this.prisma as any).rejectionReason.upsert({
+        where: { code: 'NOT_SHORTLISTED' },
+        update: {},
+        create: ({ code: 'NOT_SHORTLISTED', label: 'Not shortlisted', visibleToCandidate: false } as any)
+      });
+      await (this.prisma as any).rejectionReason.upsert({
+        where: { code: 'INTERVIEW_OUTCOME' },
+        update: {},
+        create: ({ code: 'INTERVIEW_OUTCOME', label: 'Interview outcome', visibleToCandidate: false } as any)
+      });
+      await (this.prisma as any).rejectionReason.upsert({
+        where: { code: 'ROLE_WITHDRAWN' },
+        update: {},
+        create: ({ code: 'ROLE_WITHDRAWN', label: 'Role withdrawn', visibleToCandidate: false } as any)
+      });
+
+      return {
+        ok: true,
+        tenantId: tenant.id,
+        locations: [camp.id, perthHq.id],
+        positions: [superintendent.positionId, shiftSupervisor.positionId, commercialManager.positionId, hrAdvisor.positionId]
+      } as any;
     } catch (e: any) {
       // Surface error for debugging in dev; respond with details
       // eslint-disable-next-line no-console
