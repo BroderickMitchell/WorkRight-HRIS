@@ -54,65 +54,120 @@ export class ReportingService {
   }
 
   async positionsMasterCsv(): Promise<string> {
-    const items = await (this.prisma as any).position.findMany({
-      include: { department: true },
+    const items = await this.prisma.position.findMany({
+      include: {
+        department: true,
+        location: true,
+        assignments: {
+          where: {
+            startDate: { lte: new Date() },
+            OR: [{ endDate: null }, { endDate: { gte: new Date() } }]
+          },
+          include: { employee: { select: { givenName: true, familyName: true } } }
+        }
+      },
       orderBy: { createdAt: 'desc' }
     });
-    const rows = items.map((p: any) => ({
-      position_id: p.positionHumanId,
-      title: p.title,
-      department: p.department?.name ?? '',
-      employment_type: p.employmentType,
-      work_type: p.workType,
-      fte: p.fte,
-      location: p.location ?? '',
-      budget_status: p.budgetStatus,
-      status: p.status,
-      effective_from: p.effectiveFrom?.toISOString()?.slice(0,10) ?? '',
-      effective_to: p.effectiveTo?.toISOString()?.slice(0,10) ?? ''
+    const vacancyStatus = (position: { isActive: boolean; headcount: number; assignments: { startDate: Date; endDate: Date | null }[] }) => {
+      if (!position.isActive) return 'inactive';
+      const active = position.assignments.filter((assignment) => assignment.startDate <= new Date() && (!assignment.endDate || assignment.endDate >= new Date()));
+      if (active.length === 0) return 'open';
+      if (active.length > position.headcount) return 'overfilled';
+      if (active.length === position.headcount) return 'filled';
+      return 'open';
+    };
+    const rows = items.map((position) => ({
+      position_id: position.positionId,
+      title: position.title,
+      department: position.department?.name ?? '',
+      location: position.location?.name ?? '',
+      headcount: position.headcount,
+      vacancy_status: vacancyStatus(position),
+      occupants: position.assignments
+        .map((assignment) => `${assignment.employee?.givenName ?? ''} ${assignment.employee?.familyName ?? ''}`.trim())
+        .filter((name) => name.length > 0)
+        .join('; '),
+      budgeted_fte: position.budgetedFte ? Number(position.budgetedFte).toFixed(2) : '',
+      budgeted_salary: position.budgetedSalary ? Number(position.budgetedSalary).toFixed(2) : '',
+      is_active: position.isActive ? 'yes' : 'no',
+      parent_position_id: position.parentPositionId ?? ''
     }));
-    return this.toCsv(rows, ['position_id','title','department','employment_type','work_type','fte','location','budget_status','status','effective_from','effective_to']);
+    return this.toCsv(rows, [
+      'position_id',
+      'title',
+      'department',
+      'location',
+      'headcount',
+      'vacancy_status',
+      'occupants',
+      'budgeted_fte',
+      'budgeted_salary',
+      'is_active',
+      'parent_position_id'
+    ]);
   }
 
   async positionsCycleTimesCsv(): Promise<string> {
-    const positions = await (this.prisma as any).position.findMany({ orderBy: { createdAt: 'desc' } });
-    const approvals = await (this.prisma as any).positionApproval.findMany({ include: { step: true } });
-    const byPos = new Map<string, any[]>();
-    for (const a of approvals) {
-      if (!byPos.has(a.positionId)) byPos.set(a.positionId, []);
-      byPos.get(a.positionId)!.push(a);
-    }
-    const rows = positions.map((p: any) => {
-      const list = (byPos.get(p.id) ?? []).sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
-      const submittedAt = list[0]?.createdAt ?? p.createdAt;
-      const lastApproved = list.filter((x) => x.action === 'APPROVED').sort((a, b) => +new Date(a.actedAt ?? 0) - +new Date(b.actedAt ?? 0)).slice(-1)[0]?.actedAt;
-      const days = lastApproved ? Math.round((+new Date(lastApproved) - +new Date(submittedAt)) / (1000*60*60*24)) : '';
-      return {
-        position_id: p.positionHumanId,
-        title: p.title,
-        submitted_at: new Date(submittedAt).toISOString().slice(0,10),
-        approved_at: lastApproved ? new Date(lastApproved).toISOString().slice(0,10) : '',
-        cycle_days: days
-      } as any;
+    const positions = await this.prisma.position.findMany({
+      include: {
+        assignments: { include: { employee: true }, orderBy: { startDate: 'asc' } }
+      },
+      orderBy: { createdAt: 'desc' }
     });
-    return this.toCsv(rows as any[], ['position_id','title','submitted_at','approved_at','cycle_days']);
+    const rows = positions.map((position) => {
+      const firstAssignment = position.assignments[0];
+      const filledAt = firstAssignment ? firstAssignment.startDate : null;
+      const daysToFill = filledAt ? Math.max(0, Math.round((+filledAt - +position.createdAt) / (1000 * 60 * 60 * 24))) : '';
+      return {
+        position_id: position.positionId,
+        title: position.title,
+        created_at: position.createdAt.toISOString().slice(0, 10),
+        first_assignment_at: filledAt ? filledAt.toISOString().slice(0, 10) : '',
+        days_to_fill: daysToFill,
+        headcount: position.headcount,
+        assignments_created: position.assignments.length
+      };
+    });
+    return this.toCsv(rows, ['position_id', 'title', 'created_at', 'first_assignment_at', 'days_to_fill', 'headcount', 'assignments_created']);
   }
 
   async positionsSummaryCsv(): Promise<string> {
-    const departments = await (this.prisma as any).department.findMany({ orderBy: { name: 'asc' } });
-    const positions = await (this.prisma as any).position.findMany({});
-    const byDept = new Map<string, any>();
-    for (const d of departments) byDept.set(d.id, { department: d.name, pending: 0, active: 0, budgeted: 0, unbudgeted: 0 });
-    for (const p of positions) {
-      const key = p.departmentId ?? 'unknown';
-      const rec = byDept.get(key) || { department: 'Unknown', pending: 0, active: 0, budgeted: 0, unbudgeted: 0 };
-      if (p.status === 'PENDING') rec.pending++;
-      if (p.status === 'ACTIVE') rec.active++;
-      if (p.budgetStatus === 'BUDGETED') rec.budgeted++;
-      if (p.budgetStatus === 'UNBUDGETED') rec.unbudgeted++;
-      byDept.set(key, rec);
+    const departments = await this.prisma.department.findMany({ orderBy: { name: 'asc' } });
+    const positions = await this.prisma.position.findMany({
+      include: {
+        assignments: {
+          where: {
+            startDate: { lte: new Date() },
+            OR: [{ endDate: null }, { endDate: { gte: new Date() } }]
+          }
+        }
+      }
+    });
+    const byDept = new Map<string, { department: string; total: number; open: number; filled: number; overfilled: number }>();
+    for (const department of departments) {
+      byDept.set(department.id, { department: department.name, total: 0, open: 0, filled: 0, overfilled: 0 });
+    }
+    const determineStatus = (position: typeof positions[number]) => {
+      if (!position.isActive) return 'inactive';
+      const active = position.assignments.filter((assignment) => assignment.startDate <= new Date() && (!assignment.endDate || assignment.endDate >= new Date()));
+      if (active.length === 0) return 'open';
+      if (active.length > position.headcount) return 'overfilled';
+      if (active.length === position.headcount) return 'filled';
+      return 'open';
+    };
+    for (const position of positions) {
+      const key = position.departmentId ?? 'unknown';
+      if (!byDept.has(key)) {
+        byDept.set(key, { department: 'Unknown', total: 0, open: 0, filled: 0, overfilled: 0 });
+      }
+      const summary = byDept.get(key)!;
+      summary.total += 1;
+      const status = determineStatus(position);
+      if (status === 'open') summary.open += 1;
+      if (status === 'filled') summary.filled += 1;
+      if (status === 'overfilled') summary.overfilled += 1;
     }
     const rows = Array.from(byDept.values());
-    return this.toCsv(rows, ['department','pending','active','budgeted','unbudgeted']);
+    return this.toCsv(rows, ['department', 'total', 'open', 'filled', 'overfilled']);
   }
 }

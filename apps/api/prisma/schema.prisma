@@ -90,6 +90,9 @@ model Tenant {
   departments     Department[]
   teams           Team[]
   positions       Position[]
+  jobRoles        JobRole[]
+  positionAssignments UserPositionAssignment[]
+  positionManagementConfig PositionManagementConfig?
   locations       Location[]
   leavePolicies   LeavePolicy[]
   leaveBalances   LeaveBalance[]
@@ -116,10 +119,6 @@ model Tenant {
   communicationRecipients CommunicationPostRecipient[]
   // Org structure
   orgUnits              OrgUnit[]
-  // Positions workflow & admin
-  approvalSteps         ApprovalStep[]
-  positionApprovals     PositionApproval[]
-  positionIdCounters    PositionIdCounter[]
   // Rostering
   rosterTemplates       RosterTemplate[]
   rosterAssignments     RosterAssignment[]
@@ -244,6 +243,7 @@ model Location {
   shifts            Shift[]
   // Accommodation
   rooms             Room[]
+  positions         Position[]
 }
 
 model LegalEntity {
@@ -280,17 +280,6 @@ enum DepartmentStatus {
   INACTIVE
 }
 
-enum PositionStatus {
-  PENDING
-  ACTIVE
-  ARCHIVED
-}
-
-enum BudgetStatus {
-  BUDGETED
-  UNBUDGETED
-}
-
 model OrgUnit {
   id        String     @id @default(cuid())
   tenantId  String
@@ -303,80 +292,91 @@ model OrgUnit {
 }
 
 model Position {
-  id                  String             @id @default(cuid())
+  id                  String                     @id @default(cuid())
   tenantId            String
-  tenant              Tenant             @relation(fields: [tenantId], references: [id])
+  tenant              Tenant                     @relation(fields: [tenantId], references: [id])
+  positionId          String
   title               String
-  positionHumanId     String             @unique
+  jobRoleId           String?
+  jobRole             JobRole?                  @relation(fields: [jobRoleId], references: [id])
   departmentId        String
-  department          Department         @relation(fields: [departmentId], references: [id])
-  orgUnitId           String
-  orgUnit             OrgUnit            @relation(fields: [orgUnitId], references: [id])
-  employmentType      String
-  workType            String
-  fte                 Float              @default(1)
-  location            String?
-  reportsToId         String?
-  reportsTo           Position?          @relation("PositionReports", fields: [reportsToId], references: [id])
-  directReports       Position[]         @relation("PositionReports")
-  budgetStatus        BudgetStatus
-  status              PositionStatus     @default(PENDING)
-  effectiveFrom       DateTime
-  effectiveTo         DateTime?
-  justification       String?
-  createdByEmployeeId String?
-  approvalsAudit      Json?
-  approvals           PositionApproval[]
+  department          Department                 @relation(fields: [departmentId], references: [id])
+  locationId          String
+  location            Location                   @relation(fields: [locationId], references: [id])
+  parentPositionId    String?
+  parent              Position?                  @relation("PositionHierarchy", fields: [parentPositionId], references: [id])
+  children            Position[]                 @relation("PositionHierarchy")
+  budgetedFte         Decimal?                   @db.Decimal(6, 2)
+  budgetedSalary      Decimal?                   @db.Decimal(12, 2)
+  headcount           Int                        @default(1)
+  isActive            Boolean                    @default(true)
+  inheritRoleData     Boolean                    @default(true)
+  createdById         String?
+  updatedById         String?
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  assignments         UserPositionAssignment[]
   requisitions        Requisition[]
   employees           Employee[]
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
+
+  @@unique([tenantId, positionId])
 }
 
-model ApprovalStep {
-  id           String             @id @default(cuid())
-  tenantId     String
-  tenant       Tenant             @relation(fields: [tenantId], references: [id])
-  name         String
-  roleRequired String
-  sequence     Int
-  slaDays      Int                @default(3)
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  approvals    PositionApproval[]
+model JobRole {
+  id            String    @id @default(cuid())
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  title         String
+  description   String?
+  skills        Json?     @default(json('[]'))
+  goals         Json?     @default(json('[]'))
+  courses       Json?     @default(json('[]'))
+  competencies  Json?     @default(json('[]'))
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  positions     Position[]
 }
 
-enum ApprovalAction {
-  SUBMITTED
-  APPROVED
-  REJECTED
+model UserPositionAssignment {
+  id                     String    @id @default(cuid())
+  tenantId               String
+  tenant                 Tenant    @relation(fields: [tenantId], references: [id])
+  employeeId             String
+  employee               Employee  @relation(fields: [employeeId], references: [id])
+  positionId             String
+  position               Position  @relation(fields: [positionId], references: [id])
+  fte                    Decimal?  @db.Decimal(6, 2)
+  baseSalary             Decimal?  @db.Decimal(12, 2)
+  startDate              DateTime
+  endDate                DateTime?
+  isPrimary              Boolean   @default(true)
+  reportsToOverrideId    String?
+  reportsToOverride      Employee? @relation("AssignmentManagerOverride", fields: [reportsToOverrideId], references: [id])
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  @@index([tenantId, employeeId, isPrimary])
 }
 
-model PositionApproval {
-  id                 String         @id @default(cuid())
-  tenantId           String
-  tenant             Tenant         @relation(fields: [tenantId], references: [id])
-  positionId         String
-  position           Position       @relation(fields: [positionId], references: [id])
-  stepId             String
-  step               ApprovalStep   @relation(fields: [stepId], references: [id])
-  approverEmployeeId String?
-  action             ApprovalAction @default(SUBMITTED)
-  comment            String?
-  actedAt            DateTime?
-  createdAt          DateTime       @default(now())
+model PositionManagementConfig {
+  tenantId                String    @id
+  tenant                  Tenant    @relation(fields: [tenantId], references: [id])
+  mode                    PositionManagementMode @default(EMPLOYEE_LED)
+  showPositionIds         Boolean   @default(true)
+  autoGeneratePositionIds Boolean   @default(true)
+  positionIdFormat        String    @default("number")
+  idPrefix                String    @default("POS")
+  startingNumber          Int       @default(10000)
+  nextSequenceNumber      Int       @default(10000)
+  enableBudgeting         Boolean   @default(false)
+  enableConcurrentPositions Boolean @default(false)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 }
 
-// Per-department position id counters
-model PositionIdCounter {
-  id           String     @id @default(cuid())
-  tenantId     String
-  tenant       Tenant     @relation(fields: [tenantId], references: [id])
-  departmentId String     @unique
-  department   Department @relation(fields: [departmentId], references: [id])
-  nextNumber   Int        @default(1)
-  width        Int        @default(3)
-  hyphenStyle  Boolean    @default(false)
+enum PositionManagementMode {
+  EMPLOYEE_LED
+  POSITION_LED
 }
 
 // Recruitment
@@ -868,6 +868,8 @@ model Employee {
   // Rostering
   rosterAssignments     RosterAssignment[]
   shifts                Shift[]
+  positionAssignments   UserPositionAssignment[]
+  managerOverrideAssignments UserPositionAssignment[] @relation("AssignmentManagerOverride")
   swapRequestsRequested SwapRequest[]       @relation("SwapRequester")
   swapRequestsTarget    SwapRequest[]       @relation("SwapTarget")
   // Travel & Accommodation

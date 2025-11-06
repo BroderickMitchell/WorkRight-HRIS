@@ -1,30 +1,52 @@
 "use client";
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, Button, Badge } from '@workright/ui';
+import { Card, CardHeader, CardTitle, CardDescription, Button } from '@workright/ui';
 import { apiFetch } from '../../../lib/api';
 
-type Position = { id: string; positionHumanId: string; title: string; departmentId: string; status: 'PENDING'|'ACTIVE'|'ARCHIVED'; budgetStatus: 'BUDGETED'|'UNBUDGETED' };
+type Position = {
+  id: string;
+  positionId: string;
+  title: string;
+  vacancyStatus: 'open' | 'filled' | 'overfilled' | 'inactive';
+  isActive: boolean;
+  department?: { id: string; name: string } | null;
+  location?: { id: string; name: string } | null;
+  assignments: { employeeId: string; employeeName?: string | undefined }[];
+};
 
-function StatusBadge({ status }: { status: Position['status'] }) {
-  const map = {
-    PENDING: 'bg-amber-100 text-amber-800 border-amber-200',
-    ACTIVE: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-    ARCHIVED: 'bg-slate-100 text-slate-700 border-slate-200'
-  } as const;
-  return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${map[status]}`}>{status}</span>;
+const vacancyClasses: Record<Position['vacancyStatus'], string> = {
+  open: 'bg-amber-100 text-amber-800 border-amber-200',
+  filled: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  overfilled: 'bg-rose-100 text-rose-800 border-rose-200',
+  inactive: 'bg-slate-100 text-slate-600 border-slate-200'
+};
+
+function VacancyBadge({ status }: { status: Position['vacancyStatus'] }) {
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${vacancyClasses[status]}`}>
+      {status === 'open' && 'Vacant'}
+      {status === 'filled' && 'Filled'}
+      {status === 'overfilled' && 'Overfilled'}
+      {status === 'inactive' && 'Inactive'}
+    </span>
+  );
 }
 
 export default function PositionsPage() {
-  const [includePending, setIncludePending] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
+  const [vacanciesOnly, setVacanciesOnly] = useState(false);
   const [rows, setRows] = useState<Position[]>([]);
 
   const load = useCallback(async () => {
-    const status = includePending ? undefined : 'active';
-    const path = status ? `/v1/org/positions?status=${status}` : `/v1/org/positions`;
+    const params = new URLSearchParams();
+    if (showInactive) params.set('includeInactive', 'true');
+    if (vacanciesOnly) params.set('includeVacancies', 'true');
+    const qs = params.toString();
+    const path = qs.length > 0 ? `/v1/positions?${qs}` : `/v1/positions`;
     const data = await apiFetch<Position[]>(path);
     setRows(data);
-  }, [includePending]);
+  }, [showInactive, vacanciesOnly]);
   useEffect(() => {
     load();
   }, [load]);
@@ -34,7 +56,7 @@ export default function PositionsPage() {
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900">Positions</h1>
-          <p className="text-slate-600">Manage approved positions in your org chart.</p>
+          <p className="text-slate-600">Manage the positions that drive reporting lines and hiring demand.</p>
         </div>
         <Link href="/positions/new"><Button>Create position</Button></Link>
       </header>
@@ -44,12 +66,18 @@ export default function PositionsPage() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Position list</CardTitle>
-              <CardDescription>Includes Active positions; toggle to include Pending planning items.</CardDescription>
+              <CardDescription>Filter by vacancy and inactive status to highlight planning requirements.</CardDescription>
             </div>
-            <label className="text-sm text-slate-700">
-              <input type="checkbox" className="mr-2" checked={includePending} onChange={(e) => setIncludePending(e.target.checked)} />
-              Include Pending in planning
-            </label>
+            <div className="flex items-center gap-6 text-sm text-slate-700">
+              <label className="flex items-center">
+                <input type="checkbox" className="mr-2" checked={vacanciesOnly} onChange={(e) => setVacanciesOnly(e.target.checked)} />
+                Show vacancies only
+              </label>
+              <label className="flex items-center">
+                <input type="checkbox" className="mr-2" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
+                Include inactive
+              </label>
+            </div>
           </div>
         </CardHeader>
         <div className="divide-y divide-slate-200 p-6 pt-0">
@@ -64,13 +92,21 @@ export default function PositionsPage() {
           ) : rows.map((p) => (
             <div key={p.id} className="flex items-center justify-between py-3">
               <div>
-                <p className="font-medium text-slate-900">{p.positionHumanId} · {p.title}</p>
-                <div className="mt-1 flex items-center gap-2 text-sm">
-                  <StatusBadge status={p.status} />
-                  {p.budgetStatus === 'UNBUDGETED' && <Badge className="border-violet-200 bg-violet-100 text-violet-800">Unbudgeted</Badge>}
+                <p className="font-medium text-slate-900">{p.positionId} · {p.title}</p>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-600">
+                  <VacancyBadge status={p.vacancyStatus} />
+                  {p.department && <span>{p.department.name}</span>}
+                  {p.location && <span>· {p.location.name}</span>}
+                  {p.assignments.length > 0 && (
+                    <span>
+                      Occupied by {p.assignments.map((a) => a.employeeName ?? 'Unassigned').join(', ')}
+                    </span>
+                  )}
                 </div>
               </div>
-              <Link href={`/positions/${p.id}`} className="text-brand hover:underline text-sm">Open</Link>
+              <Link href={`/positions/${p.id}`} className="text-brand text-sm hover:underline">
+                Open
+              </Link>
             </div>
           ))}
         </div>
