@@ -1,4 +1,4 @@
-import { BudgetStatus, LeaveStatus, Prisma, PrismaClient, RoleKey } from '@prisma/client';
+import { BudgetStatus, FieldMapSource, LeaveStatus, Prisma, PrismaClient, RoleKey } from '@prisma/client';
 import { addDays } from 'date-fns';
 
 const prisma = new PrismaClient();
@@ -23,6 +23,18 @@ async function main() {
     prisma.goal.deleteMany({}),
     prisma.generatedDocument.deleteMany({}),
     prisma.documentTemplate.deleteMany({}),
+    prisma.nodeRun.deleteMany({}),
+    prisma.workflowRun.deleteMany({}),
+    prisma.workflowVersion.deleteMany({}),
+    prisma.workflow.deleteMany({}),
+    prisma.fieldMap.deleteMany({}),
+    prisma.taskTemplate.deleteMany({}),
+    prisma.formTemplate.deleteMany({}),
+    prisma.emailTemplate.deleteMany({}),
+    prisma.profileTaskTemplate.deleteMany({}),
+    prisma.survey.deleteMany({}),
+    prisma.group.deleteMany({}),
+    prisma.legalEntity.deleteMany({}),
     prisma.employmentEvent.deleteMany({}),
     prisma.employeeCostSplit.deleteMany({}),
     prisma.employeeEmergencyContact.deleteMany({}),
@@ -94,6 +106,13 @@ async function main() {
     ]
   });
 
+  const ownerUser = await prisma.user.findFirstOrThrow({
+    where: { tenantId: acme.id, email: 'owner@acme.example.au' }
+  });
+  const demoHrUser = await prisma.user.findFirstOrThrow({
+    where: { tenantId: demo.id, email: 'hr@demo.example.au' }
+  });
+
   await prisma.department.createMany({
     data: [
       { tenantId: acme.id, name: 'Operations' },
@@ -132,6 +151,43 @@ async function main() {
       country: 'Australia',
       timezone: 'Australia/Perth'
     }
+  });
+
+  const acmeLegal = await prisma.legalEntity.create({
+    data: {
+      tenantId: acme.id,
+      name: 'Acme Mining Pty Ltd'
+    }
+  });
+
+  const demoLegal = await prisma.legalEntity.create({
+    data: {
+      tenantId: demo.id,
+      name: 'Demo Health Pty Ltd'
+    }
+  });
+
+  await prisma.group.createMany({
+    data: [
+      {
+        tenantId: acme.id,
+        name: 'Site Supervisors',
+        description: 'Supervisors who oversee rostered crews',
+        isActive: true
+      },
+      {
+        tenantId: acme.id,
+        name: 'HR Business Partners',
+        description: 'HRBP team',
+        isActive: true
+      },
+      {
+        tenantId: demo.id,
+        name: 'Onboarding Coordinators',
+        description: 'Demo onboarding support',
+        isActive: true
+      }
+    ]
   });
 
   const superintendent = await prisma.position.create({
@@ -465,6 +521,7 @@ async function main() {
       {
         tenantId: acme.id,
         employeeId: manager.id,
+        legalEntityId: acmeLegal.id,
         startDate: manager.startDate,
         contractType: 'Permanent',
         fte: 1,
@@ -486,6 +543,7 @@ async function main() {
       {
         tenantId: acme.id,
         employeeId: sienna.id,
+        legalEntityId: acmeLegal.id,
         startDate: addDays(new Date(), -120),
         contractType: 'Permanent',
         fte: 1,
@@ -507,6 +565,7 @@ async function main() {
       {
         tenantId: acme.id,
         employeeId: noah.id,
+        legalEntityId: acmeLegal.id,
         startDate: addDays(new Date(), -90),
         contractType: 'Permanent',
         fte: 1,
@@ -560,6 +619,140 @@ async function main() {
       }
     ]
   });
+
+  await prisma.taskTemplate.create({
+    data: {
+      tenantId: acme.id,
+      name: 'Complete welcome tasks',
+      description: 'Read the welcome pack and acknowledge policies.',
+      defaultNotifications: asJson([{ channel: 'EMAIL', offsetDays: 0 }]),
+      defaultDueRules: asJson({ basis: 'assignee.start_date', offset: { value: 2, unit: 'days' }, direction: 'AFTER' }),
+      createdById: ownerUser.id
+    }
+  });
+
+  await prisma.taskTemplate.create({
+    data: {
+      tenantId: acme.id,
+      name: 'Arrange equipment provisioning',
+      description: 'IT to provision laptop and access cards.',
+      defaultNotifications: asJson([{ channel: 'EMAIL', offsetDays: 0 }]),
+      defaultDueRules: asJson({ basis: 'assignee.start_date', offset: { value: -3, unit: 'days' }, direction: 'BEFORE' }),
+      createdById: ownerUser.id
+    }
+  });
+
+  await prisma.formTemplate.create({
+    data: {
+      tenantId: acme.id,
+      name: 'Onboarding information form',
+      schema: asJson({
+        title: 'Onboarding details',
+        fields: [
+          { type: 'text', id: 'tshirt', label: 'T-shirt size' },
+          { type: 'textarea', id: 'diet', label: 'Dietary requirements' }
+        ]
+      }),
+      notifications: asJson([{ channel: 'EMAIL', offsetDays: 0 }]),
+      version: 1,
+      publishState: 'published',
+      createdById: ownerUser.id
+    }
+  });
+
+  await prisma.emailTemplate.create({
+    data: {
+      tenantId: acme.id,
+      name: 'Orientation schedule',
+      subject: 'Your first week at Acme',
+      bodyHtml:
+        '<p>Hi {{::FIRSTNAME::}},</p><p>We are excited to welcome you on {{::STARTDATE::}}. Your manager {{::WORKFLOWASSIGNEEMANAGERFIRSTNAME::}} will meet you at reception.</p>',
+      placeholders: ['::FIRSTNAME::', '::STARTDATE::', '::WORKFLOWASSIGNEEMANAGERFIRSTNAME::'],
+      attachments: asJson([]),
+      createdById: ownerUser.id
+    }
+  });
+
+  await prisma.profileTaskTemplate.create({
+    data: {
+      tenantId: acme.id,
+      name: 'Complete personal information',
+      sections: ['BANK_DETAILS', 'EMERGENCY_CONTACT', 'ADDITIONAL_INFO'],
+      countryScope: ['AU'],
+      createdById: ownerUser.id
+    }
+  });
+
+  await prisma.survey.create({
+    data: {
+      tenantId: acme.id,
+      name: 'New starter feedback',
+      collectors: asJson([{ type: 'link', url: 'https://forms.example.com/acme-onboarding' }]),
+      enabledCollectors: asJson({ onboarding_workflow: true }),
+      createdById: ownerUser.id
+    }
+  });
+
+  await prisma.taskTemplate.create({
+    data: {
+      tenantId: demo.id,
+      name: 'Hospital orientation checklist',
+      description: 'Complete induction modules before day one.',
+      defaultNotifications: asJson([{ channel: 'EMAIL', offsetDays: 0 }]),
+      defaultDueRules: asJson({ basis: 'assignee.start_date', offset: { value: 1, unit: 'weeks' }, direction: 'AFTER' }),
+      createdById: demoHrUser.id
+    }
+  });
+
+  await prisma.formTemplate.create({
+    data: {
+      tenantId: demo.id,
+      name: 'Clinical onboarding form',
+      schema: asJson({ title: 'Clinical onboarding', fields: [{ type: 'text', id: 'registration', label: 'AHPRA registration #' }] }),
+      notifications: asJson([{ channel: 'EMAIL', offsetDays: 0 }]),
+      version: 1,
+      publishState: 'published',
+      createdById: demoHrUser.id
+    }
+  });
+
+  const placeholderSeeds = [
+    { key: '::FIRSTNAME::', path: 'profile.first_name', required: true },
+    { key: '::LASTNAME::', path: 'profile.last_name', required: true },
+    { key: '::PREFERREDNAME::', path: 'profile.preferred_name', fallback: 'profile.first_name' },
+    { key: '::EMAIL::', path: 'profile.email', required: true },
+    { key: '::STARTDATE::', path: 'employment.start_date', required: true },
+    { key: '::ENDDATE::', path: 'employment.end_date' },
+    { key: '::POSITION::', path: 'org.position.name' },
+    { key: '::DEPARTMENT::', path: 'org.department.name' },
+    { key: '::LOCATION::', path: 'org.location.name' },
+    { key: '::MANAGERFIRSTNAME::', path: 'manager.profile.first_name' },
+    { key: '::WORKFLOWASSIGNEEMANAGERFIRSTNAME::', path: 'assignee.manager.profile.first_name', required: true },
+    { key: '::LEGALENTITY::', path: 'org.legal_entity.name' }
+  ];
+
+  for (const placeholder of placeholderSeeds) {
+    await prisma.fieldMap.create({
+      data: {
+        tenantId: acme.id,
+        source: FieldMapSource.EMAIL_PLACEHOLDER,
+        sourceKey: placeholder.key,
+        targetPath: placeholder.path,
+        required: placeholder.required ?? false,
+        fallback: placeholder.fallback ?? null
+      }
+    });
+    await prisma.fieldMap.create({
+      data: {
+        tenantId: demo.id,
+        source: FieldMapSource.EMAIL_PLACEHOLDER,
+        sourceKey: placeholder.key,
+        targetPath: placeholder.path,
+        required: placeholder.required ?? false,
+        fallback: placeholder.fallback ?? null
+      }
+    });
+  }
 
   await prisma.documentTemplate.createMany({
     data: [
