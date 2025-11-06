@@ -204,7 +204,6 @@ model Department {
   users              User[]
   communicationPosts CommunicationPost[]
   positions          Position[]
-  positionIdCounter  PositionIdCounter?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
