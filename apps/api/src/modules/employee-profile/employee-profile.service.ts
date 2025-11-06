@@ -254,7 +254,7 @@ export class EmployeeProfileService {
         pronouns: employee.pronouns ?? null,
         dateOfBirth: employee.dateOfBirth
           ? employee.dateOfBirth.toISOString()
-          : new Date(0).toISOString(),
+          : null,
         nationalIdentifiers: Array.isArray(employee.nationalIdentifiers)
           ? (employee.nationalIdentifiers as Array<{
               id: string;
@@ -809,7 +809,7 @@ export class EmployeeProfileService {
       pronouns: payload.pronouns ?? null,
       dateOfBirth: payload.dateOfBirth
         ? new Date(payload.dateOfBirth)
-        : existing.dateOfBirth,
+        : null,
       nationalIdentifiers: payload.nationalIdentifiers,
       citizenships: payload.citizenships,
       languages: payload.languages,

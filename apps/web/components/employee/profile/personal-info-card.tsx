@@ -7,6 +7,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { EmployeeProfilePayload } from '@workright/profile-schema';
 import { ProfileCard } from './profile-card';
 
+const optionalDateSchema = z
+  .string()
+  .transform((value) => value.trim())
+  .refine(
+    (value) => value.length === 0 || !Number.isNaN(Date.parse(value)),
+    'Enter a valid date'
+  );
+
 const personalFormSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   middleName: z.string().optional().nullable(),
@@ -14,7 +22,7 @@ const personalFormSchema = z.object({
   suffix: z.string().optional().nullable(),
   preferredName: z.string().optional().nullable(),
   pronouns: z.string().optional().nullable(),
-  dateOfBirth: z.string().min(1, 'Date of birth is required'),
+  dateOfBirth: optionalDateSchema,
   citizenships: z.string().optional().nullable(),
   languages: z.string().optional().nullable(),
   maritalStatus: z.string().optional().nullable(),
@@ -129,7 +137,7 @@ function mapPersonalToForm(personal: EmployeeProfilePayload['personal']): Person
     suffix: personal.legalName.suffix ?? '',
     preferredName: personal.preferredName ?? '',
     pronouns: personal.pronouns ?? '',
-    dateOfBirth: personal.dateOfBirth.slice(0, 10),
+    dateOfBirth: personal.dateOfBirth ? personal.dateOfBirth.slice(0, 10) : '',
     citizenships: personal.citizenships.join(', '),
     languages: personal.languages.join(', '),
     maritalStatus: personal.maritalStatus ?? '',
@@ -148,7 +156,7 @@ function mapFormToPersonal(values: PersonalFormValues, previous: EmployeeProfile
     },
     preferredName: values.preferredName ? values.preferredName : null,
     pronouns: values.pronouns ? values.pronouns : null,
-    dateOfBirth: values.dateOfBirth,
+    dateOfBirth: values.dateOfBirth ? values.dateOfBirth : null,
     citizenships: normaliseList(values.citizenships),
     languages: normaliseList(values.languages),
     maritalStatus: values.maritalStatus ? values.maritalStatus : null,

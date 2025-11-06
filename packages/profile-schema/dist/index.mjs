@@ -1,5 +1,8 @@
 // src/index.ts
 import { z } from "zod";
+var isoDateString = z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
+  message: "Invalid date"
+});
 var costCodeTypeSchema = z.enum(["COST_CENTER", "GL", "PROJECT", "WORKTAG"]);
 var employmentEventTypeSchema = z.enum([
   "HIRE",
@@ -54,7 +57,7 @@ var employeePersonalSchema = z.object({
   }),
   preferredName: z.string().optional().nullable(),
   pronouns: z.string().optional().nullable(),
-  dateOfBirth: z.string(),
+  dateOfBirth: isoDateString.nullable(),
   nationalIdentifiers: z.array(
     z.object({
       id: z.string(),

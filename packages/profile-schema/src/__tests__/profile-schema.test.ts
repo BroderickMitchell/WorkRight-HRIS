@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   employeeContactSchema,
+  employeePersonalSchema,
   employeeProfileSchema
 } from '../index';
 
@@ -36,6 +37,22 @@ describe('employeeContactSchema', () => {
 });
 
 describe('employeeProfileSchema', () => {
+  it('accepts a personal payload with a null date of birth', () => {
+    const result = employeePersonalSchema.safeParse({
+      legalName: {
+        first: 'Jane',
+        last: 'Doe'
+      },
+      dateOfBirth: null,
+      nationalIdentifiers: []
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.dateOfBirth).toBeNull();
+    }
+  });
+
   it('parses a minimal employee profile', () => {
     const profile = {
       employee: {
