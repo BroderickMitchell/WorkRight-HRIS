@@ -29,6 +29,8 @@ COPY scripts/bootstrap-env.mjs scripts/
 COPY apps/api/scripts apps/api/scripts
 COPY apps/api/prisma apps/api/prisma
 
+RUN cd apps/api && npx prisma format && npx prisma generate
+
 # Install once for the workspace
 RUN if [ -f pnpm-lock.yaml ]; then \
       pnpm -w install --frozen-lockfile; \

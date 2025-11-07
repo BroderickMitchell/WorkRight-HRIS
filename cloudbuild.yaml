@@ -1,66 +1,62 @@
 steps:
-  - name: gcr.io/cloud-builders/docker
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/workright-hris-api', '--target', 'runtime-api', '.']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/workright-hris-web', '--target', 'runtime-web', '.']
+
+  # Push the container images to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/workright-hris-api']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/workright-hris-web']
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
     args:
-      - build
-      - "-t"
-      - "gcr.io/$PROJECT_ID/workright-api:latest"
-      - "."
+      - 'run'
+      - 'deploy'
+      - 'workright-api'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/workright-hris-api'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'NODE_ENV=production,DATABASE_URL=$$DATABASE_URL,REDIS_URL=$$REDIS_URL'
+    secretEnv: ['DATABASE_URL', 'REDIS_URL']
 
-  - name: gcr.io/cloud-builders/docker
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
     args:
-      - push
-      - "gcr.io/$PROJECT_ID/workright-api:latest"
+      - 'run'
+      - 'deploy'
+      - 'workright-web'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/workright-hris-web'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'NEXT_PUBLIC_API_URL=$$API_URL'
+    secretEnv: ['API_URL']
 
-  - name: gcr.io/cloud-builders/gcloud
-    entrypoint: bash
-    args:
-      - -lc
-      - |
-        set -euo pipefail
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/database-url/versions/latest
+      env: 'DATABASE_URL'
+    - versionName: projects/$PROJECT_ID/secrets/redis-url/versions/latest
+      env: 'REDIS_URL'
+    - versionName: projects/$PROJECT_ID/secrets/api-url/versions/latest
+      env: 'API_URL'
 
-        SERVICE="workright-api"
-        REGION="${_REGION}"
-        SERVICE_ACCOUNT="${_SERVICE_ACCOUNT}"
-        DB_NAME="${_DB_NAME}"
-        DB_USER="${_DB_USER}"
-        DB_HOST="${_DB_HOST}"
-        DB_PORT="${_DB_PORT:-5432}"
-        INSTANCE_CONNECTION_NAME="${_INSTANCE_CONNECTION_NAME}"
-
-        if [[ -z "$DB_HOST" && -z "$INSTANCE_CONNECTION_NAME" ]]; then
-          echo "Either _DB_HOST or _INSTANCE_CONNECTION_NAME must be provided" >&2
-          exit 1
-        fi
-
-        DEPLOY_ARGS=(
-          run deploy "$SERVICE"
-          --image="gcr.io/$PROJECT_ID/workright-api:latest"
-          --region="$REGION"
-          --service-account="$SERVICE_ACCOUNT"
-          --platform=managed
-          --allow-unauthenticated
-          --port=8080
-          --set-env-vars "DB_NAME=${DB_NAME},DB_USER=${DB_USER},DB_PORT=${DB_PORT}"
-          --set-secrets "DB_PASSWORD=DB_PASSWORD:latest"
-        )
-
-        if [[ -n "$DB_HOST" ]]; then
-          DEPLOY_ARGS+=(--set-env-vars "DB_HOST=${DB_HOST}")
-          DEPLOY_ARGS+=(--set-env-vars "DATABASE_URL=postgresql://${DB_USER}:\${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?schema=public")
-        else
-          DEPLOY_ARGS+=(--set-env-vars "INSTANCE_CONNECTION_NAME=${INSTANCE_CONNECTION_NAME}")
-          DEPLOY_ARGS+=(--set-env-vars "DATABASE_URL=postgresql://${DB_USER}:\${DB_PASSWORD}@/${DB_NAME}?host=/cloudsql/${INSTANCE_CONNECTION_NAME}&schema=public")
-          DEPLOY_ARGS+=(--add-cloudsql-instances "${INSTANCE_CONNECTION_NAME}")
-        fi
-
-        gcloud "${DEPLOY_ARGS[@]}"
-substitutions:
-  _REGION: australia-southeast1
-  _SERVICE_ACCOUNT: workright-runner@workright-hris.iam.gserviceaccount.com
-  _INSTANCE_CONNECTION_NAME: workright-hris:australia-southeast1:hris-db-7937
-  _DB_NAME: workrightdb
-  _DB_USER: appuser
-  _DB_HOST: ""
-  _DB_PORT: "5432"
 images:
-  - gcr.io/$PROJECT_ID/workright-api:latest
+  - 'gcr.io/$PROJECT_ID/workright-hris-api'
+  - 'gcr.io/$PROJECT_ID/workright-hris-web'
