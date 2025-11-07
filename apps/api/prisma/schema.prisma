@@ -329,6 +329,8 @@ model Position {
   department          Department                 @relation(fields: [departmentId], references: [id])
   locationId          String
   location            Location                   @relation(fields: [locationId], references: [id])
+  orgUnitId           String?
+  orgUnit             OrgUnit?                   @relation(fields: [orgUnitId], references: [id])
   parentPositionId    String?
   parent              Position?                  @relation("PositionHierarchy", fields: [parentPositionId], references: [id])
   children            Position[]                 @relation("PositionHierarchy")
