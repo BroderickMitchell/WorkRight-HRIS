@@ -103,6 +103,17 @@ model Tenant {
   modules         Module[]
   enrolments      Enrolment[]
   completions     Completion[]
+  legalEntities   LegalEntity[]
+  groups          Group[]
+  taskTemplates   TaskTemplate[]
+  formTemplates   FormTemplate[]
+  emailTemplates  EmailTemplate[]
+  profileTaskTemplates ProfileTaskTemplate[]
+  surveys         Survey[]
+  fieldMaps       FieldMap[]
+  workflows       Workflow[]
+  workflowRuns    WorkflowRun[]
+  nodeRuns        NodeRun[]
 
   goals                 Goal[]
   goalAlignments        GoalAlignment[]
@@ -162,6 +173,22 @@ model User {
   teams      Team[]           @relation("TeamMembers")
   posts      CommunicationPost[] @relation("AuthorPosts")
   communicationRecipients CommunicationPostRecipient[]
+  taskTemplatesCreated        TaskTemplate[]         @relation("TaskTemplateCreatedBy")
+  taskTemplatesUpdated        TaskTemplate[]         @relation("TaskTemplateUpdatedBy")
+  formTemplatesCreated        FormTemplate[]         @relation("FormTemplateCreatedBy")
+  formTemplatesUpdated        FormTemplate[]         @relation("FormTemplateUpdatedBy")
+  emailTemplatesCreated       EmailTemplate[]        @relation("EmailTemplateCreatedBy")
+  emailTemplatesUpdated       EmailTemplate[]        @relation("EmailTemplateUpdatedBy")
+  profileTaskTemplatesCreated ProfileTaskTemplate[] @relation("ProfileTaskTemplateCreatedBy")
+  profileTaskTemplatesUpdated ProfileTaskTemplate[] @relation("ProfileTaskTemplateUpdatedBy")
+  surveysCreated              Survey[]               @relation("SurveyCreatedBy")
+  surveysUpdated              Survey[]               @relation("SurveyUpdatedBy")
+  workflowsCreated            Workflow[]             @relation("WorkflowCreatedBy")
+  workflowsUpdated            Workflow[]             @relation("WorkflowUpdatedBy")
+  workflowVersionsCreated     WorkflowVersion[]      @relation("WorkflowVersionCreatedBy")
+  workflowRunsAssignee        WorkflowRun[]          @relation("WorkflowRunAssignee")
+  workflowRunsCreated         WorkflowRun[]          @relation("WorkflowRunCreatedBy")
+  workflowRunsCancelled       WorkflowRun[]          @relation("WorkflowRunCancelledBy")
   mfaEnabled  Boolean    @default(false)
   lastLoginAt DateTime?
   employees   Employee[]
@@ -327,10 +354,10 @@ model JobRole {
   tenant        Tenant    @relation(fields: [tenantId], references: [id])
   title         String
   description   String?
-  skills        Json?     @default(json("[]"))
-  goals         Json?     @default(json("[]"))
-  courses       Json?     @default(json("[]"))
-  competencies  Json?     @default(json("[]"))
+  skills        Json?     @default("[]")
+  goals         Json?     @default("[]")
+  courses       Json?     @default("[]")
+  competencies  Json?     @default("[]")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   positions     Position[]
@@ -691,9 +718,9 @@ model Workflow {
   name            String
   status          WorkflowStatus  @default(DRAFT)
   currentVersion  Int             @default(0)
-  activeVersionId String?
+  activeVersionId String?         @unique
   activeVersion   WorkflowVersion? @relation("WorkflowActiveVersion", fields: [activeVersionId], references: [id])
-  draftVersionId  String?
+  draftVersionId  String?         @unique
   draftVersion    WorkflowVersion? @relation("WorkflowDraftVersion", fields: [draftVersionId], references: [id])
   createdById     String
   createdBy       User            @relation("WorkflowCreatedBy", fields: [createdById], references: [id])
