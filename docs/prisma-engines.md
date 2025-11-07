@@ -1,81 +1,58 @@
-# Refreshing Prisma engines offline
+# Managing Prisma engines
 
-The build environment for WorkRight HRIS cannot reach `binaries.prisma.sh`.
-To keep Prisma working offline while avoiding raw binaries in git, the repo
-tracks **Base64-encoded** engine payloads under
-`apps/api/prisma/engine-archives/<commit>/`. The helper scripts decode those
-archives into the gitignored cache at `apps/api/prisma/engines/<commit>/` before
-invoking Prisma. When Prisma is bumped, rebuild the engines, refresh the cache,
-and regenerate the Base64 archives so they can be committed safely.
+The repository now relies on Prisma's built-in engine distribution. Whenever the
+`prisma generate` command runs, Prisma downloads the matching query and schema
+engines and stores them under `node_modules/.prisma/client`. No custom commit
+hashes or Base64 archives are required.
 
-## Prerequisites
+## Standard (online) workflow
 
-- Rust toolchain (`rustup`) installed.
-- Sufficient disk space (building the engines pulls the full Prisma workspace).
+Run the following command from the monorepo root whenever you need to refresh
+the Prisma client or after updating the schema:
 
-## Steps
+```bash
+pnpm --filter @workright/api exec prisma generate
+```
 
-1. Determine the engine commit hash from
-   `node_modules/.pnpm/@prisma+engines-version*/package.json` under the
-   `prisma.enginesVersion` field.
-2. Download the Prisma engines source for that commit:
+The Dockerfile performs the same step during the dependency-install stage so
+CI/CD builds automatically pick up the required binaries. If the CLI complains
+about missing engines, ensure the `prisma` package is installed (it is tracked
+as a devDependency of `@workright/api`) and rerun the command above.
 
-   ```bash
-   curl -L -o /tmp/prisma-engines.tar.gz \
-     https://codeload.github.com/prisma/prisma-engines/tar.gz/<commit>
-   mkdir -p /tmp/prisma-engines
-   tar -xzf /tmp/prisma-engines.tar.gz --strip-components=1 -C /tmp/prisma-engines
-   ```
-3. Compile the Node-API query engine library and schema engine binary, passing
-   the commit hash via `GIT_HASH` so the binaries report the correct version:
+## Offline or air-gapped builds
 
-   ```bash
-   cd /tmp/prisma-engines
-   . "$HOME/.cargo/env"  # ensure Cargo is on PATH
-   GIT_HASH=<commit> cargo build -p query-engine-node-api --release
-   GIT_HASH=<commit> cargo build -p schema-engine-cli --release
-   ```
-4. Copy the resulting artifacts into the repository (they remain untracked):
+If you must build in an environment without outbound access, vendor the engines
+alongside the Docker build context. Prisma expects the binaries to live under
+`apps/api/prisma/engines/<commit>/` when the related environment variables are
+set. Populate that directory before running `pnpm --filter @workright/api exec
+prisma generate` in the container image:
+
+1. Determine the desired Prisma engine commit (`PRISMA_ENGINES_COMMIT`). The
+   value is available in `node_modules/.pnpm/@prisma+engines-version*/package.json`
+   under `prisma.enginesVersion`.
+2. Create the target directory locally (it must match the commit hash):
 
    ```bash
-   DEST=apps/api/prisma/engines/<commit>
-   mkdir -p "$DEST"
-   cp target/release/libquery_engine.so \
-     "$DEST/libquery_engine-debian-openssl-3.0.x.so.node"
-   cp target/release/schema-engine \
-     "$DEST/schema-engine-debian-openssl-3.0.x"
-   ```
-5. Update `apps/api/scripts/run-prisma.mjs`, the `Dockerfile` `ARG
-   PRISMA_ENGINES_COMMIT`, and documentation references to the new commit hash
-   if it changed.
-6. Regenerate the Base64 archives so they can be committed:
-
-   ```bash
-   pnpm --filter @workright/api run prisma:archive
+   mkdir -p apps/api/prisma/engines/$PRISMA_ENGINES_COMMIT
    ```
 
-   The command scans `apps/api/prisma/engines/<commit>/` for the binaries and
-   writes the corresponding `.base64` files under
-   `apps/api/prisma/engine-archives/<commit>/`.
-7. Re-run `pnpm --filter @workright/api run prisma:generate` to confirm the
-   local cache works (the helper will decode the Base64 archives if the
-   binaries are missing).
+3. Download the Debian OpenSSL 3 artifacts for that commit from Prisma's CDN or
+   an internal mirror and place them in the directory created above:
+   - `libquery_engine-debian-openssl-3.0.x.so.node`
+   - `schema-engine-debian-openssl-3.0.x`
 
-## Publishing the binaries for teammates/CI
+   The downloads are typically gzipped (`*.gz`); extract them before copying and
+   remember to `chmod +x` the schema engine binary.
+4. When building the container image, copy the populated directory into the
+   build context and export the environment variables shown below so Prisma uses
+   the vendored binaries:
 
-- **GitHub Release or internal object storage.** Package the decoded binaries or
-  the generated `.base64` files into an archive (for example,
-  `tar -czf prisma-engines-<commit>.tar.gz -C apps/api/prisma/engine-archives/<commit> .`)
-  and upload it to a GitHub Release or a private blob store. Consumers can
-  download the archive, extract it, run `pnpm --filter @workright/api run
-  prisma:install-engines`, and re-run the Prisma scripts.
-- **Network mirrors.** If your environment allows outbound requests to an
-  allow-listed host, expose the tarball from an internal mirror and export
-  `PRISMA_ENGINES_MIRROR` before invoking Prisma.
-- **Environment overrides.** As a last resort, provide absolute paths via
-  `PRISMA_QUERY_ENGINE_LIBRARY` and `PRISMA_SCHEMA_ENGINE_BINARY` when running
-  `pnpm --filter @workright/api run prisma:*`. The helper script will use those
-  paths instead of the local cache.
+   ```dockerfile
+   ARG PRISMA_ENGINES_COMMIT=<commit>
+   ENV PRISMA_QUERY_ENGINE_LIBRARY=/app/apps/api/prisma/engines/$PRISMA_ENGINES_COMMIT/libquery_engine-debian-openssl-3.0.x.so.node \
+       PRISMA_SCHEMA_ENGINE_BINARY=/app/apps/api/prisma/engines/$PRISMA_ENGINES_COMMIT/schema-engine-debian-openssl-3.0.x
+   ```
 
-Keeping the binaries out of git allows us to share them through approved
-channels while still supporting offline Docker builds and CI runners.
+These steps mirror the legacy workflow but keep the binaries entirely inside
+your trusted network. When network access is available, prefer the standard
+workflow so Prisma manages downloads automatically.

@@ -20,7 +20,5 @@ apps/web/out
 terraform.tfstate*
 .terraform
 
-# Prisma engine artifacts (gitignored; provide via docs/prisma-engines.md workflow)
-apps/api/prisma/engines/*
-!apps/api/prisma/engines/.gitkeep
-!apps/api/prisma/engines/README.md
+# Prisma engine caches (generated on demand by Prisma CLI)
+apps/api/prisma/engines/
