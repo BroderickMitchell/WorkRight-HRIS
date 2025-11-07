@@ -1,21 +1,15 @@
 # syntax=docker/dockerfile:1.7
 
 # ---------- base: deps ----------
-FROM node:20-bullseye-slim AS base
+FROM node:24-bookworm-slim AS base
 WORKDIR /app
 
 ENV PNPM_HOME=/usr/local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-# Prisma engines are supplied via the gitignored cache in apps/api/prisma/engines/<commit>
-ARG PRISMA_ENGINES_COMMIT=34b5a692b7bd79939a9a2c3ef97d816e749cda2f
-ENV PRISMA_ENGINES_COMMIT=$PRISMA_ENGINES_COMMIT \
-  PRISMA_QUERY_ENGINE_LIBRARY=/app/apps/api/prisma/engines/$PRISMA_ENGINES_COMMIT/libquery_engine-debian-openssl-3.0.x.so.node \
-  PRISMA_SCHEMA_ENGINE_BINARY=/app/apps/api/prisma/engines/$PRISMA_ENGINES_COMMIT/schema-engine-debian-openssl-3.0.x \
-  PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1
 RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates python3 build-essential openssl \
+  && apt-get install -y --no-install-recommends ca-certificates python3 build-essential \
   && rm -rf /var/lib/apt/lists/*
 
 # Workspace metadata (cache-friendly)
@@ -42,6 +36,9 @@ RUN if [ -f pnpm-lock.yaml ]; then \
       pnpm -w install; \
     fi
 
+# Ensure Prisma downloads the required engines in this stage
+RUN pnpm --filter @workright/api exec prisma generate
+
 # ---------- build ----------
 FROM base AS build
 WORKDIR /app
@@ -56,7 +53,7 @@ RUN pnpm --filter @workright/ui run build \
  && pnpm --filter @workright/config run build
 
 # API build (and ensure prisma client is generated)
-RUN pnpm --filter @workright/api run prisma:generate \
+RUN pnpm --filter @workright/api exec prisma generate \
  && pnpm --filter @workright/api run build
 
 # Web build (standalone)
@@ -67,7 +64,7 @@ RUN pnpm --filter @workright/web run build
 RUN pnpm deploy --filter @workright/api --prod /app/deploy/api
 
 # ---------- runtime-api ----------
-FROM node:20-bullseye-slim AS runtime-api
+FROM node:24-bookworm-slim AS runtime-api
 WORKDIR /app
 
 # Bring production deps from pnpm deploy output
@@ -88,7 +85,7 @@ RUN test -f /app/dist/main.js || (echo "dist/main.js missing!" && ls -la /app/di
 
 CMD ["node", "dist/main.js"]
 # ---------- runtime-web ----------
-FROM node:20-alpine AS runtime-web
+FROM node:24-alpine AS runtime-web
 WORKDIR /app
 
 ENV PNPM_HOME=/usr/local/share/pnpm

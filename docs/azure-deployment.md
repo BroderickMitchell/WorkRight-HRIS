@@ -29,9 +29,8 @@ Populate these settings via App Service configuration or Key Vault references (s
 ## Deployment flow
 
 1. Provision the Azure resources via Bicep: `infra/azure/main.bicep` + `main.parameters.json` cover the VNet, PostgreSQL flexible server, Redis, Service Bus, Key Vault, Storage, and App Service plan/Web App. Deploy with `az deployment group create --resource-group <rg> --template-file infra/azure/main.bicep --parameters @infra/azure/main.parameters.json`. The template omits subnet-level tags to avoid the `InvalidJson ... Could not find member 'tags' on object of type 'Subnet'` error raised by ARM. If your tooling requires an ARM JSON template instead, use `infra/azure/appservice-template.json`, which applies the same subnet/tag fixes while targeting PostgreSQL Flexible Server, Redis, and private networking.
-2. Build the API container image (`pnpm --filter @workright/api run build`) and push it to Azure Container Registry. If you
-   consumed newly built Prisma engines, remember to run `pnpm --filter @workright/api run prisma:archive` first so the Base64
-   payloads travel with your PR.
+2. Build the API container image (`pnpm --filter @workright/api run build`) and push it to Azure Container Registry. The
+   Dockerfile now downloads Prisma engines automatically during the build, so no extra archive step is required.
 3. Apply Prisma migrations against Azure Database for PostgreSQL (`pnpm --filter @workright/api run prisma:migrate`).
 4. Update the App Service or Container App to use the new image. Enable the managed identity and give it access to Key Vault secrets if you are using Key Vault references.
 5. Populate the configuration values above in App Service (or bind Key Vault references) and set `NODE_ENV=production`.

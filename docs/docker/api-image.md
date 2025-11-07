@@ -42,37 +42,15 @@ Push the tagged image to your registry so your deployment automation can pull it
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
 | `pnpm` fails with a proxy error during `docker build` | The build environment cannot reach `registry.npmjs.org` | Run `pnpm install` locally before building so the workspace store is ready, or mirror the dependencies inside your network |
-| API fails to start because Prisma schema is missing | `pnpm prisma generate` was skipped | Run `pnpm --filter @workright/api run prisma:generate` before building or bake it into your CI pipeline |
+| API fails to start because Prisma schema is missing | `pnpm prisma generate` was skipped | Run `pnpm --filter @workright/api exec prisma generate` before building or bake it into your CI pipeline |
 | Image size is larger than expected | Build was run without the `runtime-api` target | Ensure `--target runtime-api` (or the multi-stage default) is used |
 
-## Prisma engines (gitignored cache)
+## Prisma engines
 
-`pnpm prisma generate` and the migration commands need the Prisma query engine
-and schema engine binaries, but the sandbox cannot download them at build time.
-The repository now reserves `apps/api/prisma/engines/<commit>/` as a drop-in
-cache plus `apps/api/prisma/engine-archives/<commit>/` for Base64-encoded
-artifacts (see `docs/prisma-engines.md`). Populate the cache locally—or extract
-the archives and run `pnpm --filter @workright/api run prisma:install-engines`
-—before building the Docker image so the helper script can inject
-`PRISMA_QUERY_ENGINE_LIBRARY` and `PRISMA_SCHEMA_ENGINE_BINARY` automatically.
-
-If you upgrade Prisma:
-
-1. Check `node_modules/.pnpm/@prisma+engines-version*/package.json` for the
-   new `enginesVersion` hash.
-2. Rebuild the engines once (Rust toolchain commands are documented in
-   `docs/prisma-engines.md`), copy the artifacts into
-   `apps/api/prisma/engines/<hash>/` locally, and run
-   `pnpm --filter @workright/api run prisma:archive` so the `.base64` payloads
-   stay in sync.
-3. Update `apps/api/scripts/run-prisma.mjs`, `apps/api/scripts/install-prisma-engines.mjs`,
-   the `Dockerfile` `PRISMA_ENGINES_COMMIT` argument, and the documentation
-   references to the new hash if required.
-
-Because the binaries are ignored by git, share the generated `.base64` files (or
-decoded binaries) via an approved artifact store (for example, a GitHub Release
-tarball). Extract them before invoking the Docker build and run
-`pnpm --filter @workright/api run prisma:install-engines` so the
-`run-prisma.mjs` wrapper can locate the files without reaching
-`binaries.prisma.sh`.
+Prisma downloads the query and schema engines automatically when `prisma generate`
+runs. The Dockerfile now invokes
+`pnpm --filter @workright/api exec prisma generate` during the dependency stage
+so engine binaries are always available without bespoke cache management. If you
+are building in an air-gapped environment, follow `docs/prisma-engines.md` to
+vendor the engines alongside the build context.
 
