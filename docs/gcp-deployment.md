@@ -46,6 +46,26 @@ terraform apply tfplan
 
 Once the apply succeeds, Terraform will output the Cloud SQL connection name and the attachments bucket ID. Use these values to configure the application services (for example by wiring them into `apps/api` via environment variables).
 
+## Cloud Build automation
+
+The top-level [`cloudbuild.yaml`](../cloudbuild.yaml) pipeline bakes and pushes the production API image before deploying it to Cloud Run. It expects the following runtime inputs, which default to the shared sandbox project but can be overridden per build:
+
+- `_REGION` – Cloud Run region (for example `australia-southeast1`).
+- `_SERVICE_ACCOUNT` – Service account with `roles/run.admin`, `roles/iam.serviceAccountUser`, `roles/cloudsql.client`, and `roles/secretmanager.secretAccessor`.
+- `_INSTANCE_CONNECTION_NAME` – Cloud SQL instance connection string.
+- `_DB_NAME`, `_DB_USER`, `_DB_HOST`, `_DB_PORT` – Database connection settings (set `_DB_HOST` when using private IP).
+
+To trigger a build manually, authenticate with Cloud Build and run:
+
+```bash
+gcloud builds submit \
+  --config cloudbuild.yaml \
+  --substitutions _REGION=australia-southeast1,_SERVICE_ACCOUNT=workright-runner@<PROJECT_ID>.iam.gserviceaccount.com \
+  .
+```
+
+When `_DB_HOST` is unset the pipeline automatically wires the Cloud SQL Unix socket and adds the specified instance to the service. Secrets are read from Secret Manager (the `DB_PASSWORD` secret must exist).
+
 ## Post-deployment
 
 - Provision Cloud Run or GKE services for the web and API tiers. Attach them to the provisioned VPC subnets with Serverless VPC Access connectors or private GKE nodes.
