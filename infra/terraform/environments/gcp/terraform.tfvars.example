@@ -1,0 +1,8 @@
+project_id  = "your-project-id"
+region      = "us-central1"
+environment = "demo"
+
+# Optional overrides
+# database_tier            = "db-f1-micro"
+# workloads_cidr           = "10.10.0.0/24"
+# serverless_connector_cidr = "10.8.0.0/28"
