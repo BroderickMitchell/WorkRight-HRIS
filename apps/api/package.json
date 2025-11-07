@@ -6,7 +6,7 @@
     "prebuild": "pnpm run prisma:generate",
     "postinstall": "pnpm run postinstall:bootstrap && pnpm run prisma:generate",
     "postinstall:bootstrap": "node -e \"const fs=require('fs');const path=require('path');const {execFileSync}=require('child_process');const script=path.resolve(process.cwd(),'..','..','scripts','bootstrap-env.mjs');if(fs.existsSync(script)){execFileSync('node',[script],{stdio:'inherit'});}else{console.log('Skipping bootstrap-env setup (scripts/bootstrap-env.mjs not found).');}\"",
-    "prestart": "prisma migrate deploy",
+    "prestart": "pnpm run prisma:migrate",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
     "build": "nest build",
@@ -14,9 +14,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate deploy",
-    "prisma:seed": "prisma db seed"
+    "prisma:install-engines": "node ./scripts/install-prisma-engines.mjs",
+    "prisma:archive": "node ./scripts/package-prisma-engines.mjs",
+    "prisma:generate": "node ./scripts/run-prisma.mjs generate",
+    "prisma:migrate": "node ./scripts/run-prisma.mjs migrate deploy",
+    "prisma:seed": "node ./scripts/run-prisma.mjs db seed"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.7",

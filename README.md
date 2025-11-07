@@ -36,7 +36,15 @@ WorkRight HRIS is a modern, multi-tenant HR platform tailored for Australian org
    pnpm install
    ```
 
-   This bootstraps the pnpm workspaces (`apps/*` and `packages/*`).
+   This bootstraps the pnpm workspaces (`apps/*` and `packages/*`). If the
+   Prisma engines are missing, run `pnpm --filter @workright/api run
+   prisma:install-engines` to decode any tracked Base64 archives under
+   `apps/api/prisma/engine-archives/<commit>/`. When onboarding a fresh commit
+   without archives, follow `docs/prisma-engines.md` to build/download the
+   binaries, drop them in the gitignored cache at
+   `apps/api/prisma/engines/<commit>/`, and then execute
+   `pnpm --filter @workright/api run prisma:archive` so the Base64 payloads can
+   be committed to GitHub for teammates and CI.
 3. **Configure environment variables.** The postinstall script copies `.env.docker.example` to `.env.docker` for Compose-managed services and each `.env.example` to `.env` within `apps/api` and `apps/web` when missing. Update the generated files with secrets (for example, set a strong `POSTGRES_PASSWORD` in `.env.docker`, adjust Redis, Auth.js secret, S3 bucket, API URL). The API enforces the `X-Tenant-Id` header for every authenticated request.
 4. **Bring services online.** Choose one of the following approaches:
    - **Docker Compose (recommended for parity).**
@@ -51,10 +59,8 @@ WorkRight HRIS is a modern, multi-tenant HR platform tailored for Australian org
 5. **Apply database migrations and seed demo tenants.** With the API dependencies running:
 
    ```bash
-   cd apps/api
-   pnpm prisma migrate deploy
-   pnpm prisma db seed
-   cd ../..
+   pnpm --filter @workright/api run prisma:migrate
+   pnpm --filter @workright/api run prisma:seed
    ```
 
    This creates the `acme` and `demo` tenants and sample Australian data (dates in `dd/MM/yyyy`).
