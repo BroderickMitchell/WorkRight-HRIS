@@ -7,25 +7,55 @@ steps:
         gcloud builds submit --tag gcr.io/$PROJECT_ID/workright-api:latest .
 
   - name: gcr.io/cloud-builders/gcloud
+    entrypoint: bash
     args:
-      - run
-      - deploy
-      - workright-api
-      - --image=gcr.io/$PROJECT_ID/workright-api:latest
-      - --region=${_REGION}
-      - --service-account=${_SERVICE_ACCOUNT}
-      - --platform=managed
-      - --allow-unauthenticated
-      - --port=8080
-      - --set-env-vars=DB_NAME=${_DB_NAME},DB_USER=${_DB_USER},INSTANCE_CONNECTION_NAME=${_INSTANCE_CONNECTION_NAME}
-      - --set-env-vars=DATABASE_URL=postgresql://${_DB_USER}:$$DB_PASSWORD@/${_DB_NAME}?host=/cloudsql/${_INSTANCE_CONNECTION_NAME}&schema=public
-      - --set-secrets=DB_PASSWORD=DB_PASSWORD:latest
-      - --add-cloudsql-instances=${_INSTANCE_CONNECTION_NAME}
+      - -lc
+      - |
+        set -euo pipefail
+
+        SERVICE="workright-api"
+        REGION="${_REGION}"
+        SERVICE_ACCOUNT="${_SERVICE_ACCOUNT}"
+        DB_NAME="${_DB_NAME}"
+        DB_USER="${_DB_USER}"
+        DB_HOST="${_DB_HOST}"
+        DB_PORT="${_DB_PORT:-5432}"
+        INSTANCE_CONNECTION_NAME="${_INSTANCE_CONNECTION_NAME}"
+
+        if [[ -z "$DB_HOST" && -z "$INSTANCE_CONNECTION_NAME" ]]; then
+          echo "Either _DB_HOST or _INSTANCE_CONNECTION_NAME must be provided" >&2
+          exit 1
+        fi
+
+        DEPLOY_ARGS=(
+          run deploy "$SERVICE"
+          --image="gcr.io/$PROJECT_ID/workright-api:latest"
+          --region="$REGION"
+          --service-account="$SERVICE_ACCOUNT"
+          --platform=managed
+          --allow-unauthenticated
+          --port=8080
+          --set-env-vars "DB_NAME=${DB_NAME},DB_USER=${DB_USER},DB_PORT=${DB_PORT}"
+          --set-secrets "DB_PASSWORD=DB_PASSWORD:latest"
+        )
+
+        if [[ -n "$DB_HOST" ]]; then
+          DEPLOY_ARGS+=(--set-env-vars "DB_HOST=${DB_HOST}")
+          DEPLOY_ARGS+=(--set-env-vars "DATABASE_URL=postgresql://${DB_USER}:\${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?schema=public")
+        else
+          DEPLOY_ARGS+=(--set-env-vars "INSTANCE_CONNECTION_NAME=${INSTANCE_CONNECTION_NAME}")
+          DEPLOY_ARGS+=(--set-env-vars "DATABASE_URL=postgresql://${DB_USER}:\${DB_PASSWORD}@/${DB_NAME}?host=/cloudsql/${INSTANCE_CONNECTION_NAME}&schema=public")
+          DEPLOY_ARGS+=(--add-cloudsql-instances "${INSTANCE_CONNECTION_NAME}")
+        fi
+
+        gcloud "${DEPLOY_ARGS[@]}"
 substitutions:
   _REGION: australia-southeast1
   _SERVICE_ACCOUNT: workright-runner@workright-hris.iam.gserviceaccount.com
   _INSTANCE_CONNECTION_NAME: workright-hris:australia-southeast1:hris-db-7937
   _DB_NAME: workrightdb
   _DB_USER: appuser
+  _DB_HOST: ""
+  _DB_PORT: "5432"
 images:
   - gcr.io/$PROJECT_ID/workright-api:latest
