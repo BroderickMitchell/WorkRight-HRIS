@@ -141,7 +141,7 @@ cat <<EOF
    Then add managed certs from the portal (TLS/SSL settings).
 
 4) Database migrations (once API is deployed):
-   az webapp ssh -g ${RG} -n ${APP_API} --command "npx prisma migrate deploy"
+   az webapp ssh -g ${RG} -n ${APP_API} --command "cd site/wwwroot && pnpm --filter @workright/api run prisma:migrate"
 
 5) Health checks:
    - API: add /health endpoint and configure App Service Health Check.
