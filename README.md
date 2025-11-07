@@ -22,7 +22,7 @@ WorkRight HRIS is a modern, multi-tenant HR platform tailored for Australian org
 │   ├── config       # Shared configuration (eslint, tailwind, feature flag helpers)
 │   └── ui           # Shared UI primitives (shadcn/ui wrappers)
 ├── infra
-│   └── terraform    # AWS Terraform modules and environments
+│   └── terraform    # Terraform modules and environments (Google Cloud three-tier + legacy AWS stack)
 ├── scripts          # Database seed and utility scripts
 └── docs             # Architecture decision records and product documentation
 ```
@@ -146,8 +146,8 @@ The [`scripts/demo-flow.md`](scripts/demo-flow.md) guide includes:
 ## Deployment
 
 - **Containerisation** via Dockerfiles for web and API services.
-- **Infrastructure as code** with Terraform provisioning AWS VPC, RDS (PostgreSQL 15 with RLS), ECS/Fargate services, Redis (Elasticache), S3, CloudFront, and ACM certificates.
-- **CI/CD** pipelines on GitHub Actions for linting, testing, Prisma migrations, and deployment with manual approvals for production.
+- **Infrastructure as code** with Terraform provisioning both the Google Cloud three-tier reference architecture (VPC, Cloud SQL, Cloud Storage) and the existing AWS environment (VPC, RDS, ECS/Fargate, Redis, S3, CloudFront, ACM).
+- **CI/CD** pipelines on GitHub Actions for linting, testing, Prisma migrations, and deployment with manual approvals for production, plus an optional Cloud Build pipeline (`cloudbuild.yaml`) that publishes the API to Cloud Run.
 
 ### Building and pushing the API Docker image
 
