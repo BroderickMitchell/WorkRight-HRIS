@@ -64,7 +64,7 @@ RUN pnpm --filter @workright/ui run build \
 RUN pnpm --filter @workright/api run build
 
 # Produce lean prod payload of the API (package.json + pruned node_modules)
-RUN pnpm deploy --filter @workright/api --prod /app/deploy/api
+RUN SKIP_API_PRISMA_GENERATE=1 pnpm deploy --filter @workright/api --prod /app/deploy/api
 
 # --- Web build (Next.js) ---
 ENV NEXT_TELEMETRY_DISABLED=1
