@@ -15,18 +15,17 @@ export type ListQuery = { q?: string } | undefined;
 export class OnboardingWorkflowsService {
   constructor(private readonly prisma: PrismaService) {}
 
-async list(query?: ListQuery) {
-  const where: Prisma.WorkflowWhereInput =
-    query?.q ? { name: { contains: query.q, mode: 'insensitive' } } : {};
+  async list(query?: ListQuery) {
+    const where: Prisma.WorkflowWhereInput =
+      query?.q ? { name: { contains: query.q, mode: 'insensitive' } } : {};
 
-  return this.prisma.workflow.findMany({
-    where,
-    orderBy: { createdAt: 'desc' },
-  });
-}
+    return this.prisma.workflow.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 
   async getResources() {
-    // tailor to your schema
     return {
       forms: await this.prisma.formTemplate.findMany({ select: { id: true, name: true } }),
       roles: await this.prisma.jobRole.findMany({ select: { id: true, name: true } }),
@@ -61,41 +60,46 @@ async list(query?: ListQuery) {
     });
   }
 
-async saveGraph(id: string, dto: SaveGraphDto) {
-  const wf = await this.getById(id);
-  const activeVersion = wf.versions[0];
+  async saveGraph(id: string, dto: SaveGraphDto) {
+    const wf = await this.getById(id);
+    const activeVersion = wf.versions[0];
 
-  const graph = {
-    nodes: dto.nodes,
-    edges: dto.edges,
-    metadata: dto.metadata ?? {},
-  } as Prisma.InputJsonValue;
+    const graph = {
+      nodes: dto.nodes,
+      edges: dto.edges,
+      metadata: dto.metadata ?? {},
+    } as Prisma.InputJsonValue;
 
-  if (activeVersion?.status === 'DRAFT') {
-    return this.prisma.workflowVersion.update({
-      where: { id: activeVersion.id },
-      data: { graph },
+    if (activeVersion?.status === 'DRAFT') {
+      return this.prisma.workflowVersion.update({
+        where: { id: activeVersion.id },
+        data: { graph },
+      });
+    }
+
+    return this.prisma.workflowVersion.create({
+      data: {
+        workflowId: id,
+        status: 'DRAFT',
+        graph,
+      },
     });
   }
 
-  return this.prisma.workflowVersion.create({
-    data: {
-      workflowId: id,
-      status: 'DRAFT',
-      graph, // ← use the built graph here
-    },
-  });
-}
-
   async activate(id: string, dto: ActivateDto) {
-  const versionId = dto.versionId ?? dto.workflowVersionId;
-  if (!versionId) throw new Error('versionId is required');
-  await this.prisma.workflowVersion.updateMany({
-    where: { workflowId: id, status: 'ACTIVE' },
-    data: { status: 'ARCHIVED' },
-  });
-  return this.prisma.workflowVersion.update({ where: { id: versionId }, data: { status: 'ACTIVE' } });
-}
+    const versionId = dto.versionId ?? dto.workflowVersionId;
+    if (!versionId) throw new Error('versionId is required');
+
+    await this.prisma.workflowVersion.updateMany({
+      where: { workflowId: id, status: 'ACTIVE' },
+      data: { status: 'ARCHIVED' },
+    });
+
+    return this.prisma.workflowVersion.update({
+      where: { id: versionId },
+      data: { status: 'ACTIVE' },
+    });
+  }
 
   async createRun(dto: CreateRunDto) {
     return this.prisma.workflowRun.create({
@@ -119,6 +123,7 @@ async saveGraph(id: string, dto: SaveGraphDto) {
 
   async completeNodeRun(id: string, dto: CompleteNodeRunDto) {
     const nodeRunId = dto.nodeRunId ?? id;
+
     await this.prisma.workflowNodeRun.update({
       where: { id: nodeRunId },
       data: {
@@ -127,6 +132,7 @@ async saveGraph(id: string, dto: SaveGraphDto) {
         completedAt: new Date(),
       },
     });
+
     return { id: nodeRunId, status: 'COMPLETED' };
   }
 
