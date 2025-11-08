@@ -5,6 +5,7 @@
 ############################
 FROM node:24-bookworm-slim AS base
 WORKDIR /app
+ENV NODE_ENV=production
 
 # Enable pnpm via corepack
 ENV PNPM_HOME=/usr/local/share/pnpm
@@ -87,11 +88,14 @@ COPY --from=build /app/apps/api/dist ./dist
 # Bring Prisma schema/migrations if used at runtime
 COPY --from=build /app/apps/api/prisma ./apps/api/prisma
 
+# Bring Prisma helper scripts for conditional migrations
+COPY --from=build /app/apps/api/scripts ./scripts
+
 # Sanity check (adjust path if outDir changes)
 RUN test -f /app/dist/main.js || (echo "dist/main.js missing!" && ls -la /app/dist && exit 1)
 
 EXPOSE 8080
-CMD ["node", "dist/main.js"]
+CMD ["npm", "start", "--silent"]
 
 ############################
 # runtime: Web (Next.js standalone)
