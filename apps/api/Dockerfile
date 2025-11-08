@@ -1,49 +1,48 @@
-# ---- Base ----
+# Use official Node base image
 FROM node:24-bookworm-slim AS base
+
+# Set working directory
 WORKDIR /app
 
+# Enable corepack and PNPM
 ENV PNPM_HOME=/usr/local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
 
+# Install build dependencies
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates openssl python3 build-essential \
- && rm -rf /var/lib/apt/lists/*
+  && apt-get install -y --no-install-recommends ca-certificates python3 build-essential \
+  && rm -rf /var/lib/apt/lists/*
 
-# ---- Deps ----
-FROM base AS deps
-# If you later add pnpm-lock.yaml, copy it and switch to --frozen-lockfile
-COPY package.json ./
-RUN pnpm install
+# Copy dependency files from the API app
+COPY apps/api/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY apps/api/package.json ./package.json
 
-# ---- Prisma client ----
-FROM deps AS prisma
-COPY prisma ./prisma
-# Use the prisma CLI already installed from pnpm, not npx
-RUN pnpm prisma generate
+# Install dependencies
+RUN pnpm install --frozen-lockfile
 
-# ---- Build ----
-FROM deps AS build
-# Bring generated client + any prisma engines along
-COPY --from=prisma /app/node_modules /app/node_modules
-COPY --from=prisma /app/prisma /app/prisma
+# Copy the rest of the API app
+COPY apps/api ./
 
-COPY tsconfig.json ./
-COPY src ./src
+# Build the app (if TypeScript)
 RUN pnpm build
 
-# ---- Runtime ----
-FROM node:24-bookworm-slim AS runtime
+# --- Production stage ---
+FROM node:24-bookworm-slim AS production
+
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates openssl \
- && rm -rf /var/lib/apt/lists/*
-
-COPY --from=build /app/node_modules /app/node_modules
-COPY --from=build /app/dist /app/dist
-# If your app needs schema at runtime, also copy /app/prisma
-
-USER node
 ENV NODE_ENV=production
-ENV PORT=8080
+
+# Enable PNPM again
+ENV PNPM_HOME=/usr/local/share/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
+
+# Copy built app and dependencies from previous stage
+COPY --from=base /app /app
+
+# Expose the API port
 EXPOSE 8080
-CMD ["node", "dist/main.js"]
+
+# Start the app
+CMD ["pnpm", "start"]
