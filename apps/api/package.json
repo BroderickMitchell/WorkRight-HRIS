@@ -6,7 +6,7 @@
     "prebuild": "pnpm run prisma:generate",
     "postinstall": "pnpm run postinstall:bootstrap && node -e \"if(!process.env.SKIP_API_PRISMA_GENERATE){require('child_process').execFileSync('node',['./scripts/run-prisma.mjs','generate'],{stdio:'inherit'});}else{console.log('Skipping prisma generate in deploy');}\"",
     "postinstall:bootstrap": "node -e \"const fs=require('fs');const path=require('path');const {execFileSync}=require('child_process');const script=path.resolve(process.cwd(),'..','..','scripts','bootstrap-env.mjs');if(fs.existsSync(script)){execFileSync('node',[script],{stdio:'inherit'});}else{console.log('Skipping bootstrap-env setup (scripts/bootstrap-env.mjs not found).');}\"",
-    "prestart": "pnpm run prisma:migrate",
+    "prestart": "node -e \"if(process.env.RUN_DB_MIGRATIONS==='1'){require('child_process').execFileSync('node',['./scripts/run-prisma.mjs','migrate','deploy'],{stdio:'inherit'})}else{console.log('Skipping prisma migrate at runtime');}\"",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
     "build": "nest build",
