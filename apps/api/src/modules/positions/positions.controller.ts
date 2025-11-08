@@ -1,107 +1,38 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { Roles } from '../../common/auth/roles.decorator.js';
-import {
-  AssignUserDto,
-  CreateJobRoleDto,
-  CreatePositionDto,
-  ListPositionsQueryDto,
-  OrgChartQueryDto,
-  UpdateJobRoleDto,
-  UpdatePositionConfigDto,
-  UpdatePositionDto
-} from './positions.dto.js';
-import { PositionsService } from './positions.service.js';
+// src/modules/positions/positions.controller.ts
+import { Controller, Get, Query, Body, Post, Param, Patch } from '@nestjs/common';
+import { PositionsService } from './positions.service';
+import { OrgChartQueryDto } from './dto/org-chart-query.dto';
+import { ListPositionsQueryDto } from './dto/list-positions-query.dto';
+import { CreateJobRoleDto } from './dto/create-job-role.dto';
+import { UpdateJobRoleDto } from './dto/update-job-role.dto';
+import { UpdatePositionConfigDto } from './dto/update-position-config.dto';
 
 @Controller('positions')
 export class PositionsController {
   constructor(private readonly positions: PositionsService) {}
 
-  @Get('orgchart')
-  getOrgChart(@Query() query: OrgChartQueryDto) {
-    return this.positions.orgChart(query);
+  @Get('org-chart')
+  orgChart(@Query() query: OrgChartQueryDto) {
+    return this.positions.orgChart({ rootId: query.rootId });
   }
 
   @Get()
-  listPositions(@Query() query: ListPositionsQueryDto) {
-    return this.positions.list(query);
+  list(@Query() query: ListPositionsQueryDto) {
+    return this.positions.list({ q: query.q });
   }
 
-  @Get(':id')
-  getPosition(@Param('id') id: string) {
-    return this.positions.get(id);
-  }
-
-  @Get(':id/children')
-  getChildren(@Param('id') id: string) {
-    return this.positions.children(id);
-  }
-
-  @Post()
-  @Roles('HR_ADMIN', 'HRBP', 'MANAGER')
-  createPosition(@Body() dto: CreatePositionDto) {
-    return this.positions.create(dto);
-  }
-
-  @Put(':id')
-  @Roles('HR_ADMIN', 'HRBP')
-  updatePosition(@Param('id') id: string, @Body() dto: UpdatePositionDto) {
-    return this.positions.update(id, dto);
-  }
-
-  @Delete(':id')
-  @Roles('HR_ADMIN')
-  deletePosition(@Param('id') id: string) {
-    return this.positions.remove(id);
-  }
-
-  @Post(':id/assign-user')
-  @Roles('HR_ADMIN', 'HRBP', 'MANAGER')
-  assignUser(@Param('id') id: string, @Body() dto: AssignUserDto) {
-    return this.positions.assignUser(id, dto);
-  }
-
-  @Delete(':id/assign-user/:employeeId')
-  @Roles('HR_ADMIN', 'HRBP', 'MANAGER')
-  removeAssignment(@Param('id') id: string, @Param('employeeId') employeeId: string) {
-    return this.positions.removeUser(id, employeeId);
-  }
-}
-
-@Controller('jobroles')
-export class JobRolesController {
-  constructor(private readonly positions: PositionsService) {}
-
-  @Get()
-  listJobRoles() {
-    return this.positions.listJobRoles();
-  }
-
-  @Post()
-  @Roles('HR_ADMIN', 'HRBP')
+  @Post('job-roles')
   createJobRole(@Body() dto: CreateJobRoleDto) {
-    return this.positions.createJobRole(dto);
+    return this.positions.createJobRole({ name: dto.name });
   }
 
-  @Put(':id')
-  @Roles('HR_ADMIN', 'HRBP')
+  @Patch('job-roles/:id')
   updateJobRole(@Param('id') id: string, @Body() dto: UpdateJobRoleDto) {
-    return this.positions.updateJobRole(id, dto);
-  }
-}
-
-@Controller('config/position-management')
-export class PositionManagementConfigController {
-  constructor(private readonly positions: PositionsService) {}
-
-  @Get()
-  @Roles('HR_ADMIN', 'HRBP')
-  getConfig() {
-    return this.positions.getConfigSettings();
+    return this.positions.updateJobRole(id, { name: dto.name });
   }
 
-  @Put()
-  @Roles('HR_ADMIN', 'HRBP')
+  @Patch('config')
   updateConfig(@Body() dto: UpdatePositionConfigDto) {
-    return this.positions.updateConfig(dto);
+    return this.positions.updateConfig(dto as unknown as Record<string, unknown>);
   }
 }
