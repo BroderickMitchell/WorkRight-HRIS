@@ -61,8 +61,7 @@ RUN pnpm --filter @workright/ui run build \
 
 # --- API build ---
 # Generate Prisma client (needs schema + env bootstrapped)
-RUN pnpm --filter @workright/api exec prisma generate \
- && pnpm --filter @workright/api exec tsc -p tsconfig.json
+RUN pnpm --filter @workright/api run build
 
 # Compile Nest API without relying on the Nest CLI (uses TypeScript directly)
 # This expects apps/api/tsconfig.build.json which is standard in Nest projects.
