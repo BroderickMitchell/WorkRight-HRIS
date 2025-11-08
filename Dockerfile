@@ -5,7 +5,6 @@
 ############################
 FROM node:24-bookworm-slim AS base
 WORKDIR /app
-ENV NODE_ENV=production
 
 # Enable pnpm via corepack
 ENV PNPM_HOME=/usr/local/share/pnpm
