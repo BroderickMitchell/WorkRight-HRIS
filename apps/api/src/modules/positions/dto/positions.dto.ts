@@ -170,6 +170,10 @@ export class AssignUserDto {
 export class ListPositionsQueryDto {
   @IsOptional()
   @IsString()
+  q?: string;
+
+  @IsOptional()
+  @IsString()
   departmentId?: string;
 
   @IsOptional()
@@ -290,6 +294,10 @@ export class UpdateJobRoleDto {
 }
 
 export class OrgChartQueryDto {
+  @IsOptional()
+  @IsString()
+  rootId?: string;
+
   @IsOptional()
   @Transform(toBoolean)
   @IsBoolean()

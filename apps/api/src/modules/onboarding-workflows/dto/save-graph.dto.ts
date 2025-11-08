@@ -9,8 +9,7 @@ export class WorkflowNodeDto {
   @IsString()
   type!: string;
 
-  // Add other fields as needed (label, data, position, etc.)
-  // e.g. @IsOptional() @IsObject() data?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 export class WorkflowEdgeDto {
@@ -23,8 +22,7 @@ export class WorkflowEdgeDto {
   @IsString()
   target!: string;
 
-  // Add other fields as needed (label, conditions, etc.)
-  // e.g. @IsOptional() @IsObject() data?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 export class SaveGraphDto {

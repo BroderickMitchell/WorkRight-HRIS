@@ -1,9 +1,9 @@
 // src/modules/onboarding-workflows/onboarding-workflows.controller.ts
 import { Controller, Get, Param, Query, Body, Post, Patch } from '@nestjs/common';
 import { OnboardingWorkflowsService, ListQuery } from './onboarding-workflows.service';
-import { UpdateWorkflowDto } from './dto/update-workflow.dto';
+import { CreateWorkflowDto, UpdateWorkflowDto } from './dto/create-workflow.dto';
 import { SaveGraphDto } from './dto/save-graph.dto';
-import { ActivateDto } from './dto/activate.dto';
+import { ActivateWorkflowDto } from './dto/activate-workflow.dto';
 import { CreateRunDto } from './dto/create-run.dto';
 import { CompleteNodeRunDto } from './dto/complete-node-run.dto';
 
@@ -23,7 +23,7 @@ export class OnboardingWorkflowsController {
   }
 
   @Post()
-  create(@Body() dto: { name: string }) {
+  create(@Body() dto: CreateWorkflowDto) {
     return this.workflows.create(dto);
   }
 
@@ -43,7 +43,7 @@ export class OnboardingWorkflowsController {
   }
 
   @Post(':id/activate')
-  activate(@Param('id') id: string, @Body() dto: ActivateDto) {
+  activate(@Param('id') id: string, @Body() dto: ActivateWorkflowDto) {
     return this.workflows.activate(id, dto);
   }
 
