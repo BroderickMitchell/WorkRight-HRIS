@@ -15,19 +15,15 @@ export type ListQuery = { q?: string } | undefined;
 export class OnboardingWorkflowsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(query?: ListQuery) {
-    const where =
-      typeof query === 'string'
-        ? { name: { contains: query, mode: 'insensitive' as const } }
-        : (query?.q
-            ? { name: { contains: query.q, mode: 'insensitive' as const } }
-            : ({} as Prisma.WorkflowWhereInput));
+async list(query?: ListQuery) {
+  const where: Prisma.WorkflowWhereInput =
+    query?.q ? { name: { contains: query.q, mode: 'insensitive' } } : {};
 
-    return this.prisma.workflow.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-    });
-  }
+  return this.prisma.workflow.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+  });
+}
 
   async getResources() {
     // tailor to your schema
@@ -65,37 +61,41 @@ export class OnboardingWorkflowsService {
     });
   }
 
-  async saveGraph(id: string, dto: SaveGraphDto) {
-    const wf = await this.getById(id);
-    const activeVersion = wf.versions[0];
+async saveGraph(id: string, dto: SaveGraphDto) {
+  const wf = await this.getById(id);
+  const activeVersion = wf.versions[0];
 
-    if (activeVersion?.status === 'DRAFT') {
-      return this.prisma.workflowVersion.update({
-        where: { id: activeVersion.id },
-        data: { graph: dto.graph as any },
-      });
-    }
+  const graph = {
+    nodes: dto.nodes,
+    edges: dto.edges,
+    metadata: dto.metadata ?? {},
+  } as Prisma.InputJsonValue;
 
-    return this.prisma.workflowVersion.create({
-      data: {
-        workflowId: id,
-        status: 'DRAFT',
-        graph: dto.graph as any,
-      },
+  if (activeVersion?.status === 'DRAFT') {
+    return this.prisma.workflowVersion.update({
+      where: { id: activeVersion.id },
+      data: { graph },
     });
   }
+
+  return this.prisma.workflowVersion.create({
+    data: {
+      workflowId: id,
+      status: 'DRAFT',
+      graph, // ← use the built graph here
+    },
+  });
+}
 
   async activate(id: string, dto: ActivateDto) {
-    const versionId = dto.versionId ?? dto.workflowVersionId;
-    await this.prisma.workflowVersion.updateMany({
-      where: { workflowId: id, status: 'ACTIVE' },
-      data: { status: 'ARCHIVED' },
-    });
-    return this.prisma.workflowVersion.update({
-      where: { id: versionId },
-      data: { status: 'ACTIVE' },
-    });
-  }
+  const versionId = dto.versionId ?? dto.workflowVersionId;
+  if (!versionId) throw new Error('versionId is required');
+  await this.prisma.workflowVersion.updateMany({
+    where: { workflowId: id, status: 'ACTIVE' },
+    data: { status: 'ARCHIVED' },
+  });
+  return this.prisma.workflowVersion.update({ where: { id: versionId }, data: { status: 'ACTIVE' } });
+}
 
   async createRun(dto: CreateRunDto) {
     return this.prisma.workflowRun.create({
