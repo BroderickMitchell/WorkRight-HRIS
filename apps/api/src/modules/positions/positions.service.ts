@@ -1,6 +1,6 @@
 // src/modules/positions/positions.service.ts
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../common/prisma.service';
 
 export interface CreatePositionDto {
   departmentId: string;
