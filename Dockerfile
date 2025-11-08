@@ -68,6 +68,8 @@ RUN SKIP_API_PRISMA_GENERATE=1 pnpm deploy --filter @workright/api --prod /app/d
 
 # --- Web build (Next.js) ---
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm --filter @workright/web exec next lint || true \
+ && pnpm --filter @workright/web run typecheck || true
 RUN pnpm --filter @workright/web run build
 
 ############################
