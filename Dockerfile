@@ -21,7 +21,7 @@ COPY pnpm-workspace.yaml package.json ./
 COPY tsconfig.base.json ./
 COPY pnpm-lock.yaml ./
 
-# postinstall bootstrap MUST exist before first install
+# postinstall bootstrap MUST exist before first install (fixes prior MODULE_NOT_FOUND)
 COPY scripts/bootstrap-env.mjs scripts/
 
 # Prisma assets needed during install/generate
@@ -69,11 +69,35 @@ RUN pnpm deploy --filter @workright/api --prod /app/deploy/api
 
 
 ############################
+# runtime: Web (Next.js standalone)
+# Build with: docker build --target runtime-web -t your-image .
+############################
+FROM node:24-alpine AS runtime-web
+WORKDIR /app
+
+ENV PNPM_HOME=/usr/local/share/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+
+# Next.js standalone output
+COPY --from=build /app/apps/web/.next/standalone ./
+COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=build /app/apps/web/public ./apps/web/public
+
+EXPOSE 3000
+CMD ["node", "apps/web/server.js"]
+
+
+############################
 # runtime: API (Cloud Run default)
 ############################
 FROM node:24-bookworm-slim AS runtime-api
 WORKDIR /app
 ENV NODE_ENV=production
+ENV PORT=8080
 
 # Bring production deps from deploy output
 COPY --from=build /app/deploy/api/node_modules ./node_modules
@@ -90,25 +114,3 @@ RUN test -f /app/dist/main.js || (echo "dist/main.js missing!" && ls -la /app/di
 
 EXPOSE 8080
 CMD ["node", "dist/main.js"]
-
-
-############################
-# runtime: Web (Next.js standalone)
-# Build with: docker build --target runtime-web -t your-image .
-############################
-FROM node:24-alpine AS runtime-web
-WORKDIR /app
-
-ENV PNPM_HOME=/usr/local/share/pnpm
-ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-
-# Next.js standalone output
-COPY --from=build /app/apps/web/.next/standalone ./
-COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
-COPY --from=build /app/apps/web/public ./apps/web/public
-
-EXPOSE 3000
-CMD ["node", "apps/web/server.js"]
