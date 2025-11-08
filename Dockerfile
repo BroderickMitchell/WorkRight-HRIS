@@ -60,12 +60,8 @@ RUN pnpm --filter @workright/ui run build \
  && pnpm --filter @workright/config run build
 
 # --- API build ---
-# Generate Prisma client (needs schema + env bootstrapped)
+# Build via package script (runs Prisma generate via prebuild and compiles Nest)
 RUN pnpm --filter @workright/api run build
-
-# Compile Nest API without relying on the Nest CLI (uses TypeScript directly)
-# This expects apps/api/tsconfig.build.json which is standard in Nest projects.
-RUN pnpm --filter @workright/api exec tsc -p tsconfig.build.json
 
 # Produce lean prod payload of the API (package.json + pruned node_modules)
 RUN pnpm deploy --filter @workright/api --prod /app/deploy/api
@@ -91,7 +87,7 @@ COPY --from=build /app/apps/api/dist ./dist
 # Bring Prisma schema/migrations if used at runtime
 COPY --from=build /app/apps/api/prisma ./apps/api/prisma
 
-# Sanity check
+# Sanity check (adjust path if outDir changes)
 RUN test -f /app/dist/main.js || (echo "dist/main.js missing!" && ls -la /app/dist && exit 1)
 
 EXPOSE 8080
