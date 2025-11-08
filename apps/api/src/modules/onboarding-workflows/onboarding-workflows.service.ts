@@ -1,6 +1,6 @@
 // src/modules/onboarding-workflows/onboarding-workflows.service.ts
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../common/prisma.service';
 import { Prisma } from '@prisma/client';
 import { UpdateWorkflowDto } from './dto/update-workflow.dto';
 import { SaveGraphDto } from './dto/save-graph.dto';
