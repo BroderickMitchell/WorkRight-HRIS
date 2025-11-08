@@ -29,7 +29,11 @@ COPY scripts/bootstrap-env.mjs scripts/
 COPY apps/api/scripts apps/api/scripts
 COPY apps/api/prisma apps/api/prisma
 
-RUN cd apps/api && npx prisma format && npx prisma generate
+# Use pnpm dlx with an explicit Prisma version to avoid non-interactive npx prompts
+RUN cd apps/api \
+  && PRISMA_VERSION=$(node -p "(() => { const pkg = require('./package.json'); const version = pkg.devDependencies?.prisma ?? pkg.dependencies?.prisma ?? pkg.dependencies?.['@prisma/client']; if (version == null || version === '') { throw new Error('Prisma dependency not declared'); } return version.replace(/^[^0-9]*/, ''); })()") \
+  && pnpm dlx "prisma@${PRISMA_VERSION}" format \
+  && pnpm dlx "prisma@${PRISMA_VERSION}" generate
 
 # Install once for the workspace
 RUN if [ -f pnpm-lock.yaml ]; then \
