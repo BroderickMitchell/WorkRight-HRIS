@@ -1,3 +1,5 @@
+COPY pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
   api:
     build:
       context: .
