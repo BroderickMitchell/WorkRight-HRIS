@@ -16,8 +16,11 @@ RUN apt-get update \
 COPY pnpm-workspace.yaml package.json ./
 COPY tsconfig.base.json ./
 
-# To leverage the workspace lockfile, copy it into /app (e.g. add "COPY pnpm-lock.yaml ./")
-# prior to this stage. BuildKit-specific mounts were removed to support classic builders.
+# Copy lockfile and npm config early so installs are deterministic and can use private registries.
+# If you do not have a .npmrc or a private registry, the .npmrc copy can be omitted.
+# Be careful not to bake secrets into images or public repositories.
+COPY pnpm-lock.yaml ./
+# COPY .npmrc ./   # uncomment if you need to copy a registry auth file (avoid secrets in source)
 
 # Package manifests (for workspace install)
 COPY apps/api/package.json apps/api/
@@ -29,20 +32,17 @@ COPY scripts/bootstrap-env.mjs scripts/
 COPY apps/api/scripts apps/api/scripts
 COPY apps/api/prisma apps/api/prisma
 
-# Use pnpm dlx with an explicit Prisma version to avoid non-interactive npx prompts
-RUN cd apps/api \
-  && PRISMA_VERSION=$(node -p "(() => { const pkg = require('./package.json'); const version = pkg.devDependencies?.prisma ?? pkg.dependencies?.prisma ?? pkg.dependencies?.['@prisma/client']; if (version == null || version === '') { throw new Error('Prisma dependency not declared'); } return version.replace(/^[^0-9]*/, ''); })()") \
-  && pnpm dlx "prisma@${PRISMA_VERSION}" format \
-  && pnpm dlx "prisma@${PRISMA_VERSION}" generate
-
-# Install once for the workspace
+# Install once for the workspace BEFORE running Prisma commands so the prisma binary is available locally.
 RUN if [ -f pnpm-lock.yaml ]; then \
       pnpm -w install --frozen-lockfile; \
-    else \
-      pnpm -w install; \
+    else \n      pnpm -w install; \
     fi
 
-# Ensure Prisma downloads the required engines in this stage
+# Use the installed Prisma CLI to format and generate (no npx network install).
+RUN pnpm --filter @workright/api exec prisma format \
+  && pnpm --filter @workright/api exec prisma generate
+
+# Ensure Prisma downloads the required engines in this stage (no redundancy).
 RUN pnpm --filter @workright/api exec prisma generate
 
 # ---------- build ----------
