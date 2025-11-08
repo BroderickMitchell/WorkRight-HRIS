@@ -24,7 +24,7 @@ COPY pnpm-lock.yaml ./
 # Postinstall bootstrap MUST exist before first install
 COPY scripts/bootstrap-env.mjs scripts/
 
-# Prisma bits needed by api during build
+# Prisma bits needed by api during build (for generate)
 COPY apps/api/prisma apps/api/prisma
 COPY apps/api/scripts apps/api/scripts
 
@@ -47,28 +47,32 @@ WORKDIR /app
 # Bring the full repo
 COPY . .
 
-# Make sure all packages are fully installed after full source is present
+# Ensure all packages are installed after sources copied
 RUN pnpm -w install --frozen-lockfile
 
 # Rebuild any native deps & run postinstall hooks
 RUN pnpm -w rebuild -r \
  && pnpm -w -r run postinstall
 
-# Build shared packages first (better cache)
+# Build shared packages first (better cache hits)
 RUN pnpm --filter @workright/ui run build \
  && pnpm --filter @workright/profile-schema run build \
  && pnpm --filter @workright/config run build
 
-# API build (NestJS)
-RUN pnpm --filter @workright/api exec prisma generate \
- && pnpm --filter @workright/api run build
+# --- API build ---
+# Generate Prisma client (needs schema + env bootstrapped)
+RUN pnpm --filter @workright/api exec prisma generate
 
-# Web build (Next.js standalone)
-ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm --filter @workright/web run build
+# Compile Nest API without relying on the Nest CLI (uses TypeScript directly)
+# This expects apps/api/tsconfig.build.json which is standard in Nest projects.
+RUN pnpm --filter @workright/api exec tsc -p tsconfig.build.json
 
 # Produce lean prod payload of the API (package.json + pruned node_modules)
 RUN pnpm deploy --filter @workright/api --prod /app/deploy/api
+
+# --- Web build (Next.js) ---
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN pnpm --filter @workright/web run build
 
 ############################
 # runtime: API (Cloud Run default)
@@ -87,7 +91,7 @@ COPY --from=build /app/apps/api/dist ./dist
 # Bring Prisma schema/migrations if used at runtime
 COPY --from=build /app/apps/api/prisma ./apps/api/prisma
 
-# Fail early if the entrypoint is missing
+# Sanity check
 RUN test -f /app/dist/main.js || (echo "dist/main.js missing!" && ls -la /app/dist && exit 1)
 
 EXPOSE 8080
