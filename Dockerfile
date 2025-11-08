@@ -11,7 +11,7 @@ ENV PNPM_HOME=/usr/local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
 
-# Build tooling for native deps (argon2, sharp, etc.)
+# Build tooling for native deps (argon2, etc.)
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates python3 build-essential \
   && rm -rf /var/lib/apt/lists/*
@@ -21,21 +21,19 @@ COPY pnpm-workspace.yaml package.json ./
 COPY tsconfig.base.json ./
 COPY pnpm-lock.yaml ./
 
-# postinstall bootstrap MUST exist before first install (fixes prior MODULE_NOT_FOUND)
+# Ensure postinstall bootstrap exists before first install
 COPY scripts/bootstrap-env.mjs scripts/
 
 # Prisma assets needed during install/generate
 COPY apps/api/prisma apps/api/prisma
 COPY apps/api/scripts apps/api/scripts
 
-# First install (deterministic + cached). Use cache mount to speed up CI.
-RUN --mount=type=cache,target=/root/.pnpm-store \
-    pnpm install --frozen-lockfile
+# First install (no BuildKit mounts)
+RUN pnpm install --frozen-lockfile
 
 # Ensure prisma client/engines are present in the layer cache
 RUN pnpm --filter @workright/api exec prisma format \
  && pnpm --filter @workright/api exec prisma generate
-
 
 ############################
 # build: compile everything
@@ -46,12 +44,11 @@ WORKDIR /app
 # Bring the full repo
 COPY . .
 
-# Rebuild any native deps after full sources are present & run postinstall hooks
-RUN --mount=type=cache,target=/root/.pnpm-store \
-    pnpm -w rebuild -r \
+# Rebuild native deps & run postinstall hooks (no BuildKit mounts)
+RUN pnpm -w rebuild -r \
  && pnpm -w -r run postinstall
 
-# Build shared packages first (faster multi-stage caching)
+# Build shared packages first
 RUN pnpm --filter @workright/ui run build \
  && pnpm --filter @workright/profile-schema run build \
  && pnpm --filter @workright/config run build
@@ -66,7 +63,6 @@ RUN pnpm --filter @workright/web run build
 
 # Produce lean prod payload of the API (package.json + pruned node_modules)
 RUN pnpm deploy --filter @workright/api --prod /app/deploy/api
-
 
 ############################
 # runtime: Web (Next.js standalone)
@@ -90,7 +86,6 @@ COPY --from=build /app/apps/web/public ./apps/web/public
 EXPOSE 3000
 CMD ["node", "apps/web/server.js"]
 
-
 ############################
 # runtime: API (Cloud Run default)
 ############################
@@ -106,7 +101,7 @@ COPY --from=build /app/deploy/api/package.json ./package.json
 # Bring compiled Nest build artifacts
 COPY --from=build /app/apps/api/dist ./dist
 
-# Bring Prisma schema/migrations if used at runtime (e.g., migrations or client env)
+# Bring Prisma schema/migrations if used at runtime
 COPY --from=build /app/apps/api/prisma ./apps/api/prisma
 
 # Fail early if the entrypoint is missing
