@@ -1,41 +1,16 @@
-import {
-  IsArray,
-  IsEnum,
-  IsNumber,
-  IsObject,
-  IsOptional,
-  IsString,
-  MaxLength,
-  ValidateNested
-} from 'class-validator';
+// src/modules/onboarding-workflows/dto/save-graph.dto.ts
+import { IsArray, ValidateNested, IsOptional, IsObject, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { WorkflowNodeType } from '@prisma/client';
-
-class NodePositionDto {
-  @IsNumber()
-  x!: number;
-
-  @IsNumber()
-  y!: number;
-}
 
 export class WorkflowNodeDto {
   @IsString()
   id!: string;
 
-  @IsEnum(WorkflowNodeType)
-  type!: WorkflowNodeType;
-
   @IsString()
-  @MaxLength(120)
-  title!: string;
+  type!: string;
 
-  @IsObject()
-  settings!: Record<string, unknown>;
-
-  @ValidateNested()
-  @Type(() => NodePositionDto)
-  position!: NodePositionDto;
+  // Add other fields as needed (label, data, position, etc.)
+  // e.g. @IsOptional() @IsObject() data?: Record<string, unknown>;
 }
 
 export class WorkflowEdgeDto {
@@ -43,18 +18,13 @@ export class WorkflowEdgeDto {
   id!: string;
 
   @IsString()
-  from!: string;
+  source!: string;
 
   @IsString()
-  to!: string;
+  target!: string;
 
-  @IsOptional()
-  @IsString()
-  label?: 'true' | 'false' | null;
-
-  @IsOptional()
-  @IsNumber()
-  order?: number | null;
+  // Add other fields as needed (label, conditions, etc.)
+  // e.g. @IsOptional() @IsObject() data?: Record<string, unknown>;
 }
 
 export class SaveGraphDto {
