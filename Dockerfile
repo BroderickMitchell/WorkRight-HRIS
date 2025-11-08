@@ -20,6 +20,7 @@ COPY tsconfig.base.json ./
 # If you do not have a .npmrc or a private registry, the .npmrc copy can be omitted.
 # Be careful not to bake secrets into images or public repositories.
 COPY pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 # COPY .npmrc ./   # uncomment if you need to copy a registry auth file (avoid secrets in source)
 
 # Package manifests (for workspace install)
