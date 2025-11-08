@@ -11,7 +11,7 @@ ENV PNPM_HOME=/usr/local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
 
-# Build tooling for native deps (argon2, etc.)
+# Build tooling for native deps (argon2, sharp, etc.)
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates python3 build-essential \
   && rm -rf /var/lib/apt/lists/*
@@ -21,19 +21,22 @@ COPY pnpm-workspace.yaml package.json ./
 COPY tsconfig.base.json ./
 COPY pnpm-lock.yaml ./
 
-# Ensure postinstall bootstrap exists before first install
+# Postinstall bootstrap MUST exist before first install
 COPY scripts/bootstrap-env.mjs scripts/
 
-# Prisma assets needed during install/generate
+# Prisma bits needed by api during build
 COPY apps/api/prisma apps/api/prisma
 COPY apps/api/scripts apps/api/scripts
 
-# First install (no BuildKit mounts)
-RUN pnpm install --frozen-lockfile
+# IMPORTANT: copy *workspace* package manifests so pnpm "sees" them on first install
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+COPY packages/config/package.json packages/config/
+COPY packages/profile-schema/package.json packages/profile-schema/
+COPY packages/ui/package.json packages/ui/
 
-# Ensure prisma client/engines are present in the layer cache
-RUN pnpm --filter @workright/api exec prisma format \
- && pnpm --filter @workright/api exec prisma generate
+# First install (deterministic + cached)
+RUN pnpm install --frozen-lockfile
 
 ############################
 # build: compile everything
@@ -44,11 +47,14 @@ WORKDIR /app
 # Bring the full repo
 COPY . .
 
-# Rebuild native deps & run postinstall hooks (no BuildKit mounts)
+# Make sure all packages are fully installed after full source is present
+RUN pnpm -w install --frozen-lockfile
+
+# Rebuild any native deps & run postinstall hooks
 RUN pnpm -w rebuild -r \
  && pnpm -w -r run postinstall
 
-# Build shared packages first
+# Build shared packages first (better cache)
 RUN pnpm --filter @workright/ui run build \
  && pnpm --filter @workright/profile-schema run build \
  && pnpm --filter @workright/config run build
@@ -65,34 +71,11 @@ RUN pnpm --filter @workright/web run build
 RUN pnpm deploy --filter @workright/api --prod /app/deploy/api
 
 ############################
-# runtime: Web (Next.js standalone)
-# Build with: docker build --target runtime-web -t your-image .
-############################
-FROM node:24-alpine AS runtime-web
-WORKDIR /app
-
-ENV PNPM_HOME=/usr/local/share/pnpm
-ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
-
-# Next.js standalone output
-COPY --from=build /app/apps/web/.next/standalone ./
-COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
-COPY --from=build /app/apps/web/public ./apps/web/public
-
-EXPOSE 3000
-CMD ["node", "apps/web/server.js"]
-
-############################
 # runtime: API (Cloud Run default)
 ############################
 FROM node:24-bookworm-slim AS runtime-api
 WORKDIR /app
 ENV NODE_ENV=production
-ENV PORT=8080
 
 # Bring production deps from deploy output
 COPY --from=build /app/deploy/api/node_modules ./node_modules
@@ -109,3 +92,24 @@ RUN test -f /app/dist/main.js || (echo "dist/main.js missing!" && ls -la /app/di
 
 EXPOSE 8080
 CMD ["node", "dist/main.js"]
+
+############################
+# runtime: Web (Next.js standalone)
+# Build with: docker build --target runtime-web -t your-image .
+############################
+FROM node:24-alpine AS runtime-web
+WORKDIR /app
+
+ENV PNPM_HOME=/usr/local/share/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Next.js standalone output
+COPY --from=build /app/apps/web/.next/standalone ./
+COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=build /app/apps/web/public ./apps/web/public
+
+EXPOSE 3000
+CMD ["node", "apps/web/server.js"]
