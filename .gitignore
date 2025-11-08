@@ -25,3 +25,5 @@ terraform.tfstate*
 # Prisma engine caches (generated on demand by Prisma CLI)
 apps/api/prisma/engines/
 node_modules/
+
+!pnpm-lock.yaml
