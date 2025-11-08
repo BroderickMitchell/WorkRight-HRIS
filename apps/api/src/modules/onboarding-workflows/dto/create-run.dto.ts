@@ -1,8 +1,12 @@
 import { IsDateString, IsOptional, IsString, IsObject } from 'class-validator';
 
-export class CreateWorkflowRunDto {
+export class CreateRunDto {
   @IsString()
   workflowId!: string;
+
+  @IsOptional()
+  @IsString()
+  workflowVersionId?: string;
 
   @IsString()
   assigneeUserId!: string;
