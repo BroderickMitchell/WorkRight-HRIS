@@ -18,20 +18,6 @@ import 'reactflow/dist/style.css';
 import { Badge, Button, Card, CardDescription, CardHeader, CardTitle, cn } from '@workright/ui';
 import { apiFetch, apiPost, apiPut } from '../../../lib/api';
 
-type WorkflowNodeType =
-  | 'task'
-  | 'form'
-  | 'course'
-  | 'email'
-  | 'profile_task'
-  | 'survey'
-  | 'condition'
-  | 'dummy_task';
-
-type AssignmentMode = 'assignee' | 'assignee_manager' | 'user' | 'group';
-type ConditionOperator = 'IS' | 'IS_PARENT_OF' | 'IS_CHILD_OF';
-type ConditionField = 'department' | 'location' | 'position' | 'manager' | 'legal_entity';
-
 const NODE_TYPES: Array<{ key: WorkflowNodeType; label: string }> = [
   { key: 'task', label: 'Task' },
   { key: 'form', label: 'Form' },
@@ -45,7 +31,7 @@ const NODE_TYPES: Array<{ key: WorkflowNodeType; label: string }> = [
 
 const ASSIGNMENT_MODES: Array<{ value: AssignmentMode; label: string }> = [
   { value: 'assignee', label: 'Assignee' },
-  { value: 'assignee_manager', label: 'Assignee\'s Manager' },
+  { value: 'assignee_manager', label: "Assignee's Manager" },
   { value: 'user', label: 'Specific User' },
   { value: 'group', label: 'Specific Group' }
 ];
@@ -88,6 +74,20 @@ function SelectInput(props: SelectHTMLAttributes<HTMLSelectElement>) {
     </select>
   );
 }
+
+type WorkflowNodeType =
+  | 'task'
+  | 'form'
+  | 'course'
+  | 'email'
+  | 'profile_task'
+  | 'survey'
+  | 'condition'
+  | 'dummy_task';
+
+type AssignmentMode = 'assignee' | 'assignee_manager' | 'user' | 'group';
+type ConditionOperator = 'IS' | 'IS_PARENT_OF' | 'IS_CHILD_OF';
+type ConditionField = 'department' | 'location' | 'position' | 'manager' | 'legal_entity';
 
 interface WorkflowGraphEdge {
   id: string;
@@ -147,8 +147,8 @@ interface WorkflowNodeData {
 }
 
 function generateId(prefix: string) {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return `${prefix}-${crypto.randomUUID()}`;
+  if (typeof crypto !== 'undefined' && (crypto as any).randomUUID) {
+    return `${prefix}-${(crypto as any).randomUUID()}`;
   }
   return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -166,7 +166,7 @@ function formatAssignment(settings: Record<string, any>, resources: WorkflowReso
   const assignment = settings?.assignment ?? settings?.recipients;
   const mode = assignment?.mode ?? assignment;
   if (!mode) return 'Assignee';
-  switch (mode as AssignmentMode) {
+  switch (mode) {
     case 'assignee_manager':
       return 'Assignee manager';
     case 'user': {
@@ -183,14 +183,14 @@ function formatAssignment(settings: Record<string, any>, resources: WorkflowReso
 }
 
 const defaultSettings: Record<WorkflowNodeType, () => Record<string, any>> = {
-  task: () => ({ assignment: { mode: 'assignee' as AssignmentMode }, dueRule: null }),
-  form: () => ({ assignment: { mode: 'assignee' as AssignmentMode }, dueRule: null }),
+  task: () => ({ assignment: { mode: 'assignee' }, dueRule: null }),
+  form: () => ({ assignment: { mode: 'assignee' }, dueRule: null }),
   course: () => ({ assignment: 'assignee' }),
-  email: () => ({ recipients: { mode: 'assignee' as AssignmentMode } }),
+  email: () => ({ recipients: { mode: 'assignee' } }),
   profile_task: () => ({}),
   survey: () => ({}),
   condition: () => ({ logic: 'ALL', criteria: [] }),
-  dummy_task: () => ({ assignment: { mode: 'user' as AssignmentMode }, dueRule: null })
+  dummy_task: () => ({ assignment: { mode: 'user' }, dueRule: null })
 };
 
 const defaultTitles: Record<WorkflowNodeType, string> = {
@@ -218,49 +218,63 @@ export default function WorkflowWorkbenchesPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Initial bootstrap
   useEffect(() => {
-    setLoading(true);
-    Promise.all([
-      apiFetch<WorkflowSummary[]>(`/v1/workflows`),
-      apiFetch<WorkflowResources>(`/v1/workflows/resources`)
-    ])
-      .then(([wf, res]) => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const [wf, res] = await Promise.all([
+          apiFetch<WorkflowSummary[]>(`/v1/workflows`),
+          apiFetch<WorkflowResources>(`/v1/workflows/resources`)
+        ]);
+        if (!mounted) return;
         setWorkflows(wf);
         setResources(res);
         if (wf.length && !selectedWorkflowId) {
           loadWorkflow(wf[0]);
         }
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : String(err)))
-      .finally(() => setLoading(false));
+      } catch (err) {
+        if (!mounted) return;
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadWorkflow = useCallback((workflow: WorkflowSummary) => {
-    setSelectedWorkflowId(workflow.id);
-    setSelectedNodeId(null);
-    const graph = workflow.draftVersion?.graph ?? workflow.activeVersion?.graph ?? { nodes: [], edges: [] };
-    const nextNodes: Node<WorkflowNodeData>[] = graph.nodes.map((node) => ({
-      id: node.id,
-      type: 'workflowNode',
-      position: node.position ?? { x: 100, y: 100 },
-      data: {
-        title: node.title,
-        nodeType: node.type,
-        settings: node.settings ?? {}
-      }
-    }));
-    const nextEdges: Edge[] = graph.edges.map((edge) => ({
-      id: edge.id,
-      source: edge.from,
-      target: edge.to,
-      label: edge.label ?? undefined,
-      data: { label: edge.label ?? null },
-      markerEnd: { type: MarkerType.ArrowClosed }
-    }));
-    setNodes(nextNodes);
-    setEdges(nextEdges);
-  }, [setEdges, setNodes]);
+  const loadWorkflow = useCallback(
+    (workflow: WorkflowSummary) => {
+      setSelectedWorkflowId(workflow.id);
+      setSelectedNodeId(null);
+      const graph = workflow.draftVersion?.graph ?? workflow.activeVersion?.graph ?? { nodes: [], edges: [] };
+      const nextNodes: Node<WorkflowNodeData>[] = graph.nodes.map((node) => ({
+        id: node.id,
+        type: 'workflowNode',
+        position: node.position ?? { x: 100, y: 100 },
+        data: {
+          title: node.title,
+          nodeType: node.type,
+          settings: node.settings ?? {}
+        }
+      }));
+      const nextEdges: Edge[] = graph.edges.map((edge) => ({
+        id: edge.id,
+        source: edge.from,
+        target: edge.to,
+        label: edge.label ?? undefined,
+        data: { label: edge.label ?? null },
+        markerEnd: { type: MarkerType.ArrowClosed }
+      }));
+      setNodes(nextNodes);
+      setEdges(nextEdges);
+    },
+    [setEdges, setNodes]
+  );
 
   const selectedWorkflow = useMemo(
     () => workflows.find((wf) => wf.id === selectedWorkflowId) ?? null,
@@ -421,6 +435,28 @@ export default function WorkflowWorkbenchesPage() {
 
   const workflowStatus = selectedWorkflow?.status ?? 'draft';
 
+  // Node renderer factory with displayName for ESLint rule
+  function WorkflowCanvasNodeFactory(resourcesArg: WorkflowResources | null) {
+    const WorkflowCanvasNodeComp = ({ data }: { data: WorkflowNodeData }) => {
+      const color = nodeColor(data.nodeType, data.settings);
+      const assignment = formatAssignment(data.settings, resourcesArg);
+      return (
+        <div className={cn('w-64 rounded-lg border border-slate-200 bg-white shadow-sm transition hover:shadow-md')}>
+          <div className={cn('rounded-t-lg px-3 py-2 text-sm font-medium text-white', color)}>
+            {defaultTitles[data.nodeType]}
+          </div>
+          <div className="space-y-1 px-3 py-2">
+            <p className="text-sm font-semibold text-slate-800">{data.title}</p>
+            <p className="text-xs uppercase tracking-wide text-slate-400">Assignment</p>
+            <p className="text-xs text-slate-600">{assignment}</p>
+          </div>
+        </div>
+      );
+    };
+    (WorkflowCanvasNodeComp as any).displayName = 'WorkflowCanvasNode';
+    return WorkflowCanvasNodeComp;
+  }
+
   return (
     <div className="space-y-6" aria-label="Onboarding workflow designer">
       <header className="flex items-center justify-between">
@@ -454,7 +490,7 @@ export default function WorkflowWorkbenchesPage() {
                 onChange={(event) => setNewWorkflowName(event.target.value)}
                 placeholder="e.g. New starter onboarding"
               />
-              <Button onClick={createWorkflow} disabled={saving || !newWorkflowName.trim()} className="w-full" variant="primary">
+              <Button onClick={createWorkflow} disabled={saving || !newWorkflowName.trim()} className="w-full" variant="secondary">
                 Create draft
               </Button>
             </div>
@@ -481,8 +517,9 @@ export default function WorkflowWorkbenchesPage() {
                         >
                           <div className="flex items-center justify-between">
                             <span className="font-medium">{wf.name}</span>
-                            {/* Badge types likely map to a <span>, so avoid non-standard props like `variant` */}
-                            <Badge className="uppercase"> {wf.status} </Badge>
+                            <Badge variant="secondary" className="uppercase">
+                              {wf.status}
+                            </Badge>
                           </div>
                           <p className="text-xs text-slate-500">
                             Draft v{wf.draftVersion?.versionNumber ?? wf.activeVersion?.versionNumber ?? 1}
@@ -497,18 +534,21 @@ export default function WorkflowWorkbenchesPage() {
           </div>
         </Card>
 
-        <Card className="min-h=[720px] md:min-h-[720px]">
+        <Card className="min-h-[720px]">
           <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
               <CardTitle>{selectedWorkflow?.name ?? 'Select a workflow'}</CardTitle>
               <CardDescription>Drag steps on the canvas, connect them to define branching logic.</CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className="uppercase">{workflowStatus}</Badge>
+              <Badge variant="secondary" className="uppercase">
+                {workflowStatus}
+              </Badge>
+              {/* Use supported variants from @workright/ui: primary | secondary | ghost */}
               <Button onClick={saveGraph} disabled={!selectedWorkflow || saving} variant="primary">
                 {saving ? 'Saving…' : 'Save draft'}
               </Button>
-              <Button onClick={activate} disabled={!selectedWorkflow || activating} variant="secondary">
+              <Button onClick={activate} disabled={!selectedWorkflow || activating} variant="ghost">
                 {activating ? 'Activating…' : 'Activate'}
               </Button>
             </div>
@@ -522,7 +562,7 @@ export default function WorkflowWorkbenchesPage() {
               onConnect={onConnect}
               onNodeClick={onNodeClick}
               fitView
-              nodeTypes={{ workflowNode: createWorkflowCanvasNode(resources) }}
+              nodeTypes={{ workflowNode: WorkflowCanvasNodeFactory(resources) }}
             >
               <MiniMap zoomable pannable />
               <Controls />
@@ -565,28 +605,6 @@ export default function WorkflowWorkbenchesPage() {
       </div>
     </div>
   );
-}
-
-/** Named component factory to satisfy react/display-name */
-function createWorkflowCanvasNode(resources: WorkflowResources | null) {
-  const WorkflowCanvasNode: React.FC<{ data: WorkflowNodeData }> = function WorkflowCanvasNodeInner({ data }) {
-    const color = nodeColor(data.nodeType, data.settings);
-    const assignment = formatAssignment(data.settings, resources);
-    return (
-      <div className={cn('w-64 rounded-lg border border-slate-200 bg-white shadow-sm transition hover:shadow-md')}>
-        <div className={cn('rounded-t-lg px-3 py-2 text-sm font-medium text-white', color)}>
-          {defaultTitles[data.nodeType]}
-        </div>
-        <div className="space-y-1 px-3 py-2">
-          <p className="text-sm font-semibold text-slate-800">{data.title}</p>
-          <p className="text-xs uppercase tracking-wide text-slate-400">Assignment</p>
-          <p className="text-xs text-slate-600">{assignment}</p>
-        </div>
-      </div>
-    );
-  };
-  WorkflowCanvasNode.displayName = 'WorkflowCanvasNode';
-  return WorkflowCanvasNode;
 }
 
 interface NodeConfigurationProps {
@@ -730,15 +748,6 @@ function NodeHeader({ title, updateTitle, removeNode }: CommonConfigProps) {
   );
 }
 
-interface NodeConfigProps {
-  title: string;
-  settings: Record<string, any>;
-  resources: WorkflowResources | null;
-  updateTitle: (value: string) => void;
-  updateSettings: (updater: (s: Record<string, any>) => Record<string, any>) => void;
-  removeNode: () => void;
-}
-
 interface AssignmentConfigProps {
   assignment: Record<string, any>;
   resources: WorkflowResources | null;
@@ -866,7 +875,7 @@ function DueRuleConfig({ dueRule, onChange }: DueRuleProps) {
   );
 }
 
-function TaskNodeConfig({ title, settings, resources, updateTitle, updateSettings, removeNode }: NodeConfigProps) {
+function TaskNodeConfig({ title, settings, resources, updateTitle, updateSettings, removeNode }: any) {
   return (
     <div className="space-y-4">
       <NodeHeader title={title} updateTitle={updateTitle} removeNode={removeNode} />
@@ -874,10 +883,10 @@ function TaskNodeConfig({ title, settings, resources, updateTitle, updateSetting
         <FieldLabel>Task template</FieldLabel>
         <SelectInput
           value={settings.taskTemplateId ?? ''}
-          onChange={(event) => updateSettings((prev) => ({ ...prev, taskTemplateId: event.target.value }))}
+          onChange={(event) => updateSettings((prev: any) => ({ ...prev, taskTemplateId: event.target.value }))}
         >
           <option value="">Select template</option>
-          {resources?.taskTemplates.map((tpl) => (
+          {resources?.taskTemplates.map((tpl: any) => (
             <option key={tpl.id} value={tpl.id}>
               {tpl.name}
             </option>
@@ -887,14 +896,14 @@ function TaskNodeConfig({ title, settings, resources, updateTitle, updateSetting
       <AssignmentConfig
         assignment={settings.assignment ?? { mode: 'assignee' }}
         resources={resources}
-        onChange={(assignment) => updateSettings((prev) => ({ ...prev, assignment }))}
+        onChange={(assignment) => updateSettings((prev: any) => ({ ...prev, assignment }))}
       />
-      <DueRuleConfig dueRule={settings.dueRule ?? null} onChange={(rule) => updateSettings((prev) => ({ ...prev, dueRule: rule }))} />
+      <DueRuleConfig dueRule={settings.dueRule ?? null} onChange={(rule) => updateSettings((prev: any) => ({ ...prev, dueRule: rule }))} />
     </div>
   );
 }
 
-function DummyNodeConfig({ title, settings, resources, updateTitle, updateSettings, removeNode }: NodeConfigProps) {
+function DummyNodeConfig({ title, settings, resources, updateTitle, updateSettings, removeNode }: any) {
   return (
     <div className="space-y-4">
       <NodeHeader title={title} updateTitle={updateTitle} removeNode={removeNode} />
@@ -902,10 +911,10 @@ function DummyNodeConfig({ title, settings, resources, updateTitle, updateSettin
         <FieldLabel>Task template</FieldLabel>
         <SelectInput
           value={settings.taskTemplateId ?? ''}
-          onChange={(event) => updateSettings((prev) => ({ ...prev, taskTemplateId: event.target.value }))}
+          onChange={(event) => updateSettings((prev: any) => ({ ...prev, taskTemplateId: event.target.value }))}
         >
           <option value="">Select template</option>
-          {resources?.taskTemplates.map((tpl) => (
+          {resources?.taskTemplates.map((tpl: any) => (
             <option key={tpl.id} value={tpl.id}>
               {tpl.name}
             </option>
@@ -915,15 +924,15 @@ function DummyNodeConfig({ title, settings, resources, updateTitle, updateSettin
       <AssignmentConfig
         assignment={settings.assignment ?? { mode: 'user' }}
         resources={resources}
-        onChange={(assignment) => updateSettings((prev) => ({ ...prev, assignment }))}
+        onChange={(assignment) => updateSettings((prev: any) => ({ ...prev, assignment }))}
         allowedModes={['user', 'group']}
       />
-      <DueRuleConfig dueRule={settings.dueRule ?? null} onChange={(rule) => updateSettings((prev) => ({ ...prev, dueRule: rule }))} />
+      <DueRuleConfig dueRule={settings.dueRule ?? null} onChange={(rule) => updateSettings((prev: any) => ({ ...prev, dueRule: rule }))} />
     </div>
   );
 }
 
-function FormNodeConfig({ title, settings, resources, updateTitle, updateSettings, removeNode }: NodeConfigProps) {
+function FormNodeConfig({ title, settings, resources, updateTitle, updateSettings, removeNode }: any) {
   return (
     <div className="space-y-4">
       <NodeHeader title={title} updateTitle={updateTitle} removeNode={removeNode} />
@@ -931,10 +940,10 @@ function FormNodeConfig({ title, settings, resources, updateTitle, updateSetting
         <FieldLabel>Form template</FieldLabel>
         <SelectInput
           value={settings.formTemplateId ?? ''}
-          onChange={(event) => updateSettings((prev) => ({ ...prev, formTemplateId: event.target.value }))}
+          onChange={(event) => updateSettings((prev: any) => ({ ...prev, formTemplateId: event.target.value }))}
         >
           <option value="">Select template</option>
-          {resources?.formTemplates.map((tpl) => (
+          {resources?.formTemplates.map((tpl: any) => (
             <option key={tpl.id} value={tpl.id}>
               {tpl.name}
             </option>
@@ -944,14 +953,14 @@ function FormNodeConfig({ title, settings, resources, updateTitle, updateSetting
       <AssignmentConfig
         assignment={settings.assignment ?? { mode: 'assignee' }}
         resources={resources}
-        onChange={(assignment) => updateSettings((prev) => ({ ...prev, assignment }))}
+        onChange={(assignment) => updateSettings((prev: any) => ({ ...prev, assignment }))}
       />
-      <DueRuleConfig dueRule={settings.dueRule ?? null} onChange={(rule) => updateSettings((prev) => ({ ...prev, dueRule: rule }))} />
+      <DueRuleConfig dueRule={settings.dueRule ?? null} onChange={(rule) => updateSettings((prev: any) => ({ ...prev, dueRule: rule }))} />
     </div>
   );
 }
 
-function CourseNodeConfig({ title, settings, resources, updateTitle, updateSettings, removeNode }: NodeConfigProps) {
+function CourseNodeConfig({ title, settings, resources, updateTitle, updateSettings, removeNode }: any) {
   return (
     <div className="space-y-4">
       <NodeHeader title={title} updateTitle={updateTitle} removeNode={removeNode} />
@@ -959,10 +968,10 @@ function CourseNodeConfig({ title, settings, resources, updateTitle, updateSetti
         <FieldLabel>Course</FieldLabel>
         <SelectInput
           value={settings.courseId ?? ''}
-          onChange={(event) => updateSettings((prev) => ({ ...prev, courseId: event.target.value }))}
+          onChange={(event) => updateSettings((prev: any) => ({ ...prev, courseId: event.target.value }))}
         >
           <option value="">Select course</option>
-          {resources?.courses.map((course) => (
+          {resources?.courses.map((course: any) => (
             <option key={course.id} value={course.id}>
               {course.title}
             </option>
@@ -972,14 +981,14 @@ function CourseNodeConfig({ title, settings, resources, updateTitle, updateSetti
       <AssignmentConfig
         assignment={settings.assignment ?? 'assignee'}
         resources={resources}
-        onChange={(assignment) => updateSettings((prev) => ({ ...prev, assignment }))}
+        onChange={(assignment) => updateSettings((prev: any) => ({ ...prev, assignment }))}
         allowedModes={['assignee', 'assignee_manager']}
       />
     </div>
   );
 }
 
-function EmailNodeConfig({ title, settings, resources, updateTitle, updateSettings, removeNode }: NodeConfigProps) {
+function EmailNodeConfig({ title, settings, resources, updateTitle, updateSettings, removeNode }: any) {
   const schedule = settings.schedule ?? null;
   const relativeTo = schedule?.relativeTo ?? 'activation_time';
   const direction = schedule?.direction ?? 'AFTER';
@@ -994,10 +1003,10 @@ function EmailNodeConfig({ title, settings, resources, updateTitle, updateSettin
         <FieldLabel>Email template</FieldLabel>
         <SelectInput
           value={settings.emailTemplateId ?? ''}
-          onChange={(event) => updateSettings((prev) => ({ ...prev, emailTemplateId: event.target.value }))}
+          onChange={(event) => updateSettings((prev: any) => ({ ...prev, emailTemplateId: event.target.value }))}
         >
           <option value="">Select template</option>
-          {resources?.emailTemplates.map((tpl) => (
+          {resources?.emailTemplates.map((tpl: any) => (
             <option key={tpl.id} value={tpl.id}>
               {tpl.name}
             </option>
@@ -1007,14 +1016,14 @@ function EmailNodeConfig({ title, settings, resources, updateTitle, updateSettin
       <AssignmentConfig
         assignment={settings.recipients ?? { mode: 'assignee' }}
         resources={resources}
-        onChange={(assignment) => updateSettings((prev) => ({ ...prev, recipients: assignment }))}
+        onChange={(assignment) => updateSettings((prev: any) => ({ ...prev, recipients: assignment }))}
       />
       <div className="space-y-2">
         <FieldLabel>Email schedule</FieldLabel>
         <SelectInput
           value={relativeTo}
           onChange={(event) =>
-            updateSettings((prev) => ({
+            updateSettings((prev: any) => ({
               ...prev,
               schedule: {
                 relativeTo: event.target.value,
@@ -1034,7 +1043,7 @@ function EmailNodeConfig({ title, settings, resources, updateTitle, updateSettin
             type="number"
             value={offsetValue}
             onChange={(event) =>
-              updateSettings((prev) => ({
+              updateSettings((prev: any) => ({
                 ...prev,
                 schedule: {
                   relativeTo,
@@ -1048,7 +1057,7 @@ function EmailNodeConfig({ title, settings, resources, updateTitle, updateSettin
           <SelectInput
             value={offsetUnit}
             onChange={(event) =>
-              updateSettings((prev) => ({
+              updateSettings((prev: any) => ({
                 ...prev,
                 schedule: {
                   relativeTo,
@@ -1067,7 +1076,7 @@ function EmailNodeConfig({ title, settings, resources, updateTitle, updateSettin
         <SelectInput
           value={direction}
           onChange={(event) =>
-            updateSettings((prev) => ({
+            updateSettings((prev: any) => ({
               ...prev,
               schedule: {
                 relativeTo,
@@ -1086,7 +1095,7 @@ function EmailNodeConfig({ title, settings, resources, updateTitle, updateSettin
           placeholder="09:00"
           value={sendTime}
           onChange={(event) =>
-            updateSettings((prev) => ({
+            updateSettings((prev: any) => ({
               ...prev,
               schedule: {
                 relativeTo,
@@ -1102,7 +1111,7 @@ function EmailNodeConfig({ title, settings, resources, updateTitle, updateSettin
   );
 }
 
-function ProfileTaskNodeConfig({ title, settings, resources, updateTitle, updateSettings, removeNode }: NodeConfigProps) {
+function ProfileTaskNodeConfig({ title, settings, resources, updateTitle, updateSettings, removeNode }: any) {
   return (
     <div className="space-y-4">
       <NodeHeader title={title} updateTitle={updateTitle} removeNode={removeNode} />
@@ -1110,10 +1119,10 @@ function ProfileTaskNodeConfig({ title, settings, resources, updateTitle, update
         <FieldLabel>Profile task template</FieldLabel>
         <SelectInput
           value={settings.profileTaskTemplateId ?? ''}
-          onChange={(event) => updateSettings((prev) => ({ ...prev, profileTaskTemplateId: event.target.value }))}
+          onChange={(event) => updateSettings((prev: any) => ({ ...prev, profileTaskTemplateId: event.target.value }))}
         >
           <option value="">Select template</option>
-          {resources?.profileTaskTemplates.map((tpl) => (
+          {resources?.profileTaskTemplates.map((tpl: any) => (
             <option key={tpl.id} value={tpl.id}>
               {tpl.name}
             </option>
@@ -1124,7 +1133,7 @@ function ProfileTaskNodeConfig({ title, settings, resources, updateTitle, update
   );
 }
 
-function SurveyNodeConfig({ title, settings, resources, updateTitle, updateSettings, removeNode }: NodeConfigProps) {
+function SurveyNodeConfig({ title, settings, resources, updateTitle, updateSettings, removeNode }: any) {
   return (
     <div className="space-y-4">
       <NodeHeader title={title} updateTitle={updateTitle} removeNode={removeNode} />
@@ -1132,10 +1141,10 @@ function SurveyNodeConfig({ title, settings, resources, updateTitle, updateSetti
         <FieldLabel>Survey</FieldLabel>
         <SelectInput
           value={settings.surveyId ?? ''}
-          onChange={(event) => updateSettings((prev) => ({ ...prev, surveyId: event.target.value }))}
+          onChange={(event) => updateSettings((prev: any) => ({ ...prev, surveyId: event.target.value }))}
         >
           <option value="">Select survey</option>
-          {resources?.surveys.map((survey) => (
+          {resources?.surveys.map((survey: any) => (
             <option key={survey.id} value={survey.id}>
               {survey.name}
             </option>
@@ -1146,36 +1155,24 @@ function SurveyNodeConfig({ title, settings, resources, updateTitle, updateSetti
   );
 }
 
-interface ConditionNodeConfigProps {
-  settings: {
-    logic?: 'ALL' | 'ANY';
-    criteria?: Array<{ field: ConditionField; op: ConditionOperator; valueId?: string }>;
-  };
-  resources: WorkflowResources | null;
-  edges: Edge[];
-  updateSettings: (updater: (s: Record<string, any>) => Record<string, any>) => void;
-  updateEdgeLabel: (edgeId: string, label: 'true' | 'false' | null) => void;
-  removeNode: () => void;
-}
-
-function ConditionNodeConfig({ settings, resources, edges, updateSettings, updateEdgeLabel, removeNode }: ConditionNodeConfigProps) {
+function ConditionNodeConfig({ settings, resources, edges, updateSettings, updateEdgeLabel, removeNode }: any) {
   const logic = settings.logic ?? 'ALL';
   const criteria = settings.criteria ?? [];
 
   const addCriterion = () => {
-    updateSettings((prev) => ({
+    updateSettings((prev: any) => ({
       ...prev,
-      criteria: [ ...(prev.criteria ?? []), { field: 'department' as ConditionField, op: 'IS' as ConditionOperator, valueId: '' } ]
+      criteria: [...(prev.criteria ?? []), { field: 'department', op: 'IS', valueId: '' }]
     }));
   };
 
-  const updateCriterion = (index: number, patch: Partial<{ field: ConditionField; op: ConditionOperator; valueId?: string }>) => {
-    const next = criteria.map((item, idx) => (idx === index ? { ...item, ...patch } : item));
-    updateSettings((prev) => ({ ...prev, criteria: next }));
+  const updateCriterion = (index: number, patch: Record<string, any>) => {
+    const next = criteria.map((item: any, idx: number) => (idx === index ? { ...item, ...patch } : item));
+    updateSettings((prev: any) => ({ ...prev, criteria: next }));
   };
 
   const removeCriterion = (index: number) => {
-    updateSettings((prev) => ({ ...prev, criteria: criteria.filter((_, idx) => idx !== index) }));
+    updateSettings((prev: any) => ({ ...prev, criteria: criteria.filter((_: any, idx: number) => idx !== index) }));
   };
 
   const valueOptions = (field: ConditionField) => {
@@ -1203,18 +1200,18 @@ function ConditionNodeConfig({ settings, resources, edges, updateSettings, updat
           Remove
         </Button>
       </div>
-      <SelectInput value={logic} onChange={(event) => updateSettings((prev) => ({ ...prev, logic: event.target.value }))}>
+      <SelectInput value={logic} onChange={(event) => updateSettings((prev: any) => ({ ...prev, logic: event.target.value }))}>
         <option value="ALL">Require all criteria</option>
         <option value="ANY">Any criteria</option>
       </SelectInput>
 
       <div className="space-y-3">
-        {criteria.map((criterion, index) => (
-          <div key={`${criterion.field}-${index}`} className="rounded border border-slate-200 p-3">
+        {criteria.map((criterion: any, index: number) => (
+          <div key={index} className="rounded border border-slate-200 p-3">
             <div className="grid grid-cols-3 gap-2">
               <SelectInput
                 value={criterion.field}
-                onChange={(event) => updateCriterion(index, { field: event.target.value as ConditionField, valueId: '' })}
+                onChange={(event) => updateCriterion(index, { field: event.target.value, valueId: '' })}
               >
                 {CONDITION_FIELDS.map((field) => (
                   <option key={field.value} value={field.value}>
@@ -1224,7 +1221,7 @@ function ConditionNodeConfig({ settings, resources, edges, updateSettings, updat
               </SelectInput>
               <SelectInput
                 value={criterion.op}
-                onChange={(event) => updateCriterion(index, { op: event.target.value as ConditionOperator })}
+                onChange={(event) => updateCriterion(index, { op: event.target.value })}
               >
                 {CONDITION_OPERATORS.map((operator) => (
                   <option key={operator.value} value={operator.value}>
@@ -1256,14 +1253,14 @@ function ConditionNodeConfig({ settings, resources, edges, updateSettings, updat
 
       <div className="space-y-2">
         <FieldLabel>Outgoing branches</FieldLabel>
-        {edges.map((edge) => (
+        {edges.map((edge: any) => (
           <div key={edge.id} className="flex items-center gap-2">
             <SelectInput
               className="w-32"
               value={(edge.data as any)?.label ?? ''}
               onChange={(event) => {
                 const value = event.target.value as '' | 'true' | 'false';
-                updateEdgeLabel(edge.id, value ? value : null);
+                updateEdgeLabel(edge.id, value ? (value as 'true' | 'false') : null);
               }}
             >
               <option value="">Unlabeled</option>
