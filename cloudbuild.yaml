@@ -2,6 +2,10 @@ options:
   env:
     - DOCKER_BUILDKIT=1
     - BUILDKIT_PROGRESS=plain
+  # Required when the trigger sets a build service account:
+  # keeps logs in the same region as your build (AU-SE1).
+  defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
+  # (Alternative minimal fix, if you prefer) logging: CLOUD_LOGGING_ONLY
 
 steps:
   # Build API (runtime-api target)
@@ -27,7 +31,7 @@ steps:
       [
         'run','deploy','workright-api',
         '--image','gcr.io/$PROJECT_ID/workright-hris-api',
-        '--region','us-central1',
+        '--region','australia-southeast1',
         '--platform','managed',
         '--allow-unauthenticated',
         '--set-env-vars','NODE_ENV=production,DATABASE_URL=$$DATABASE_URL,REDIS_URL=$$REDIS_URL'
@@ -41,7 +45,7 @@ steps:
       [
         'run','deploy','workright-web',
         '--image','gcr.io/$PROJECT_ID/workright-hris-web',
-        '--region','us-central1',
+        '--region','australia-southeast1',
         '--platform','managed',
         '--allow-unauthenticated',
         '--port','3000',
