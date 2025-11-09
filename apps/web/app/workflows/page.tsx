@@ -293,6 +293,11 @@ export default function WorkflowWorkbenchesPage() {
 
   const selectedNode = useMemo(() => nodes.find((node) => node.id === selectedNodeId) ?? null, [nodes, selectedNodeId]);
 
+  const nodeTypes = useMemo(
+  () => ({ workflowNode: WorkflowCanvasNode(resources) }),
+  [resources]
+);
+  
   const addNode = useCallback(
     (type: WorkflowNodeType) => {
       setNodes((existing) => [
@@ -895,7 +900,10 @@ function CourseNodeConfig({ title, settings, resources, updateTitle, updateSetti
       <NodeHeader title={title} updateTitle={updateTitle} removeNode={removeNode} />
       <div className="space-y-2">
         <FieldLabel>Course</FieldLabel>
-        <SelectInput value={(settings as any).courseId ?? ""} onChange={(event) => updateSettings((prev) => ({ ...prev, courseId: event.target.value }))}>
+        <SelectInput
+          value={(settings as any).courseId ?? ""}
+          onChange={(event) => updateSettings((prev) => ({ ...prev, courseId: event.target.value }))}
+        >
           <option value="">Select course</option>
           {resources?.courses.map((course) => (
             <option key={course.id} value={course.id}>
@@ -904,13 +912,14 @@ function CourseNodeConfig({ title, settings, resources, updateTitle, updateSetti
           ))}
         </SelectInput>
       </div>
-     <AssignmentConfig
-  assignment={(settings as any).assignment ?? { mode: "assignee" }}
-  resources={resources}
-  onChange={(assignment) => updateSettings((prev) => ({ ...prev, assignment }))}
-  allowedModes={["assignee", "assignee_manager"]}
-/>
-      </div>   {/
+
+      <AssignmentConfig
+        assignment={(settings as any).assignment ?? { mode: "assignee" }}
+        resources={resources}
+        onChange={(assignment) => updateSettings((prev) => ({ ...prev, assignment }))}
+        allowedModes={["assignee", "assignee_manager"]}
+      />
+    </div>
   );
 }
 
