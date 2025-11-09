@@ -49,13 +49,20 @@ const buildHeaders = (options: ApiOptions = {}): HeadersInit => {
 const withCache = (init: RequestInit, cache?: RequestCache): RequestInit =>
   cache ? { ...init, cache } : init;
 
+const readJson = async <T>(res: Response): Promise<T> => {
+  const text = await res.text();
+  return text ? JSON.parse(text) : ({} as T);
+};
+
+const fail = async (res: Response) => {
+  const body = await res.text().catch(() => '');
+  throw new Error(`API ${res.status} ${res.statusText}${body ? ` - ${body}` : ''}`);
+};
+
 export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, withCache({ headers: buildHeaders(options) }, options.cache));
-
-  if (!res.ok) {
-    throw new Error(`API request failed: ${res.status}`);
-  }
-  return res.json();
+  if (!res.ok) return fail(res);
+  return readJson<T>(res);
 }
 
 export async function apiPost<T = any>(path: string, body: unknown, options: ApiOptions = {}): Promise<T> {
@@ -70,10 +77,8 @@ export async function apiPost<T = any>(path: string, body: unknown, options: Api
       options.cache
     )
   );
-  if (!res.ok) {
-    throw new Error(`API request failed: ${res.status}`);
-  }
-  return res.json().catch(() => ({} as T));
+  if (!res.ok) return fail(res);
+  return readJson<T>(res);
 }
 
 export async function apiPatch<T = any>(path: string, body: unknown, options: ApiOptions = {}): Promise<T> {
@@ -88,10 +93,8 @@ export async function apiPatch<T = any>(path: string, body: unknown, options: Ap
       options.cache
     )
   );
-  if (!res.ok) {
-    throw new Error(`API request failed: ${res.status}`);
-  }
-  return res.json();
+  if (!res.ok) return fail(res);
+  return readJson<T>(res);
 }
 
 export async function apiPut<T = any>(path: string, body: unknown, options: ApiOptions = {}): Promise<T> {
@@ -106,10 +109,8 @@ export async function apiPut<T = any>(path: string, body: unknown, options: ApiO
       options.cache
     )
   );
-  if (!res.ok) {
-    throw new Error(`API request failed: ${res.status}`);
-  }
-  return res.json();
+  if (!res.ok) return fail(res);
+  return readJson<T>(res);
 }
 
 export async function apiDelete<T = any>(path: string, options: ApiOptions = {}): Promise<T> {
@@ -123,8 +124,14 @@ export async function apiDelete<T = any>(path: string, options: ApiOptions = {})
       options.cache
     )
   );
-  if (!res.ok) {
-    throw new Error(`API request failed: ${res.status}`);
-  }
-  return res.json().catch(() => ({} as T));
+  if (!res.ok) return fail(res);
+  return readJson<T>(res);
+}
+
+export function setDemoRoles(rolesCsv: string) {
+  if (typeof window !== 'undefined') localStorage.setItem('demoRoles', rolesCsv);
+}
+
+export function setTenantId(tenantId: string) {
+  if (typeof window !== 'undefined') localStorage.setItem('tenantId', JSON.stringify(tenantId));
 }
