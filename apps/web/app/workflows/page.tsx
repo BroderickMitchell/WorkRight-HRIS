@@ -3,20 +3,19 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
 import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
   addEdge,
   Connection,
   Edge,
-  MarkerType,
   Node,
   useEdgesState,
   useNodesState,
+  MarkerType,
+  type XYPosition,
+  type DefaultEdge
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { Badge, Button, Card, CardDescription, CardHeader, CardTitle, cn } from "@workright/ui";
-import { apiFetch, apiPost, apiPut } from "../../../lib/api";
+import { apiFetch, apiPost, apiPut } from "../../lib/api";
 
 /* =======================
  * Types & Constants
@@ -79,9 +78,27 @@ function SelectInput(props: SelectHTMLAttributes<HTMLSelectElement>) {
   );
 }
 
-export type WorkflowNodeType =
-  | "task" | "form" | "course" | "email"
-  | "profile_task" | "survey" | "condition" | "dummy_task";
+type WorkflowNodeType =
+  | "task"
+  | "form"
+  | "course"
+  | "email"
+  | "profile_task"
+  | "survey";
+
+type WorkflowNodeData = {
+  title: string;
+  nodeType: WorkflowNodeType;
+  settings: Record<string, unknown>;
+};
+
+type WorkflowEdgeData = {
+  label: "true" | "false" | null;
+};
+
+type WfNode = Node<WorkflowNodeData>;
+type WfEdge = Edge<WorkflowEdgeData>;
+
 
 export type AssignmentMode = "assignee" | "assignee_manager" | "user" | "group";
 export type ConditionOperator = "IS" | "IS_PARENT_OF" | "IS_CHILD_OF";
@@ -215,8 +232,8 @@ export default function WorkflowWorkbenchesPage() {
   const [resources, setResources] = useState<WorkflowResources | null>(null);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const [newWorkflowName, setNewWorkflowName] = useState("");
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node<WorkflowNodeData>>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<WfNode>([]);
+const [edges, setEdges, onEdgesChange] = useEdgesState<WfEdge>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -300,38 +317,34 @@ export default function WorkflowWorkbenchesPage() {
   
   const addNode = useCallback(
     (type: WorkflowNodeType) => {
-      setNodes((existing) => [
-        ...existing,
-        {
-          id: generateId(type),
-          type: "workflowNode",
-          position: { x: 200 + existing.length * 40, y: 100 + existing.length * 20 },
-          data: {
-            title: defaultTitles[type],
-            nodeType: type,
-            settings: defaultSettings[type](),
-          },
-        },
-      ]);
+     setNodes((existing) => [
+  ...existing,
+  {
+    id: crypto.randomUUID(),
+    type: "default",
+    position: { x: 50, y: 50 },
+    data: { title: "New", nodeType: "task", settings: {} },
+  } satisfies WfNode,
+]);
+
     },
     [setNodes]
   );
 
-  const onConnect = useCallback(
-    (connection: Connection) => {
-      setEdges((eds) =>
-        addEdge(
-          {
-            ...connection,
-            id: generateId("edge"),
-            label: undefined,
-            data: { label: null },
-            markerEnd: { type: MarkerType.ArrowClosed },
-          },
-          eds
-        )
-      );
-    },
+ const onConnect = (connection: Connection) => {
+  setEdges((es) =>
+    addEdge<WfEdge>(
+      {
+        ...connection,
+        id: crypto.randomUUID(),
+        type: "default",
+        data: { label: null },
+        markerEnd: { type: MarkerType.ArrowClosed },
+      },
+      es
+    )
+  );
+};
     [setEdges]
   );
 
