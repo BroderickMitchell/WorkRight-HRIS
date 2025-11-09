@@ -675,13 +675,12 @@ function NodeHeader({ title, updateTitle, removeNode }: CommonConfigProps) {
     </div>
   );
 }
-
-<AssignmentConfig
-  assignment={(settings as any).assignment ?? { mode: "assignee" }}
-  resources={resources}
-  onChange={(assignment) => updateSettings((prev) => ({ ...prev, assignment }))}
-  allowedModes={["assignee", "assignee_manager"]}
-/>
+interface AssignmentConfigProps {
+  assignment: Record<string, unknown>;
+  resources: WorkflowResources | null;
+  onChange: (assignment: Record<string, unknown>) => void;
+  allowedModes?: AssignmentMode[];
+}
 
 function AssignmentConfig({ assignment, resources, onChange, allowedModes }: AssignmentConfigProps) {
   const modes = allowedModes ?? ASSIGNMENT_MODES.map((item) => item.value);
@@ -708,8 +707,12 @@ function AssignmentConfig({ assignment, resources, onChange, allowedModes }: Ass
           </option>
         ))}
       </SelectInput>
+
       {currentMode === "user" && (
-        <SelectInput value={(assignment as any)?.id ?? ""} onChange={(event) => onChange({ mode: "user", id: event.target.value || null })}>
+        <SelectInput
+          value={(assignment as any)?.id ?? ""}
+          onChange={(event) => onChange({ mode: "user", id: event.target.value || null })}
+        >
           <option value="">Select user</option>
           {resources?.users.map((user) => (
             <option key={user.id} value={user.id}>
@@ -718,8 +721,12 @@ function AssignmentConfig({ assignment, resources, onChange, allowedModes }: Ass
           ))}
         </SelectInput>
       )}
+
       {currentMode === "group" && (
-        <SelectInput value={(assignment as any)?.id ?? ""} onChange={(event) => onChange({ mode: "group", id: event.target.value || null })}>
+        <SelectInput
+          value={(assignment as any)?.id ?? ""}
+          onChange={(event) => onChange({ mode: "group", id: event.target.value || null })}
+        >
           <option value="">Select group</option>
           {resources?.groups.map((group) => (
             <option key={group.id} value={group.id}>
@@ -733,6 +740,8 @@ function AssignmentConfig({ assignment, resources, onChange, allowedModes }: Ass
   );
 }
 
+// ----- DueRuleConfig -----
+
 interface DueRuleProps {
   dueRule: Record<string, unknown> | null;
   onChange: (rule: Record<string, unknown> | null) => void;
@@ -743,6 +752,7 @@ function DueRuleConfig({ dueRule, onChange }: DueRuleProps) {
   const direction = (dueRule as any)?.direction ?? "AFTER";
   const offsetValue = (dueRule as any)?.offset?.value ?? 0;
   const offsetUnit = (dueRule as any)?.offset?.unit ?? "days";
+
   const currentRule = {
     basis,
     direction,
@@ -757,29 +767,35 @@ function DueRuleConfig({ dueRule, onChange }: DueRuleProps) {
           Clear
         </Button>
       </div>
-      <SelectInput value={basis} onChange={(event) => onChange({ ...currentRule, basis: event.target.value })}>
+
+      <SelectInput value={basis} onChange={(e) => onChange({ ...currentRule, basis: e.target.value })}>
         <option value="assignee.start_date">Assignee start date</option>
         <option value="assignee.end_date">Assignee end date</option>
         <option value="node.activation_time">Node activation time</option>
       </SelectInput>
+
       <div className="grid grid-cols-[1fr_auto] gap-2">
         <TextInput
           type="number"
           value={offsetValue}
-          onChange={(event) =>
+          onChange={(e) =>
             onChange({
               ...currentRule,
-              offset: { value: Number(event.target.value || 0), unit: offsetUnit },
+              offset: { value: Number(e.target.value || 0), unit: offsetUnit },
             })
           }
         />
-        <SelectInput value={offsetUnit} onChange={(event) => onChange({ ...currentRule, offset: { value: offsetValue, unit: event.target.value } })}>
+        <SelectInput
+          value={offsetUnit}
+          onChange={(e) => onChange({ ...currentRule, offset: { value: offsetValue, unit: e.target.value } })}
+        >
           <option value="days">Days</option>
           <option value="weeks">Weeks</option>
           <option value="months">Months</option>
         </SelectInput>
       </div>
-      <SelectInput value={direction} onChange={(event) => onChange({ ...currentRule, direction: event.target.value })}>
+
+      <SelectInput value={direction} onChange={(e) => onChange({ ...currentRule, direction: e.target.value })}>
         <option value="AFTER">After basis</option>
         <option value="BEFORE">Before basis</option>
       </SelectInput>
@@ -804,17 +820,29 @@ function TaskNodeConfig({ title, settings, resources, updateTitle, updateSetting
       <NodeHeader title={title} updateTitle={updateTitle} removeNode={removeNode} />
       <div className="space-y-2">
         <FieldLabel>Task template</FieldLabel>
-        <SelectInput value={(settings as any).taskTemplateId ?? ""} onChange={(event) => updateSettings((prev) => ({ ...prev, taskTemplateId: event.target.value }))}>
+        <SelectInput
+          value={(settings as any).taskTemplateId ?? ""}
+          onChange={(event) =>
+            updateSettings((prev) => ({ ...prev, taskTemplateId: event.target.value }))
+          }
+        >
           <option value="">Select template</option>
           {resources?.taskTemplates.map((tpl) => (
-            <option key={tpl.id} value={tpl.id}>
-              {tpl.name}
-            </option>
+            <option key={tpl.id} value={tpl.id}>{tpl.name}</option>
           ))}
         </SelectInput>
       </div>
-      <AssignmentConfig assignment={(settings as any).assignment ?? { mode: "assignee" }} resources={resources} onChange={(assignment) => updateSettings((prev) => ({ ...prev, assignment }))} />
-      <DueRuleConfig dueRule={(settings as any).dueRule ?? null} onChange={(rule) => updateSettings((prev) => ({ ...prev, dueRule: rule }))} />
+
+      <AssignmentConfig
+        assignment={(settings as any).assignment ?? { mode: "assignee" }}
+        resources={resources}
+        onChange={(assignment) => updateSettings((prev) => ({ ...prev, assignment }))}
+      />
+
+      <DueRuleConfig
+        dueRule={(settings as any).dueRule ?? null}
+        onChange={(rule) => updateSettings((prev) => ({ ...prev, dueRule: rule }))}
+      />
     </div>
   );
 }
