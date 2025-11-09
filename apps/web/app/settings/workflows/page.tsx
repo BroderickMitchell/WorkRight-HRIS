@@ -1236,7 +1236,7 @@ function ConditionNodeConfig({ settings, resources, edges, updateSettings, updat
                 <option value="">Select value</option>
                 {valueOptions(criterion.field).map((option: any) => (
                   <option key={option.id} value={option.id}>
-                    {option.name ?? `${option.givenName} ${option.familyName}` ?? option.title}
+                     {option.name}
                   </option>
                 ))}
               </SelectInput>
