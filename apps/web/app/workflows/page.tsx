@@ -80,14 +80,8 @@ function SelectInput(props: SelectHTMLAttributes<HTMLSelectElement>) {
 }
 
 export type WorkflowNodeType =
-  | "task"
-  | "form"
-  | "course"
-  | "email"
-  | "profile_task"
-  | "survey"
-  | "condition"
-  | "dummy_task";
+  | "task" | "form" | "course" | "email"
+  | "profile_task" | "survey" | "condition" | "dummy_task";
 
 export type AssignmentMode = "assignee" | "assignee_manager" | "user" | "group";
 export type ConditionOperator = "IS" | "IS_PARENT_OF" | "IS_CHILD_OF";
@@ -193,7 +187,7 @@ function formatAssignment(settings: Record<string, unknown>, resources: Workflow
 const defaultSettings: Record<WorkflowNodeType, () => Record<string, unknown>> = {
   task: () => ({ assignment: { mode: "assignee" }, dueRule: null }),
   form: () => ({ assignment: { mode: "assignee" }, dueRule: null }),
-  course: () => ({ assignment: "assignee" }),
+  course: () => ({ assignment: { mode: "assignee" } }),
   email: () => ({ recipients: { mode: "assignee" } }),
   profile_task: () => ({}),
   survey: () => ({}),
@@ -682,12 +676,12 @@ function NodeHeader({ title, updateTitle, removeNode }: CommonConfigProps) {
   );
 }
 
-interface AssignmentConfigProps {
-  assignment: Record<string, unknown>;
-  resources: WorkflowResources | null;
-  onChange: (assignment: Record<string, unknown>) => void;
-  allowedModes?: AssignmentMode[];
-}
+<AssignmentConfig
+  assignment={(settings as any).assignment ?? { mode: "assignee" }}
+  resources={resources}
+  onChange={(assignment) => updateSettings((prev) => ({ ...prev, assignment }))}
+  allowedModes={["assignee", "assignee_manager"]}
+/>
 
 function AssignmentConfig({ assignment, resources, onChange, allowedModes }: AssignmentConfigProps) {
   const modes = allowedModes ?? ASSIGNMENT_MODES.map((item) => item.value);
@@ -1038,140 +1032,100 @@ function ConditionNodeConfig({ settings, resources, edges, updateSettings, updat
   };
 
   const updateCriterion = (index: number, patch: Partial<{ field: ConditionField; op: ConditionOperator; valueId: string }>) => {
-    const next = criteria.map((item, idx) => (idx === index ?
     const next = criteria.map((item, idx) => (idx === index ? { ...item, ...patch } : item));
     updateSettings((prev) => ({ ...prev, criteria: next }));
   };
 
   const removeCriterion = (index: number) => {
-    updateSettings((prev) => ({
-      ...prev,
-      criteria: criteria.filter((_, idx) => idx !== index),
-    }));
+    const next = criteria.filter((_, idx) => idx !== index);
+    updateSettings((prev) => ({ ...prev, criteria: next }));
   };
 
-  const valueOptions = (field: ConditionField) => {
+  const setLogic = (value: "ALL" | "ANY") => {
+    updateSettings((prev) => ({ ...prev, logic: value }));
+  };
+
+  const optionsForField = (field: ConditionField): Array<{ id: string; name: string }> => {
     switch (field) {
       case "department":
-        return resources?.departments ?? [];
+        return (resources?.departments ?? []).map((d) => ({ id: (d as any).id, name: d.name }));
       case "location":
-        return resources?.locations ?? [];
+        return (resources?.locations ?? []).map((l) => ({ id: (l as any).id, name: l.name }));
       case "position":
-        return resources?.positions ?? [];
+        return (resources?.positions ?? []).map((p) => ({ id: (p as any).id, name: (p as any).title ?? (p as any).name }));
       case "manager":
-        return resources?.employees ?? [];
+        return (resources?.users ?? []).map((u) => ({ id: (u as any).id, name: `${u.givenName} ${u.familyName}` }));
       case "legal_entity":
-        return resources?.legalEntities ?? [];
+        return (resources?.legalEntities ?? []).map((e) => ({ id: (e as any).id, name: e.name }));
       default:
         return [];
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <FieldLabel>Logic</FieldLabel>
-        <Button variant="ghost" size="sm" onClick={removeNode}>
-          Remove
-        </Button>
+        <SelectInput value={logic} onChange={(e) => setLogic(e.target.value as "ALL" | "ANY")}>
+          <option value="ALL">All criteria must match</option>
+          <option value="ANY">Any criterion may match</option>
+        </SelectInput>
       </div>
 
-      <SelectInput
-        value={logic}
-        onChange={(event) => updateSettings((prev) => ({ ...prev, logic: event.target.value }))}
-      >
-        <option value="ALL">Require all criteria</option>
-        <option value="ANY">Any criteria</option>
-      </SelectInput>
-
-      <div className="space-y-3">
-        {criteria.map((criterion, index) => (
-          <div key={index} className="rounded border border-slate-200 p-3">
-            <div className="grid grid-cols-3 gap-2">
-              <SelectInput
-                value={criterion.field}
-                onChange={(event) =>
-                  updateCriterion(index, {
-                    field: event.target.value as ConditionField,
-                    valueId: "",
-                  })
-                }
-              >
-                {CONDITION_FIELDS.map((field) => (
-                  <option key={field.value} value={field.value}>
-                    {field.label}
-                  </option>
-                ))}
-              </SelectInput>
-
-              <SelectInput
-                value={criterion.op}
-                onChange={(event) =>
-                  updateCriterion(index, { op: event.target.value as ConditionOperator })
-                }
-              >
-                {CONDITION_OPERATORS.map((operator) => (
-                  <option key={operator.value} value={operator.value}>
-                    {operator.label}
-                  </option>
-                ))}
-              </SelectInput>
-
-              <SelectInput
-                value={criterion.valueId ?? ""}
-                onChange={(event) => updateCriterion(index, { valueId: event.target.value })}
-              >
-                <option value="">Select value</option>
-                {valueOptions(criterion.field).map((option: any) => (
-                  <option key={option.id} value={option.id}>
-                    {option.name ??
-                      (option.givenName && option.familyName
-                        ? `${option.givenName} ${option.familyName}`
-                        : option.title)}
-                  </option>
-                ))}
-              </SelectInput>
-            </div>
-
-            <Button variant="ghost" size="sm" onClick={() => removeCriterion(index)} className="mt-2">
-              Remove criterion
-            </Button>
-          </div>
-        ))}
+      <div className="space-y-4">
         {criteria.length === 0 && (
-          <p className="text-xs text-slate-500">No criteria yet.</p>
+          <p className="text-sm text-slate-500">No conditions yet. Add your first rule.</p>
         )}
+        {criteria.map((c, idx) => {
+          const valueOptions = optionsForField(c.field);
+          return (
+            <div key={idx} className="rounded-md border border-slate-200 p-3 space-y-2">
+              <div className="grid grid-cols-3 gap-2">
+                <SelectInput value={c.field} onChange={(e) => updateCriterion(idx, { field: e.target.value as ConditionField, valueId: "" })}>
+                  {CONDITION_FIELDS.map((f) => (
+                    <option key={f.value} value={f.value}>{f.label}</option>
+                  ))}
+                </SelectInput>
+                <SelectInput value={c.op} onChange={(e) => updateCriterion(idx, { op: e.target.value as ConditionOperator })}>
+                  {CONDITION_OPERATORS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </SelectInput>
+                <SelectInput value={c.valueId} onChange={(e) => updateCriterion(idx, { valueId: e.target.value })}>
+                  <option value="">Select value</option>
+                  {valueOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id}>{opt.name}</option>
+                  ))}
+                </SelectInput>
+              </div>
+              <div className="flex justify-end">
+                <Button variant="ghost" size="sm" onClick={() => removeCriterion(idx)}>Remove</Button>
+              </div>
+            </div>
+          );
+        })}
+        <Button variant="secondary" onClick={addCriterion}>Add condition</Button>
       </div>
-
-      <Button variant="secondary" onClick={addCriterion}>
-        Add criterion
-      </Button>
 
       <div className="space-y-2">
-        <FieldLabel>Outgoing branches</FieldLabel>
-        {edges.map((edge) => (
-          <div key={edge.id} className="flex items-center gap-2">
-            <SelectInput
-              className="w-32"
-              value={(edge.data as any)?.label ?? ""}
-              onChange={(event) => {
-                const value = event.target.value as "true" | "false" | "";
-                updateEdgeLabel(edge.id, value ? (value as "true" | "false") : null);
-              }}
-            >
-              <option value="">Unlabeled</option>
-              <option value="true">True</option>
-              <option value="false">False</option>
+        <FieldLabel>Branch labels</FieldLabel>
+        {edges.length === 0 && <p className="text-sm text-slate-500">Connect this condition to two nodes and label one as “true” and the other “false”.</p>}
+        {edges.map((e) => (
+          <div key={e.id} className="grid grid-cols-[1fr_auto] items-center gap-2">
+            <span className="text-sm text-slate-700 truncate">{e.target}</span>
+            <SelectInput value={(e.data as any)?.label ?? e.label ?? ""} onChange={(ev) => updateEdgeLabel(e.id, (ev.target.value || null) as any)}>
+              <option value="">Unlabelled</option>
+              <option value="true">true</option>
+              <option value="false">false</option>
             </SelectInput>
-            <span className="text-xs text-slate-500">→ {edge.target}</span>
           </div>
         ))}
-        {edges.length === 0 && (
-          <p className="text-xs text-slate-500">
-            Connect this node to define true/false branches.
-          </p>
-        )}
+      </div>
+
+      <div className="flex justify-end">
+        <Button variant="ghost" size="sm" onClick={removeNode}>Remove step</Button>
       </div>
     </div>
-  );
-}
+  );  // ← closes the return
+
+}     // ← add this to close ConditionNodeConfig
