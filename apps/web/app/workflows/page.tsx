@@ -278,7 +278,7 @@ const [edges, setEdges, onEdgesChange] = useEdgesState<WorkflowEdgeData>([]);
       const nextNodes: Node<WorkflowNodeData>[] = graph.nodes.map((node) => ({
   id: node.id,
   type: "workflowNode",
-  position: node.position ?? { x: 100, y: 100 },
+  position: node.position,
   data: {
     title: node.title,
     nodeType: node.type,
@@ -319,7 +319,7 @@ const [edges, setEdges, onEdgesChange] = useEdgesState<WorkflowEdgeData>([]);
       type: "workflowNode", // must match nodeTypes key
       position: { x: 50, y: 50 },
       data: {
-        title: defaultTitles[type] ?? "New",
+        title: defaultTitles[type],
         nodeType: type,
         settings: defaultSettings[type] ? defaultSettings[type]() : {},
       },
@@ -329,7 +329,7 @@ const [edges, setEdges, onEdgesChange] = useEdgesState<WorkflowEdgeData>([]);
 
 const onConnect = useCallback((connection: Connection) => {
   setEdges((es) =>
-    addEdge<WfEdge>(
+    addEdge(
       {
         ...connection,
         id: crypto.randomUUID(),
