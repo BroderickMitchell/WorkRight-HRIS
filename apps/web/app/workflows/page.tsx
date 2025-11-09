@@ -910,6 +910,7 @@ function CourseNodeConfig({ title, settings, resources, updateTitle, updateSetti
   onChange={(assignment) => updateSettings((prev) => ({ ...prev, assignment }))}
   allowedModes={["assignee", "assignee_manager"]}
 />
+      </div>   {/
   );
 }
 
