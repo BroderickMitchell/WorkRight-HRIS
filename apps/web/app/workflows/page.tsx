@@ -497,7 +497,7 @@ const onConnect = useCallback((connection: Connection) => {
                         >
                           <div className="flex items-center justify-between">
                             <span className="font-medium">{wf.name}</span>
-                            <Badge variant="secondary" className="uppercase">
+                             <Badge className="uppercase">
                               {wf.status}
                             </Badge>
                           </div>
@@ -519,7 +519,7 @@ const onConnect = useCallback((connection: Connection) => {
               <CardDescription>Drag steps on the canvas, connect them to define branching logic.</CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="uppercase">
+               <Badge className="uppercase">
                 {workflowStatus}
               </Badge>
               <Button onClick={saveGraph} disabled={!selectedWorkflow || saving} variant="primary">
