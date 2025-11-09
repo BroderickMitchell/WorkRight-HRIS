@@ -1,18 +1,18 @@
 "use client";
-
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import type { ReactNode, InputHTMLAttributes, SelectHTMLAttributes } from "react";
 import ReactFlow, {
-  addEdge,
-  Connection,
-  Edge,
-  Node,
-  useEdgesState,
-  useNodesState,
-  MarkerType,
-  type XYPosition,
-  type DefaultEdge
-} from "reactflow";
+   Background,
+   Controls,
+   MiniMap,
+   addEdge,
+   Connection,
+   Edge,
+   MarkerType,
+   Node,
+   useEdgesState,
+   useNodesState,
+ } from "reactflow";
 import "reactflow/dist/style.css";
 import { Badge, Button, Card, CardDescription, CardHeader, CardTitle, cn } from "@workright/ui";
 import { apiFetch, apiPost, apiPut } from "../../lib/api";
@@ -84,7 +84,9 @@ type WorkflowNodeType =
   | "course"
   | "email"
   | "profile_task"
-  | "survey";
+  | "survey"
+  | "condition"
+  | "dummy_task";
 
 type WorkflowNodeData = {
   title: string;
@@ -153,12 +155,6 @@ interface WorkflowResources {
   positions: Array<{ id: string; title: string }>;
   employees: Array<{ id: string; givenName: string; familyName: string }>;
   legalEntities: Array<{ id: string; name: string }>;
-}
-
-interface WorkflowNodeData {
-  title: string;
-  nodeType: WorkflowNodeType;
-  settings: Record<string, unknown>;
 }
 
 /* =======================
@@ -232,8 +228,8 @@ export default function WorkflowWorkbenchesPage() {
   const [resources, setResources] = useState<WorkflowResources | null>(null);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   const [newWorkflowName, setNewWorkflowName] = useState("");
-  const [nodes, setNodes, onNodesChange] = useNodesState<WfNode>([]);
-const [edges, setEdges, onEdgesChange] = useEdgesState<WfEdge>([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<WorkflowNodeData>([]);
+const [edges, setEdges, onEdgesChange] = useEdgesState<WorkflowEdgeData>([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -280,15 +276,15 @@ const [edges, setEdges, onEdgesChange] = useEdgesState<WfEdge>([]);
       setSelectedNodeId(null);
       const graph = workflow.draftVersion?.graph ?? workflow.activeVersion?.graph ?? { nodes: [], edges: [] };
       const nextNodes: Node<WorkflowNodeData>[] = graph.nodes.map((node) => ({
-        id: node.id,
-        type: "workflowNode",
-        position: node.position ?? { x: 100, y: 100 },
-        data: {
-          title: node.data.title,
-          nodeType: node.type,
-          settings: node.data.settings ?? {},
-        },
-      }));
+  id: node.id,
+  type: "workflowNode",
+  position: node.position ?? { x: 100, y: 100 },
+  data: {
+    title: node.title,
+    nodeType: node.type,
+    settings: node.settings ?? {},
+  },
+}));
       const nextEdges: Edge[] = graph.edges.map((edge) => ({
         id: edge.id,
         source: edge.from,
@@ -315,24 +311,21 @@ const [edges, setEdges, onEdgesChange] = useEdgesState<WfEdge>([]);
   [resources]
 );
   
-  const addNode = useCallback(
-    (type: WorkflowNodeType) => {
-     setNodes((existing) => [
-  ...existing,
-  {
-    id: crypto.randomUUID(),
-    type: "default",
-    position: { x: 50, y: 50 },
-    data: { title: "New", nodeType: "task", settings: {} },
-  } satisfies WfNode,
-]);
-
-    },
-    [setNodes]
-  );
-
- import { useCallback } from "react";
-import { Connection, MarkerType } from "reactflow";
+  const addNode = useCallback((type: WorkflowNodeType) => {
+  setNodes((existing) => [
+    ...existing,
+    {
+      id: crypto.randomUUID(),
+      type: "workflowNode", // must match nodeTypes key
+      position: { x: 50, y: 50 },
+      data: {
+        title: defaultTitles[type] ?? "New",
+        nodeType: type,
+        settings: defaultSettings[type] ? defaultSettings[type]() : {},
+      },
+    } satisfies WfNode,
+  ]);
+}, [setNodes]);
 
 const onConnect = useCallback((connection: Connection) => {
   setEdges((es) =>
