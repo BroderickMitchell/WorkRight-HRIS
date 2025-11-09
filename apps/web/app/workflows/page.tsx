@@ -331,7 +331,10 @@ const [edges, setEdges, onEdgesChange] = useEdgesState<WfEdge>([]);
     [setNodes]
   );
 
- const onConnect = (connection: Connection) => {
+ import { useCallback } from "react";
+import { Connection, MarkerType } from "reactflow";
+
+const onConnect = useCallback((connection: Connection) => {
   setEdges((es) =>
     addEdge<WfEdge>(
       {
@@ -344,9 +347,7 @@ const [edges, setEdges, onEdgesChange] = useEdgesState<WfEdge>([]);
       es
     )
   );
-};
-    [setEdges]
-  );
+}, [setEdges]);
 
   const onNodeClick = useCallback((_: unknown, node: Node<WorkflowNodeData>) => {
     setSelectedNodeId(node.id);
