@@ -1039,3 +1039,139 @@ function ConditionNodeConfig({ settings, resources, edges, updateSettings, updat
 
   const updateCriterion = (index: number, patch: Partial<{ field: ConditionField; op: ConditionOperator; valueId: string }>) => {
     const next = criteria.map((item, idx) => (idx === index ?
+    const next = criteria.map((item, idx) => (idx === index ? { ...item, ...patch } : item));
+    updateSettings((prev) => ({ ...prev, criteria: next }));
+  };
+
+  const removeCriterion = (index: number) => {
+    updateSettings((prev) => ({
+      ...prev,
+      criteria: criteria.filter((_, idx) => idx !== index),
+    }));
+  };
+
+  const valueOptions = (field: ConditionField) => {
+    switch (field) {
+      case "department":
+        return resources?.departments ?? [];
+      case "location":
+        return resources?.locations ?? [];
+      case "position":
+        return resources?.positions ?? [];
+      case "manager":
+        return resources?.employees ?? [];
+      case "legal_entity":
+        return resources?.legalEntities ?? [];
+      default:
+        return [];
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <FieldLabel>Logic</FieldLabel>
+        <Button variant="ghost" size="sm" onClick={removeNode}>
+          Remove
+        </Button>
+      </div>
+
+      <SelectInput
+        value={logic}
+        onChange={(event) => updateSettings((prev) => ({ ...prev, logic: event.target.value }))}
+      >
+        <option value="ALL">Require all criteria</option>
+        <option value="ANY">Any criteria</option>
+      </SelectInput>
+
+      <div className="space-y-3">
+        {criteria.map((criterion, index) => (
+          <div key={index} className="rounded border border-slate-200 p-3">
+            <div className="grid grid-cols-3 gap-2">
+              <SelectInput
+                value={criterion.field}
+                onChange={(event) =>
+                  updateCriterion(index, {
+                    field: event.target.value as ConditionField,
+                    valueId: "",
+                  })
+                }
+              >
+                {CONDITION_FIELDS.map((field) => (
+                  <option key={field.value} value={field.value}>
+                    {field.label}
+                  </option>
+                ))}
+              </SelectInput>
+
+              <SelectInput
+                value={criterion.op}
+                onChange={(event) =>
+                  updateCriterion(index, { op: event.target.value as ConditionOperator })
+                }
+              >
+                {CONDITION_OPERATORS.map((operator) => (
+                  <option key={operator.value} value={operator.value}>
+                    {operator.label}
+                  </option>
+                ))}
+              </SelectInput>
+
+              <SelectInput
+                value={criterion.valueId ?? ""}
+                onChange={(event) => updateCriterion(index, { valueId: event.target.value })}
+              >
+                <option value="">Select value</option>
+                {valueOptions(criterion.field).map((option: any) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name ??
+                      (option.givenName && option.familyName
+                        ? `${option.givenName} ${option.familyName}`
+                        : option.title)}
+                  </option>
+                ))}
+              </SelectInput>
+            </div>
+
+            <Button variant="ghost" size="sm" onClick={() => removeCriterion(index)} className="mt-2">
+              Remove criterion
+            </Button>
+          </div>
+        ))}
+        {criteria.length === 0 && (
+          <p className="text-xs text-slate-500">No criteria yet.</p>
+        )}
+      </div>
+
+      <Button variant="secondary" onClick={addCriterion}>
+        Add criterion
+      </Button>
+
+      <div className="space-y-2">
+        <FieldLabel>Outgoing branches</FieldLabel>
+        {edges.map((edge) => (
+          <div key={edge.id} className="flex items-center gap-2">
+            <SelectInput
+              className="w-32"
+              value={(edge.data as any)?.label ?? ""}
+              onChange={(event) => {
+                const value = event.target.value as "true" | "false" | "";
+                updateEdgeLabel(edge.id, value ? (value as "true" | "false") : null);
+              }}
+            >
+              <option value="">Unlabeled</option>
+              <option value="true">True</option>
+              <option value="false">False</option>
+            </SelectInput>
+            <span className="text-xs text-slate-500">→ {edge.target}</span>
+          </div>
+        ))}
+        {edges.length === 0 && (
+          <p className="text-xs text-slate-500">
+            Connect this node to define true/false branches.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
