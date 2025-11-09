@@ -517,7 +517,7 @@ export default function WorkflowWorkbenchesPage() {
                         >
                           <div className="flex items-center justify-between">
                             <span className="font-medium">{wf.name}</span>
-                            <Badge variant="secondary" className="uppercase">
+                            <Badge className="uppercase">
                               {wf.status}
                             </Badge>
                           </div>
@@ -541,7 +541,7 @@ export default function WorkflowWorkbenchesPage() {
               <CardDescription>Drag steps on the canvas, connect them to define branching logic.</CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="uppercase">
+              <Badge className="uppercase">
                 {workflowStatus}
               </Badge>
               {/* Use supported variants from @workright/ui: primary | secondary | ghost */}
