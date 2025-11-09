@@ -520,15 +520,15 @@ export default function WorkflowWorkbenchesPage() {
           </CardHeader>
           <div className="relative h-[720px]">
             <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onNodeClick={onNodeClick}
-              fitView
-              nodeTypes={{ workflowNode: WorkflowCanvasNode(resources) }}
-            >
+  nodes={nodes}
+  edges={edges}
+  onNodesChange={onNodesChange}
+  onEdgesChange={onEdgesChange}
+  onConnect={onConnect}
+  onNodeClick={onNodeClick}
+  fitView
+  nodeTypes={nodeTypes} // ← use the memoised value
+>
               <MiniMap zoomable pannable />
               <Controls />
               <Background gap={16} size={1} />
@@ -904,8 +904,12 @@ function CourseNodeConfig({ title, settings, resources, updateTitle, updateSetti
           ))}
         </SelectInput>
       </div>
-      <AssignmentConfig assignment={(settings as any).assignment ?? "assignee"} resources={resources} onChange={(assignment) => updateSettings((prev) => ({ ...prev, assignment }))} allowedModes={["assignee", "assignee_manager"]} />
-    </div>
+     <AssignmentConfig
+  assignment={(settings as any).assignment ?? { mode: "assignee" }}
+  resources={resources}
+  onChange={(assignment) => updateSettings((prev) => ({ ...prev, assignment }))}
+  allowedModes={["assignee", "assignee_manager"]}
+/>
   );
 }
 
