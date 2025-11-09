@@ -284,9 +284,9 @@ const [edges, setEdges, onEdgesChange] = useEdgesState<WfEdge>([]);
         type: "workflowNode",
         position: node.position ?? { x: 100, y: 100 },
         data: {
-          title: node.title,
+          title: node.data.title,
           nodeType: node.type,
-          settings: node.settings ?? {},
+          settings: node.data.settings ?? {},
         },
       }));
       const nextEdges: Edge[] = graph.edges.map((edge) => ({
