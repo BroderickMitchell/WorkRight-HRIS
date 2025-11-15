@@ -10,9 +10,13 @@ export default async function RostersPage() {
   let upcomingShifts: Awaited<ReturnType<typeof fetchRosterShifts>> = [];
   if (assignments.length > 0) {
     const focus = assignments[0];
+    const focusTemplate = templates.find((template) => template.id === focus.templateId);
+    const patternWindow = focusTemplate?.pattern.length ?? 0;
+    const windowDays = Math.max(patternWindow, 14);
     const from = new Date();
     const to = new Date();
-    to.setDate(from.getDate() + 13);
+    // Fetch shifts for an entire roster cycle (or two weeks as a minimum) so long patterns render correctly.
+    to.setDate(from.getDate() + Math.max(windowDays - 1, 0));
     upcomingShifts = await fetchRosterShifts({
       employeeId: focus.employeeId,
       from: from.toISOString().slice(0, 10),
