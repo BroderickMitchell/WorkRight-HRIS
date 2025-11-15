@@ -1,5 +1,5 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
-import { RoleKey } from '@prisma/client';
+import { RoleKey } from '../../../types/roles';
 
 const ALLOWED: RoleKey[] = [RoleKey.SYSTEM_OWNER, RoleKey.MANAGER, RoleKey.SUPERVISOR];
 
