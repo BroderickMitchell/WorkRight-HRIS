@@ -75,9 +75,7 @@ export default async function RostersPage() {
         <CardHeader>
           <div>
             <CardTitle>Upcoming shifts</CardTitle>
-            <CardDescription>
-              Automatically generated from the roster template for the next fortnight.
-            </CardDescription>
+            <CardDescription>Automatically generated from the roster template for the next cycle.</CardDescription>
           </div>
         </CardHeader>
         <div className="p-6 pt-0">
