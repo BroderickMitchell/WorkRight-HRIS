@@ -1,5 +1,13 @@
 import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
-import { WorkflowNodeRunStatus } from '@prisma/client';
+import type { WorkflowNodeRunStatus } from '@prisma/client';
+
+const WORKFLOW_NODE_RUN_STATUS = {
+  PENDING: 'PENDING',
+  ACTIVE: 'ACTIVE',
+  COMPLETED: 'COMPLETED',
+  SKIPPED: 'SKIPPED',
+  FAILED: 'FAILED'
+} as const satisfies Record<string, WorkflowNodeRunStatus>;
 
 export class CompleteNodeRunDto {
   @IsOptional()
@@ -7,7 +15,7 @@ export class CompleteNodeRunDto {
   nodeRunId?: string;
 
   @IsOptional()
-  @IsEnum(WorkflowNodeRunStatus)
+  @IsEnum(WORKFLOW_NODE_RUN_STATUS)
   status?: WorkflowNodeRunStatus;
 
   @IsOptional()
