@@ -35,8 +35,8 @@ COPY packages/config/package.json packages/config/
 COPY packages/profile-schema/package.json packages/profile-schema/
 COPY packages/ui/package.json packages/ui/
 
-# First install (deterministic + cached)
-RUN pnpm install --frozen-lockfile --prod=false
+# First install (cache-friendly)
+RUN pnpm install --prod=false
 
 ############################
 # build: compile everything
@@ -48,7 +48,7 @@ WORKDIR /app
 COPY . .
 
 # Ensure all packages are installed after sources copied
-RUN pnpm -w install --frozen-lockfile --prod=false
+RUN pnpm -w install --prod=false
 
 # Rebuild any native deps & run postinstall hooks
 RUN pnpm -w rebuild -r \
