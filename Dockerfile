@@ -50,6 +50,9 @@ COPY . .
 # Ensure all packages are installed after sources copied
 RUN pnpm -w install --prod=false
 
+# Generate Prisma client for the API (ensures runtime binaries are baked into image)
+RUN pnpm --filter @workright/api exec prisma generate
+
 # Rebuild any native deps & run postinstall hooks
 RUN pnpm -w rebuild -r \
  && pnpm -w -r run postinstall
