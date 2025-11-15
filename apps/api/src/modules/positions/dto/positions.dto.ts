@@ -26,6 +26,11 @@ const toBoolean = ({ value }: { value: unknown }) => {
   return value;
 };
 
+const POSITION_MANAGEMENT_MODE = {
+  EMPLOYEE_LED: 'EMPLOYEE_LED',
+  POSITION_LED: 'POSITION_LED'
+} as const satisfies Record<string, PositionManagementMode>;
+
 export class CreatePositionDto {
   @IsString()
   title!: string;
@@ -189,7 +194,7 @@ export class ListPositionsQueryDto {
 
 export class UpdatePositionConfigDto {
   @IsOptional()
-  @IsEnum(PositionManagementMode)
+  @IsEnum(POSITION_MANAGEMENT_MODE)
   mode?: PositionManagementMode;
 
   @IsOptional()
