@@ -33,11 +33,19 @@ async function smokeTestDatabase() {
 }
 
 async function bootstrap() {
+  if (process.env.CLOUD_RUN === 'true') {
   try {
     await smokeTestDatabase();
-  } catch {
+  } catch (err) {
+    console.error('DATABASE NOT READY – continuing startup for Cloud Run', err);
+  }
+} else {
+  try {
+    await smokeTestDatabase();
+  } catch (err) {
     process.exit(1);
   }
+}
 
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
