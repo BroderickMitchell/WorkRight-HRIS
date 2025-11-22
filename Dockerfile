@@ -3,7 +3,7 @@
 ############################
 # base: deps (with PNPM)
 ############################
-FROM node:24-bookworm-slim AS base
+FROM node:22-bookworm-slim AS base
 WORKDIR /app
 
 # Enable pnpm via corepack
@@ -78,7 +78,7 @@ RUN pnpm --filter @workright/web run build
 ############################
 # runtime: API (Cloud Run default)
 ############################
-FROM node:24-bookworm-slim AS runtime-api
+FROM node:22-bookworm-slim AS runtime-api
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=8080
@@ -91,8 +91,9 @@ COPY --from=build /app/deploy/api/package.json ./package.json
 # Bring compiled Nest build artifacts
 COPY --from=build /app/apps/api/dist ./dist
 
-# Bring Prisma schema/migrations if used at runtime
-COPY --from=build /app/apps/api/prisma ./apps/api/prisma
+# Bring Prisma files with correct paths
+COPY --from=build /app/apps/api/prisma ./prisma
+ENV PRISMA_SCHEMA_PATH=/app/prisma/schema.prisma
 
 # Bring Prisma helper scripts for conditional migrations
 COPY --from=build /app/apps/api/scripts ./scripts
@@ -100,14 +101,24 @@ COPY --from=build /app/apps/api/scripts ./scripts
 # Sanity check (adjust path if outDir changes)
 RUN test -f /app/dist/main.js || (echo "dist/main.js missing!" && ls -la /app/dist && exit 1)
 
+# Create startup script that handles migrations
+RUN echo '#!/bin/sh\n\
+set -e\n\
+echo "Running database migrations..."\n\
+npx prisma migrate deploy || echo "Migration failed or not needed"\n\
+echo "Starting API server..."\n\
+exec node dist/main.js' > /app/start.sh && chmod +x /app/start.sh
+
 EXPOSE 8080
-CMD ["node", "dist/main.js"]
+
+# Use shell script for startup with migrations
+CMD ["/app/start.sh"]
 
 ############################
 # runtime: Web (Next.js standalone)
 # Build with: docker build --target runtime-web -t your-image .
 ############################
-FROM node:24-alpine AS runtime-web
+FROM node:22-alpine AS runtime-web
 WORKDIR /app
 
 ENV PNPM_HOME=/usr/local/share/pnpm
@@ -123,5 +134,6 @@ COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /app/apps/web/public ./apps/web/public
 
 EXPOSE 8080
+
 # Correct path for Next.js standalone server
 CMD ["node", "apps/web/server.js"]
