@@ -101,7 +101,7 @@ COPY --from=build /app/apps/api/scripts ./scripts
 RUN test -f /app/dist/main.js || (echo "dist/main.js missing!" && ls -la /app/dist && exit 1)
 
 EXPOSE 8080
-CMD ["npm", "start", "--silent"]
+CMD ["node", "dist/main.js"]
 
 ############################
 # runtime: Web (Next.js standalone)
