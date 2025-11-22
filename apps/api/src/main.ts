@@ -22,9 +22,10 @@ async function smokeTestDatabase() {
       'SELECT NOW() as now'
     );
     console.log('DB OK, NOW() =', result?.[0]?.now);
+    return true;
   } catch (err) {
     console.error('DB connection failed:', err);
-    throw err;
+    return false;
   } finally {
     await prisma.$disconnect().catch((disconnectError) => {
       console.error('Failed to disconnect Prisma after smoke test:', disconnectError);
@@ -33,24 +34,11 @@ async function smokeTestDatabase() {
 }
 
 async function bootstrap() {
-  if (process.env.CLOUD_RUN === 'true') {
-  try {
-    await smokeTestDatabase();
-  } catch (err) {
-    console.error('DATABASE NOT READY – continuing startup for Cloud Run', err);
-  }
-} else {
-  try {
-    await smokeTestDatabase();
-  } catch (err) {
-    process.exit(1);
-  }
-}
-
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
-
-  // Logging
   const logger = new Logger('Bootstrap');
+  const isCloudRun = process.env.CLOUD_RUN === 'true';
+
+  // Create app first so it can start listening quickly
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(logger);
 
   // Security headers
@@ -108,12 +96,35 @@ async function bootstrap() {
     app.useGlobalGuards(jwtGuard);
   }
 
-  // ✅ Let Nest handle SIGINT/SIGTERM and call OnModuleDestroy on providers (e.g. PrismaService)
+  // Enable graceful shutdown
   app.enableShutdownHooks();
 
+  // Start listening FIRST (critical for Cloud Run)
   const port = Number(process.env.PORT ?? 8080);
   await app.listen(port, '0.0.0.0');
-  logger.log(`API listening on http://localhost:${port}`);
+  logger.log(`API listening on http://0.0.0.0:${port}`);
+
+  // Test database AFTER app is listening (non-blocking for Cloud Run health checks)
+  if (isCloudRun) {
+    // Don't block startup - test database in background
+    smokeTestDatabase().then((success) => {
+      if (success) {
+        logger.log('Database connection verified');
+      } else {
+        logger.warn('Database connection failed - app running but DB calls may fail');
+      }
+    });
+  } else {
+    // Local development - fail fast if DB is down
+    const dbReady = await smokeTestDatabase();
+    if (!dbReady) {
+      logger.error('Database not ready - exiting');
+      process.exit(1);
+    }
+  }
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('Failed to start application:', err);
+  process.exit(1);
+});
