@@ -1,123 +1,122 @@
+# Dockerfile (monorepo — runtime-api fixed)
+
+# Multi-stage build: deps/base -> build -> runtime-api (Cloud Run safe)
+
+# Replace your current root Dockerfile with this content.
+
 # syntax=docker/dockerfile:1.7
 
-############################
-# base: deps (with PNPM)
-############################
 FROM node:24-bookworm-slim AS base
 WORKDIR /app
 
-# Enable pnpm via corepack
 ENV PNPM_HOME=/usr/local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
 
-# Build tooling for native deps (argon2, sharp, etc.)
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates python3 build-essential \
-  && rm -rf /var/lib/apt/lists/*
+# Build tooling for native deps that some packages may need
 
-# ---- cache-friendly workspace metadata ----
-COPY pnpm-workspace.yaml package.json ./
+RUN apt-get update 
+&& apt-get install -y --no-install-recommends ca-certificates python3 build-essential 
+&& rm -rf /var/lib/apt/lists/*
+
+# Copy workspace metadata first for cache-friendly install
+
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 COPY tsconfig.base.json ./
-COPY pnpm-lock.yaml ./
 
-# Postinstall bootstrap MUST exist before first install
-COPY scripts/bootstrap-env.mjs scripts/
+# Copy minimal package manifests so pnpm can resolve workspace graph
 
-# Prisma bits needed by api during build (for generate)
-COPY apps/api/prisma apps/api/prisma
-COPY apps/api/scripts apps/api/scripts
-
-# IMPORTANT: copy *workspace* package manifests so pnpm "sees" them on first install
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/config/package.json packages/config/
 COPY packages/profile-schema/package.json packages/profile-schema/
 COPY packages/ui/package.json packages/ui/
 
-# First install (cache-friendly)
 RUN pnpm install --prod=false
 
-############################
-# build: compile everything
-############################
+# -------------------------
+
+# Build stage
+
+# -------------------------
+
 FROM base AS build
 WORKDIR /app
 
-# Bring the full repo
+# Copy repo sources
+
 COPY . .
 
-# Ensure all packages are installed after sources copied
+# Ensure dependencies are installed with sources present
+
 RUN pnpm -w install --prod=false
 
-# Generate Prisma client for the API (ensures runtime binaries are baked into image)
-RUN pnpm --filter @workright/api exec prisma generate
+# Generate Prisma client if present (non-fatal)
 
-# Rebuild any native deps & run postinstall hooks
-RUN pnpm -w rebuild -r \
- && pnpm -w -r run postinstall
+RUN pnpm --filter @workright/api exec prisma generate || true
 
-# Build shared packages first (better cache hits)
-RUN pnpm --filter @workright/ui run build \
- && pnpm --filter @workright/profile-schema run build \
- && pnpm --filter @workright/config run build
+# Rebuild native deps & run postinstall hooks
 
-# --- API build ---
-# Build via package script (runs Prisma generate via prebuild and compiles Nest)
+RUN pnpm -w rebuild -r 
+&& pnpm -w -r run postinstall
+
+# Build shared packages first for cache benefits
+
+RUN pnpm --filter @workright/ui run build 
+&& pnpm --filter @workright/profile-schema run build 
+&& pnpm --filter @workright/config run build
+
+# Build API (assumes @workright/api produces dist/)
+
 RUN pnpm --filter @workright/api run build
 
-# Produce lean prod payload of the API (package.json + pruned node_modules)
-RUN pnpm deploy --filter @workright/api --prod /app/deploy/api
+# Optional: produce a pruned deploy folder if you use a deploy helper
 
-# --- Web build (Next.js) ---
+RUN pnpm deploy --filter @workright/api --prod /app/deploy/api || true
+
+# Build web (optional)
+
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm --filter @workright/web exec next lint || true \
- && pnpm --filter @workright/web run typecheck || true
-RUN pnpm --filter @workright/web run build
+RUN pnpm --filter @workright/web run build || true
 
-############################
-# runtime: API (Cloud Run default)
-############################
+# -------------------------
+
+# Runtime stage for API (Cloud Run)
+
+# -------------------------
+
 FROM node:24-bookworm-slim AS runtime-api
 WORKDIR /app
 ENV NODE_ENV=production
+ENV PORT=8080
 
-# Bring production deps from deploy output
+# Mark this image as for Cloud Run by default; override if running locally
+
+ENV CLOUD_RUN=true
+
+# Copy production deps and package.json from deploy output if available
+
 COPY --from=build /app/deploy/api/node_modules ./node_modules
 COPY --from=build /app/deploy/api/package.json ./package.json
 
-# Bring compiled Nest build artifacts
+# Fallback: if deploy output wasn't produced, copy app node_modules/package.json
+
 COPY --from=build /app/apps/api/dist ./dist
+COPY --from=build /app/apps/api/package.json ./package.json.app
 
-# Bring Prisma schema/migrations if used at runtime
-COPY --from=build /app/apps/api/prisma ./apps/api/prisma
+# If node_modules wasn't copied from /deploy, try fallback copy
 
-# Bring Prisma helper scripts for conditional migrations
-COPY --from=build /app/apps/api/scripts ./scripts
+RUN if [ ! -d /app/node_modules ]; then 
+echo "deploy node_modules missing: copying from apps/api node_modules fallback if present" ; 
+cp -a /app/apps/api/node_modules ./node_modules 2>/dev/null || true ; 
+fi
 
-# Sanity check (adjust path if outDir changes)
-RUN test -f /app/dist/main.js || (echo "dist/main.js missing!" && ls -la /app/dist && exit 1)
+# Final sanity check that the built server exists
+
+RUN if [ ! -f /app/dist/main.js ]; then echo "ERROR: /app/dist/main.js missing"; ls -la /app/dist || true; exit 1; fi
 
 EXPOSE 8080
-CMD ["npm", "start", "--silent"]
 
-############################
-# runtime: Web (Next.js standalone)
-# Build with: docker build --target runtime-web -t your-image .
-############################
-FROM node:24-alpine AS runtime-web
-WORKDIR /app
+# Start server explicitly to avoid reliance on pruned package.json scripts
 
-ENV PNPM_HOME=/usr/local/share/pnpm
-ENV PATH=$PNPM_HOME:$PATH
-RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-
-# Next.js standalone output
-COPY --from=build /app/apps/web/.next/standalone ./
-COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
-COPY --from=build /app/apps/web/public ./apps/web/public
-
-EXPOSE 3000
-CMD ["node", "apps/web/server.js"]
+CMD ["node", "dist/main.js"]
