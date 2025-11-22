@@ -84,6 +84,9 @@ ENV NODE_ENV=production
 ENV PORT=8080
 ENV CLOUD_RUN=true
 
+# Install OpenSSL for Prisma
+RUN apt-get update && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+
 # Bring production deps from deploy output
 COPY --from=build /app/deploy/api/node_modules ./node_modules
 COPY --from=build /app/deploy/api/package.json ./package.json
@@ -101,18 +104,10 @@ COPY --from=build /app/apps/api/scripts ./scripts
 # Sanity check (adjust path if outDir changes)
 RUN test -f /app/dist/main.js || (echo "dist/main.js missing!" && ls -la /app/dist && exit 1)
 
-# Create startup script that handles migrations
-RUN echo '#!/bin/sh\n\
-set -e\n\
-echo "Running database migrations..."\n\
-npx prisma migrate deploy || echo "Migration failed or not needed"\n\
-echo "Starting API server..."\n\
-exec node dist/main.js' > /app/start.sh && chmod +x /app/start.sh
-
 EXPOSE 8080
 
-# Use shell script for startup with migrations
-CMD ["/app/start.sh"]
+# Direct execution for debugging (add migrations later once this works)
+CMD ["node", "dist/main.js"]
 
 ############################
 # runtime: Web (Next.js standalone)
