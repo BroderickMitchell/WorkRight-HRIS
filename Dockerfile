@@ -115,6 +115,7 @@ ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable && corepack prepare pnpm@8.15.5 --activate
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=8080
 
 # Next.js standalone output
 COPY --from=build /app/apps/web/.next/standalone ./
@@ -122,4 +123,5 @@ COPY --from=build /app/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /app/apps/web/public ./apps/web/public
 
 EXPOSE 8080
-CMD ["node", "dist/main.js"]
+# Correct path for Next.js standalone server
+CMD ["node", "apps/web/server.js"]
