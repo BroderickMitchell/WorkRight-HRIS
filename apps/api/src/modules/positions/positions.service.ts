@@ -18,6 +18,22 @@ import {
 
 const toJson = (value: unknown): Prisma.InputJsonValue => value as Prisma.InputJsonValue;
 
+// Type for PositionManagementConfig
+type PositionManagementConfigType = {
+  tenantId: string;
+  mode: PositionManagementMode;
+  showPositionIds: boolean;
+  autoGeneratePositionIds: boolean;
+  positionIdFormat: string;
+  idPrefix: string;
+  startingNumber: number;
+  nextSequenceNumber: number;
+  enableBudgeting: boolean;
+  enableConcurrentPositions: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 @Injectable()
 export class PositionsService {
   constructor(private readonly prisma: PrismaService, private readonly cls: ClsService) {}
@@ -77,7 +93,30 @@ export class PositionsService {
       include: {
         department: { select: { id: true, name: true } },
         location: { select: { id: true, name: true } },
-        jobRole: { select: { id: true, title: true } }
+        jobRole: { select: { id: true, title: true } },
+        assignments: {
+          select: {
+            id: true,
+            fte: true,
+            baseSalary: true,
+            startDate: true,
+            endDate: true,
+            isPrimary: true,
+            employee: {
+              select: {
+                id: true,
+                email: true,
+                givenName: true,
+                familyName: true,
+                preferredName: true,
+                departmentId: true,
+                managerId: true,
+                positionId: true,
+                locationId: true
+              }
+            }
+          }
+        }
       }
     });
   }
@@ -90,13 +129,50 @@ export class PositionsService {
         department: true,
         location: true,
         jobRole: true,
-        children: { select: { id: true, title: true } }
+        parent: { select: { id: true, title: true, positionId: true } },
+        children: { select: { id: true, title: true, positionId: true } },
+        assignments: {
+          select: {
+            id: true,
+            fte: true,
+            baseSalary: true,
+            startDate: true,
+            endDate: true,
+            isPrimary: true,
+            employee: {
+              select: {
+                id: true,
+                email: true,
+                givenName: true,
+                familyName: true,
+                preferredName: true,
+                departmentId: true,
+                managerId: true,
+                positionId: true,
+                locationId: true
+              }
+            }
+          }
+        }
       }
     });
     if (!position) {
       throw new NotFoundException('Position not found');
     }
-    return position;
+
+    // Map assignments properly
+    return {
+      ...position,
+      assignments: position.assignments.map((assignment) => ({
+        id: assignment.id,
+        fte: assignment.fte,
+        baseSalary: assignment.baseSalary,
+        startDate: assignment.startDate,
+        endDate: assignment.endDate,
+        isPrimary: assignment.isPrimary,
+        employee: assignment.employee
+      }))
+    };
   }
 
   async children(id: string) {
@@ -108,7 +184,7 @@ export class PositionsService {
     });
   }
 
-  private async ensureConfig(tenantId: string) {
+  private async ensureConfig(tenantId: string): Promise<PositionManagementConfigType> {
     return this.prisma.positionManagementConfig.upsert({
       where: { tenantId },
       update: {},
@@ -116,7 +192,7 @@ export class PositionsService {
     });
   }
 
-  private async generatePositionId(tenantId: string, hintPrefix?: string | null) {
+  private async generatePositionId(tenantId: string, hintPrefix?: string | null): Promise<string> {
     const config = await this.ensureConfig(tenantId);
     const prefix = hintPrefix && hintPrefix.trim().length ? hintPrefix.trim().toUpperCase() : config.idPrefix;
     const sequence = config.nextSequenceNumber;
