@@ -22,8 +22,9 @@ COPY pnpm-workspace.yaml package.json ./
 COPY tsconfig.base.json ./
 COPY pnpm-lock.yaml ./
 
+
 # Postinstall bootstrap MUST exist before first install
-COPY scripts/bootstrap-env.mjs scripts/
+COPY scripts/ scripts/
 
 # Prisma bits needed by api during build (for generate)
 COPY apps/api/prisma apps/api/prisma
