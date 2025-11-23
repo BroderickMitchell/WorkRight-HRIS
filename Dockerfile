@@ -1,3 +1,4 @@
+cat > Dockerfile << 'EOF'
 # syntax=docker/dockerfile:1.7
 
 ############################
@@ -132,3 +133,4 @@ EXPOSE 8080
 
 # Correct path for Next.js standalone server
 CMD ["node", "apps/web/server.js"]
+EOF
