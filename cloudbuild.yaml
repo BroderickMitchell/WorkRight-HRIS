@@ -1,3 +1,4 @@
+cat > cloudbuild.yaml <<EOF
 options:
   env:
   - DOCKER_BUILDKIT=1
