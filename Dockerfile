@@ -24,7 +24,7 @@ COPY pnpm-lock.yaml ./
 
 
 # Postinstall bootstrap MUST exist before first install
-COPY scripts/ scripts/
+COPY scripts/ ./scripts/
 
 # Prisma bits needed by api during build (for generate)
 COPY apps/api/prisma apps/api/prisma
