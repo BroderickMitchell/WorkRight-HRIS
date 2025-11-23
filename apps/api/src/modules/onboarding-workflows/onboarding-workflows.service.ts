@@ -11,7 +11,8 @@ import {
   WorkflowStatus,
   WorkflowVersionStatus,
   WorkflowRunStatus,
-  WorkflowNodeRunStatus
+  WorkflowNodeRunStatus,
+  WorkflowNodeType
 } from '@prisma/client';
 import { ClsService } from 'nestjs-cls';
 import { CreateWorkflowDto, UpdateWorkflowDto } from './dto/create-workflow.dto';
@@ -23,6 +24,15 @@ import { CompleteNodeRunDto } from './dto/complete-node-run.dto';
 export type ListQuery = { q?: string } | undefined;
 
 const toJson = (value: unknown): Prisma.InputJsonValue => value as Prisma.InputJsonValue;
+
+// Fixed: Use uppercase enum values
+const TERMINAL_NODE_TYPES: WorkflowNodeType[] = [WorkflowNodeType.EMAIL, WorkflowNodeType.SURVEY];
+
+// Type for condition settings
+interface ConditionSettings {
+  logic: 'ALL' | 'ANY';
+  criteria: Array<{ field: string; operator: string; value: unknown }>;
+}
 
 @Injectable()
 export class OnboardingWorkflowsService {
@@ -88,7 +98,7 @@ export class OnboardingWorkflowsService {
   async create(dto: CreateWorkflowDto) {
     const tenantId = this.requireTenantId();
     const actorId = this.requireActorId();
-    const emptyGraph: Prisma.JsonObject = { nodes: [], edges: [] };
+    const emptyGraph = { nodes: [], edges: [] };
 
     return this.prisma.$transaction(async (tx) => {
       const workflow = await tx.workflow.create({
@@ -106,7 +116,7 @@ export class OnboardingWorkflowsService {
           workflowId: workflow.id,
           versionNumber: 1,
           status: WorkflowVersionStatus.DRAFT,
-          graph: emptyGraph,
+          graph: toJson(emptyGraph),
           createdById: actorId
         }
       });
@@ -180,16 +190,16 @@ export class OnboardingWorkflowsService {
       throw new NotFoundException('Workflow not found');
     }
 
-    const graph: Prisma.JsonObject = {
-      nodes: dto.nodes.map((node) => ({ ...node })) as unknown as Prisma.JsonValue,
-      edges: dto.edges.map((edge) => ({ ...edge })) as unknown as Prisma.JsonValue,
-      metadata: (dto.metadata ?? {}) as Prisma.JsonValue
+    const graph = {
+      nodes: dto.nodes.map((node) => ({ ...node })),
+      edges: dto.edges.map((edge) => ({ ...edge })),
+      metadata: dto.metadata ?? {}
     };
 
     if (workflow.draftVersion) {
       return this.prisma.workflowVersion.update({
         where: { id: workflow.draftVersion.id },
-        data: { graph }
+        data: { graph: toJson(graph) }
       });
     }
 
@@ -199,7 +209,7 @@ export class OnboardingWorkflowsService {
         workflowId: workflow.id,
         versionNumber: nextVersionNumber,
         status: WorkflowVersionStatus.DRAFT,
-        graph,
+        graph: toJson(graph),
         createdById: actorId
       }
     });
@@ -375,5 +385,15 @@ export class OnboardingWorkflowsService {
       where: { tenantId, id: formTemplateId }
     });
     return { updated: count };
+  }
+
+  // Helper method for evaluating conditions (stub - implement based on your needs)
+  private async evaluateCondition(
+    tx: Prisma.TransactionClient,
+    context: any,
+    settings: ConditionSettings
+  ): Promise<boolean> {
+    // Implementation depends on your business logic
+    return true;
   }
 }
