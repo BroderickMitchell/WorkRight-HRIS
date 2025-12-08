@@ -30,11 +30,11 @@ steps:
   - --allow-unauthenticated
   - --port=8080
   - --add-cloudsql-instances=workright-dev:australia-southeast1:hris-dev-db-d506
-  - --set-env-vars=NODE_ENV=production,CLOUD_RUN=true
+  - --set-env-vars=NODE_ENV=production,CLOUD_RUN=true,DEMO_MODE=true
   - --set-secrets=DATABASE_URL=database-url:latest
   - --timeout=300
-  - --cpu=1
-  - --memory=512Mi
+  - --cpu=2
+  - --memory=1Gi
   - --cpu-boost
   - --no-cpu-throttling
   - --max-instances=10
