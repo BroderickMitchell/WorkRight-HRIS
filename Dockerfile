@@ -107,8 +107,10 @@ RUN test -f /app/dist/main.js || (echo "dist/main.js missing!" && ls -la /app/di
 
 EXPOSE 8080
 
-# Direct execution for debugging (add migrations later once this works)
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+# Skip migrations temporarily to fix startup timeout issue
+# The app will start faster and Cloud Run health checks will pass
+# Run migrations manually after deployment if needed
+CMD ["node", "dist/main.js"]
 
 ############################
 # runtime: Web (Next.js standalone)

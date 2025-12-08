@@ -6,7 +6,10 @@
       "Bash(git commit:*)",
       "Bash(npm run build:*)",
       "Bash(pnpm install:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git push:*)",
+      "Bash(gcloud config get-value:*)"
     ],
     "deny": [],
     "ask": []
