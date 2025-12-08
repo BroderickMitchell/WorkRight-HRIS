@@ -132,4 +132,5 @@ COPY --from=build /app/apps/web/public ./apps/web/public
 EXPOSE 8080
 
 # Correct path for Next.js standalone server
-CMD ["node", "apps/web/server.js"]
+CMD ["node", "server.js"]
+
