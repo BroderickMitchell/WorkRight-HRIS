@@ -1,13 +1,16 @@
 import { Injectable } from '@nestjs/common';
+import { ClsService } from 'nestjs-cls';
 import { PrismaService } from '../../common/prisma.service.js';
 
 @Injectable()
 export class ReportingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly cls: ClsService) {}
 
   async headcountDashboard() {
-    const total = await this.prisma.employee.count({ where: { terminatedAt: null } });
+    const tenantId = this.cls.get('tenantId');
+    const total = await this.prisma.employee.count({ where: { tenantId, terminatedAt: null } });
     const byDepartment = await this.prisma.department.findMany({
+      where: { tenantId },
       include: {
         _count: { select: { employees: true } }
       }
@@ -16,25 +19,29 @@ export class ReportingService {
   }
 
   async leaveDashboard() {
+    const tenantId = this.cls.get('tenantId');
     const outstanding = await this.prisma.leaveRequest.count({
-      where: { status: 'PENDING' }
+      where: { tenantId, status: 'PENDING' }
     });
     const balances = await this.prisma.leaveBalance.findMany({
+      where: { tenantId },
       include: { leaveType: true }
     });
     return { outstanding, balances };
   }
 
   async adHoc(entity: string) {
+    const tenantId = this.cls.get('tenantId');
     switch (entity) {
       case 'employees':
         return this.prisma.employee.findMany({
+          where: { tenantId },
           include: { position: true, department: true }
         });
       case 'goals':
-        return this.prisma.goal.findMany({ include: { owner: true } });
+        return this.prisma.goal.findMany({ where: { tenantId }, include: { owner: true } });
       case 'leave':
-        return this.prisma.leaveRequest.findMany({ include: { employee: true } });
+        return this.prisma.leaveRequest.findMany({ where: { tenantId }, include: { employee: true } });
       default:
         return [];
     }
@@ -54,7 +61,9 @@ export class ReportingService {
   }
 
   async positionsMasterCsv(): Promise<string> {
+    const tenantId = this.cls.get('tenantId');
     const items = await this.prisma.position.findMany({
+      where: { tenantId },
       include: {
         department: true,
         location: true,
@@ -108,7 +117,9 @@ export class ReportingService {
   }
 
   async positionsCycleTimesCsv(): Promise<string> {
+    const tenantId = this.cls.get('tenantId');
     const positions = await this.prisma.position.findMany({
+      where: { tenantId },
       include: {
         assignments: { include: { employee: true }, orderBy: { startDate: 'asc' } }
       },
@@ -132,8 +143,10 @@ export class ReportingService {
   }
 
   async positionsSummaryCsv(): Promise<string> {
-    const departments = await this.prisma.department.findMany({ orderBy: { name: 'asc' } });
+    const tenantId = this.cls.get('tenantId');
+    const departments = await this.prisma.department.findMany({ where: { tenantId }, orderBy: { name: 'asc' } });
     const positions = await this.prisma.position.findMany({
+      where: { tenantId },
       include: {
         assignments: {
           where: {

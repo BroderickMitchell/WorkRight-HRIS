@@ -26,16 +26,20 @@ export class DirectoryService {
   }
 
   listEmployees(search?: string) {
+    const tenantId = this.cls.get('tenantId');
     return this.prisma.employee.findMany({
-      where: search
-        ? {
-            OR: [
-              { givenName: { contains: search, mode: 'insensitive' } },
-              { familyName: { contains: search, mode: 'insensitive' } },
-              { email: { contains: search, mode: 'insensitive' } }
-            ]
-          }
-        : undefined,
+      where: {
+        tenantId,
+        ...(search
+          ? {
+              OR: [
+                { givenName: { contains: search, mode: 'insensitive' } },
+                { familyName: { contains: search, mode: 'insensitive' } },
+                { email: { contains: search, mode: 'insensitive' } }
+              ]
+            }
+          : {})
+      },
       include: {
         position: { include: { department: true } },
         department: true,
@@ -47,8 +51,9 @@ export class DirectoryService {
   }
 
   getEmployeeProfile(id: string) {
-    return this.prisma.employee.findUnique({
-      where: { id },
+    const tenantId = this.cls.get('tenantId');
+    return this.prisma.employee.findFirst({
+      where: { id, tenantId },
       include: {
         position: { include: { department: true } },
         department: true,

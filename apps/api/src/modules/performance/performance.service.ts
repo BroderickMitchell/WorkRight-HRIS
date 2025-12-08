@@ -8,8 +8,10 @@ export class PerformanceService {
   constructor(private readonly prisma: PrismaService, private readonly cls: ClsService) {}
 
   createGoal(dto: CreateGoalDto) {
+    const tenantId = this.cls.get('tenantId');
     return this.prisma.goal.create({
       data: ({
+        tenantId,
         title: dto.title,
         description: dto.description,
         dueDate: new Date(dto.dueDate),
@@ -21,8 +23,9 @@ export class PerformanceService {
   }
 
   listGoals(ownerId?: string) {
+    const tenantId = this.cls.get('tenantId');
     return this.prisma.goal.findMany({
-      where: ownerId ? { ownerId } : undefined,
+      where: ownerId ? { tenantId, ownerId } : { tenantId },
       include: {
         owner: { select: { id: true, givenName: true, familyName: true } }
       },
@@ -32,18 +35,19 @@ export class PerformanceService {
   }
 
   async createReviewCycle(dto: CreateReviewCycleDto) {
+    const tenantId = this.cls.get('tenantId');
+    if (!tenantId) {
+      throw new Error('Tenant context missing when creating review cycle');
+    }
     const reviewCycle = await this.prisma.reviewCycle.create({
       data: ({
+        tenantId,
         name: dto.name,
         startDate: new Date(dto.startDate),
         endDate: new Date(dto.endDate)
       } as any)
     });
 
-    const tenantId = this.cls.get('tenantId');
-    if (!tenantId) {
-      throw new Error('Tenant context missing when creating review cycle participants');
-    }
     await this.prisma.reviewParticipant.createMany({
       data: dto.participantIds.map((participantId, index) => ({
         tenantId,
@@ -53,15 +57,16 @@ export class PerformanceService {
       }))
     });
 
-    return this.prisma.reviewCycle.findUnique({
-      where: { id: reviewCycle.id },
+    return this.prisma.reviewCycle.findFirst({
+      where: { id: reviewCycle.id, tenantId },
       include: { participants: true }
     });
   }
 
   getReviewCycleSummary(id: string) {
-    return this.prisma.reviewCycle.findUnique({
-      where: { id },
+    const tenantId = this.cls.get('tenantId');
+    return this.prisma.reviewCycle.findFirst({
+      where: { id, tenantId },
       include: {
         participants: {
           orderBy: { order: 'asc' },

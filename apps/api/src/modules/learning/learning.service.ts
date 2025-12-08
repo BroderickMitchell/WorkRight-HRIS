@@ -32,7 +32,9 @@ export class LearningService {
   }
 
   listCourses() {
+    const tenantId = this.cls.get('tenantId');
     return this.prisma.course.findMany({
+      where: { tenantId },
       include: {
         modules: true,
         enrolments: true
