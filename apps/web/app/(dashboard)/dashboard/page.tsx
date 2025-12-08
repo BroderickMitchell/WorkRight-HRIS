@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import CommunicationFeed from './components/communication/CommunicationFeed';
 import {
@@ -38,6 +40,26 @@ const expiringDocuments = [
 ];
 
 export default function DashboardPage() {
+  const handleDownloadAnniversariesCSV = () => {
+    // Generate CSV content
+    const headers = ['Name', 'Role', 'Anniversary Date'];
+    const rows = anniversaries.map(a => [a.name, a.role, a.date]);
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `anniversaries-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
   return (
     <div className="space-y-8">
       <PageHeader
@@ -138,7 +160,7 @@ export default function DashboardPage() {
               <CardTitle>Upcoming anniversaries</CardTitle>
               <CardDescription>Celebrate tenure milestones over the next 60 days.</CardDescription>
             </div>
-            <Button variant="ghost" size="sm">Download CSV</Button>
+            <Button variant="ghost" size="sm" onClick={handleDownloadAnniversariesCSV}>Download CSV</Button>
           </CardHeader>
           <div className="space-y-4 p-6 pt-0">
             {anniversaries.length === 0 ? (
@@ -165,7 +187,9 @@ export default function DashboardPage() {
               <CardTitle>Expiring compliance</CardTitle>
               <CardDescription>Licences and inductions approaching expiry.</CardDescription>
             </div>
-            <Button variant="ghost" size="sm">View compliance hub</Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/settings/documents">View compliance hub</Link>
+            </Button>
           </CardHeader>
           <div className="space-y-4 p-6 pt-0">
             {expiringDocuments.map((doc) => (
