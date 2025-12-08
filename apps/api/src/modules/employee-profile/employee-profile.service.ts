@@ -121,7 +121,7 @@ export class EmployeeProfileService {
     if (!tenantId) throw new BadRequestException('Tenant context missing');
 
     const employee = (await this.prisma.employee.findFirst({
-      where: { id },
+      where: { id, tenantId },
       include: {
         position: {
           include: { department: true, orgUnit: true },
@@ -797,7 +797,8 @@ export class EmployeeProfileService {
   private async updatePersonal(id: string, payload: EmployeePersonal) {
     if (!this.canEditPersonal())
       throw new ForbiddenException('Insufficient permissions');
-    const existing = await this.prisma.employee.findUnique({ where: { id } });
+    const tenantId = this.cls.get('tenantId');
+    const existing = await this.prisma.employee.findFirst({ where: { id, tenantId } });
     if (!existing) throw new NotFoundException('Employee not found');
 
     const data: Prisma.EmployeeUpdateInput = {
@@ -1101,7 +1102,8 @@ export class EmployeeProfileService {
   }
 
   private async ensureEmployeeExists(id: string) {
-    const employee = await this.prisma.employee.findUnique({ where: { id } });
+    const tenantId = this.cls.get('tenantId');
+    const employee = await this.prisma.employee.findFirst({ where: { id, tenantId } });
     if (!employee) throw new NotFoundException('Employee not found');
     return employee;
   }
