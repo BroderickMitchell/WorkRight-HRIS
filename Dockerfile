@@ -108,7 +108,7 @@ RUN test -f /app/dist/main.js || (echo "dist/main.js missing!" && ls -la /app/di
 EXPOSE 8080
 
 # Direct execution for debugging (add migrations later once this works)
-CMD ["node", "dist/main.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
 
 ############################
 # runtime: Web (Next.js standalone)
