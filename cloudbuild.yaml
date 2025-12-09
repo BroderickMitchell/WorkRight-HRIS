@@ -39,6 +39,7 @@ steps:
   - --no-cpu-throttling
   - --max-instances=10
   - --min-instances=0
+  - --startup-cpu-boost
 
 # Web Deployment - FIXED: Use --set-secrets for API_URL
 - name: gcr.io/google.com/cloudsdktool/cloud-sdk
