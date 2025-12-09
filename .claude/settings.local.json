@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git diff:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(npm run build:*)",
+      "Bash(pnpm install:*)",
+      "Bash(find:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git push:*)",
+      "Bash(gcloud config get-value:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

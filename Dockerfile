@@ -111,8 +111,10 @@ RUN test -f /app/dist/main.js || (echo "dist/main.js missing!" && ls -la /app/di
 
 EXPOSE 8080
 
-# Use startup script that handles migrations in background
-CMD ["./start.sh"]
+# Skip migrations temporarily to fix startup timeout issue
+# The app will start faster and Cloud Run health checks will pass
+# Run migrations manually after deployment if needed
+CMD ["node", "dist/main.js"]
 
 ############################
 # runtime: Web (Next.js standalone)
