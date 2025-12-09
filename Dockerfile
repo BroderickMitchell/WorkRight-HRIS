@@ -72,6 +72,12 @@ RUN pnpm deploy --filter @workright/api --prod /app/deploy/api
 
 # --- Web build (Next.js) ---
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Accept API URL as build argument and set as environment variable
+# This is required because Next.js bakes NEXT_PUBLIC_* vars at build time
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 RUN pnpm --filter @workright/web exec next lint || true \
  && pnpm --filter @workright/web run typecheck || true
 RUN pnpm --filter @workright/web run build
@@ -139,4 +145,3 @@ EXPOSE 8080
 
 # Correct path for Next.js standalone server
 CMD ["node", "apps/web/server.js"]
-
