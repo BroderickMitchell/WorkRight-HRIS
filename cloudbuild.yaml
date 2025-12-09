@@ -9,7 +9,15 @@ steps:
   args: [build, -t, gcr.io/$PROJECT_ID/workright-hris-api, --target, runtime-api, .]
 
 - name: gcr.io/cloud-builders/docker
-  args: [build, -t, gcr.io/$PROJECT_ID/workright-hris-web, --target, runtime-web, .]
+  args: 
+  - build
+  - -t
+  - gcr.io/$PROJECT_ID/workright-hris-web
+  - --target
+  - runtime-web
+  - --build-arg
+  - NEXT_PUBLIC_API_URL=https://workright-api-932379746185.australia-southeast1.run.app
+  - .
 
 - name: gcr.io/cloud-builders/docker
   args: [push, gcr.io/$PROJECT_ID/workright-hris-api]
