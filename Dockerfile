@@ -102,6 +102,10 @@ ENV PRISMA_SCHEMA_PATH=/app/prisma/schema.prisma
 # Bring Prisma helper scripts for conditional migrations
 COPY --from=build /app/apps/api/scripts ./scripts
 
+# Bring startup script
+COPY --from=build /app/apps/api/start.sh ./start.sh
+RUN chmod +x ./start.sh
+
 # Sanity check (adjust path if outDir changes)
 RUN test -f /app/dist/main.js || (echo "dist/main.js missing!" && ls -la /app/dist && exit 1)
 
