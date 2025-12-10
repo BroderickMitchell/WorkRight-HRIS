@@ -2,12 +2,14 @@ export interface ApiOptions {
   tenant?: string;
   token?: string;
   roles?: string;
+  userId?: string;
   cache?: RequestCache;
 }
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 const DEMO_ROLES_STORAGE_KEY = 'demoRoles';
 export const DEFAULT_TENANT_ID = process.env.NEXT_PUBLIC_TENANT_ID ?? 'tenant-acme';
+const DEFAULT_USER_ID = process.env.NEXT_PUBLIC_USER_ID ?? 'user-demo-admin';
 const DEFAULT_DEMO_ROLES = process.env.NEXT_PUBLIC_DEMO_ROLES ?? 'HR_ADMIN,MANAGER';
 const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
 
@@ -18,6 +20,16 @@ export function getTenantId(): string {
     return raw ? JSON.parse(raw) : DEFAULT_TENANT_ID;
   } catch {
     return DEFAULT_TENANT_ID;
+  }
+}
+
+export function getUserId(): string {
+  if (typeof window === 'undefined') return DEFAULT_USER_ID;
+  try {
+    const raw = window.localStorage.getItem('userId');
+    return raw ? JSON.parse(raw) : DEFAULT_USER_ID;
+  } catch {
+    return DEFAULT_USER_ID;
   }
 }
 
@@ -40,6 +52,7 @@ const buildHeaders = (options: ApiOptions = {}): HeadersInit => {
 
   if (isDemoMode) {
     headers['X-Tenant-Id'] = options.tenant ?? getTenantId();
+    headers['X-User-Id'] = options.userId ?? getUserId();
     headers['X-Roles'] = options.roles ?? getDemoRoles();
   }
 
@@ -134,4 +147,8 @@ export function setDemoRoles(rolesCsv: string) {
 
 export function setTenantId(tenantId: string) {
   if (typeof window !== 'undefined') localStorage.setItem('tenantId', JSON.stringify(tenantId));
+}
+
+export function setUserId(userId: string) {
+  if (typeof window !== 'undefined') localStorage.setItem('userId', JSON.stringify(userId));
 }

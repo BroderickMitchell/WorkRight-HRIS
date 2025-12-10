@@ -16,7 +16,13 @@ steps:
   - --target
   - runtime-web
   - --build-arg
-  - NEXT_PUBLIC_API_URL=https://workright-api-932379746185.australia-southeast1.run.app
+  - NEXT_PUBLIC_API_URL=https://workright-api-932379746185.australia-southeast1.run.app/v1
+  - --build-arg
+  - NEXT_PUBLIC_DEMO_MODE=true
+  - --build-arg
+  - NEXT_PUBLIC_TENANT_ID=demo-tenant-001
+  - --build-arg
+  - NEXT_PUBLIC_USER_ID=user-demo-admin
   - .
 
 - name: gcr.io/cloud-builders/docker
