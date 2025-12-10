@@ -73,10 +73,16 @@ RUN pnpm deploy --filter @workright/api --prod /app/deploy/api
 # --- Web build (Next.js) ---
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Accept API URL as build argument and set as environment variable
+# Accept build arguments and set as environment variables
 # This is required because Next.js bakes NEXT_PUBLIC_* vars at build time
 ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_DEMO_MODE
+ARG NEXT_PUBLIC_TENANT_ID
+ARG NEXT_PUBLIC_USER_ID
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_DEMO_MODE=$NEXT_PUBLIC_DEMO_MODE
+ENV NEXT_PUBLIC_TENANT_ID=$NEXT_PUBLIC_TENANT_ID
+ENV NEXT_PUBLIC_USER_ID=$NEXT_PUBLIC_USER_ID
 
 RUN pnpm --filter @workright/web exec next lint || true \
  && pnpm --filter @workright/web run typecheck || true
