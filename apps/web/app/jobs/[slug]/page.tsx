@@ -13,13 +13,13 @@ export default function JobDetailPage() {
   const [busy, setBusy] = useState(false);
   const slug = params?.slug as string;
   useEffect(() => {
-    apiFetch<JobDetail>(`/v1/jobs/${slug}`).then(setJob).catch(() => setJob(null));
+    apiFetch<JobDetail>(`/jobs/${slug}`).then(setJob).catch(() => setJob(null));
   }, [slug]);
 
   async function apply() {
     setBusy(true);
     try {
-      await apiPost(`/v1/jobs/${slug}/apply`, form);
+      await apiPost(`/jobs/${slug}/apply`, form);
       alert('Application submitted successfully.');
       router.push('/jobs');
     } catch (e) {

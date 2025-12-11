@@ -5,7 +5,7 @@ import { apiFetch } from '@/lib/api';
 import { LeaveTable, LeaveListItem } from '@/components/leave/leave-table';
 
 async function LeaveRequests() {
-  const requests = await apiFetch<LeaveListItem[]>('/v1/leave/requests').catch(() => []);
+  const requests = await apiFetch<LeaveListItem[]>('/leave/requests').catch(() => []);
 
   if (requests.length === 0) {
     return <EmptyState title="No leave requests" description="All teams are up to date." />;
