@@ -124,7 +124,7 @@ export class EmployeeProfileService {
       where: { id, tenantId },
       include: {
         position: {
-          include: { department: true, orgUnit: true },
+          include: { department: true },
         },
         department: true,
         location: true,
@@ -235,7 +235,6 @@ export class EmployeeProfileService {
           employee.department?.name ??
           employee.position?.department.name ??
           null,
-        orgUnit: employee.position?.orgUnit?.name ?? null,
         location: employee.location?.name ?? null,
         status: employee.status,
         costCodeSummary: this.buildCostSplitSummary(costSplits),
@@ -312,12 +311,6 @@ export class EmployeeProfileService {
           ? {
               id: employee.manager.id,
               name: this.buildFullName(employee.manager),
-            }
-          : null,
-        orgUnit: employee.position?.orgUnit
-          ? {
-              id: employee.position.orgUnit.id,
-              name: employee.position.orgUnit.name,
             }
           : null,
         department: employee.department
