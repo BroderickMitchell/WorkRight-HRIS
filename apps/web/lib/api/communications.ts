@@ -120,7 +120,7 @@ const buildQueryString = (params: Record<string, string | number | boolean | und
 };
 
 export async function getCommunicationContext(): Promise<CommunicationContext> {
-  return apiFetch<CommunicationContext>('/communications/context');
+  return apiFetch<CommunicationContext>('/v1/communications/context');
 }
 
 export interface ListCommunicationsParams {
@@ -137,27 +137,27 @@ export async function listCommunications(params: ListCommunicationsParams = {}):
     teamId: params.teamId,
     includeAckSummary: params.includeAckSummary ?? true
   });
-  return apiFetch<CommunicationListResponse>(`/communications${qs}`);
+  return apiFetch<CommunicationListResponse>(`/v1/communications${qs}`);
 }
 
 export async function createCommunication(payload: CreateCommunicationPayload): Promise<CommunicationPost> {
-  return apiPost<CommunicationPost>('/communications', payload);
+  return apiPost<CommunicationPost>('/v1/communications', payload);
 }
 
 export async function updateCommunication(id: string, payload: UpdateCommunicationPayload): Promise<CommunicationPost> {
-  return apiPatch<CommunicationPost>(`/communications/${id}`, payload);
+  return apiPatch<CommunicationPost>(`/v1/communications/${id}`, payload);
 }
 
 export async function deleteCommunication(id: string): Promise<void> {
-  await apiDelete(`/communications/${id}`);
+  await apiDelete(`/v1/communications/${id}`);
 }
 
 export async function acknowledgeCommunication(id: string): Promise<CommunicationPost> {
-  return apiPost<CommunicationPost>(`/communications/${id}/ack`, {});
+  return apiPost<CommunicationPost>(`/v1/communications/${id}/ack`, {});
 }
 
 export async function getCommunicationAckSummary(id: string): Promise<CommunicationAckSummary> {
-  return apiFetch<CommunicationAckSummary>(`/communications/${id}/ack/summary`);
+  return apiFetch<CommunicationAckSummary>(`/v1/communications/${id}/ack/summary`);
 }
 
 export interface ListAckParams {
@@ -172,5 +172,5 @@ export async function getMyRequiredAcks(params: ListAckParams = {}): Promise<Ack
     take: params.take,
     onlyPending: params.onlyPending
   });
-  return apiFetch<AckListResponse>(`/communications/acks/mine${qs}`);
+  return apiFetch<AckListResponse>(`/v1/communications/acks/mine${qs}`);
 }
