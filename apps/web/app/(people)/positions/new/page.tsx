@@ -28,9 +28,9 @@ export default function NewPositionPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    apiFetch<Department[]>('/v1/departments').then(setDepartments).catch(() => setDepartments([]));
-    apiFetch<JobRole[]>('/v1/jobroles').then(setJobRoles).catch(() => setJobRoles([]));
-    apiFetch<PositionSummary[]>('/v1/positions?includeInactive=true').then(setPositions).catch(() => setPositions([]));
+    apiFetch<Department[]>('/departments').then(setDepartments).catch(() => setDepartments([]));
+    apiFetch<JobRole[]>('/jobroles').then(setJobRoles).catch(() => setJobRoles([]));
+    apiFetch<PositionSummary[]>('/positions?includeInactive=true').then(setPositions).catch(() => setPositions([]));
   }, []);
 
   const prefix = useMemo(() => departments.find((d) => d.id === departmentId)?.code_prefix ?? '', [departments, departmentId]);
@@ -60,7 +60,7 @@ export default function NewPositionPage() {
         inheritRoleData,
         isActive
       };
-      const res = await apiPost('/v1/positions', body, { roles: 'HR_ADMIN,HRBP' });
+      const res = await apiPost('/positions', body, { roles: 'HR_ADMIN,HRBP' });
       setCreated(res);
     } catch (err: any) {
       setError(err?.message ?? 'Failed to create position');

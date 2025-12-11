@@ -225,8 +225,8 @@ export default function WorkflowWorkbenchesPage() {
       try {
         setLoading(true);
         const [wf, res] = await Promise.all([
-          apiFetch<WorkflowSummary[]>(`/v1/workflows`),
-          apiFetch<WorkflowResources>(`/v1/workflows/resources`)
+          apiFetch<WorkflowSummary[]>(`/workflows`),
+          apiFetch<WorkflowResources>(`/workflows/resources`)
         ]);
         if (!mounted) return;
         setWorkflows(wf);
@@ -364,8 +364,8 @@ export default function WorkflowWorkbenchesPage() {
     if (!newWorkflowName.trim()) return;
     try {
       setSaving(true);
-      const created = await apiPost<WorkflowSummary>('/v1/workflows', { name: newWorkflowName.trim() });
-      const refreshed = await apiFetch<WorkflowSummary[]>('/v1/workflows');
+      const created = await apiPost<WorkflowSummary>('/workflows', { name: newWorkflowName.trim() });
+      const refreshed = await apiFetch<WorkflowSummary[]>('/workflows');
       setWorkflows(refreshed);
       const match = refreshed.find((wf) => wf.id === created.id);
       if (match) {
@@ -405,7 +405,7 @@ export default function WorkflowWorkbenchesPage() {
     setMessage(null);
     setError(null);
     try {
-      await apiPut(`/v1/workflows/${selectedWorkflow.id}/graph`, buildGraphPayload());
+      await apiPut(`/workflows/${selectedWorkflow.id}/graph`, buildGraphPayload());
       setMessage('Draft saved');
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -420,8 +420,8 @@ export default function WorkflowWorkbenchesPage() {
     setMessage(null);
     setError(null);
     try {
-      await apiPost(`/v1/workflows/${selectedWorkflow.id}/activate`, {});
-      const refreshed = await apiFetch<WorkflowSummary[]>('/v1/workflows');
+      await apiPost(`/workflows/${selectedWorkflow.id}/activate`, {});
+      const refreshed = await apiFetch<WorkflowSummary[]>('/workflows');
       setWorkflows(refreshed);
       const match = refreshed.find((wf) => wf.id === selectedWorkflow.id);
       if (match) loadWorkflow(match);

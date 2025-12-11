@@ -23,7 +23,7 @@ export default function LeavePolicyPage() {
             <li>Leave loading: 17.5% when taking annual leave</li>
           </ul>
 
-          <h3>Personal/carer&apos;s leave</h3>
+          <h3>Personal/carer's leave</h3>
           <ul>
             <li>10 days per year for full-time employees</li>
             <li>Pro-rated for part-time employees</li>

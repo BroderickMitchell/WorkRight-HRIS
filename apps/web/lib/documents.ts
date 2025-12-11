@@ -45,13 +45,13 @@ export async function listDocumentTemplates(
   if (filters.createdBy) params.set('createdBy', filters.createdBy);
   const query = params.toString();
   const data = await apiFetch(
-    `/v1/documents/templates${query ? `?${query}` : ''}`,
+    `/documents/templates${query ? `?${query}` : ''}`,
   );
   return (data as unknown[]).map((item) => documentTemplateSchema.parse(item));
 }
 
 export async function getDocumentTemplate(id: string): Promise<TemplateDetail> {
-  const data = await apiFetch(`/v1/documents/templates/${id}`);
+  const data = await apiFetch(`/documents/templates/${id}`);
   return {
     template: documentTemplateSchema.parse(
       (data as { template: unknown }).template,
@@ -66,7 +66,7 @@ export async function createDocumentTemplate(
   input: UpsertDocumentTemplateInput,
 ): Promise<DocumentTemplate> {
   const payload = upsertDocumentTemplateSchema.parse(input);
-  const data = await apiPost('/v1/documents/templates', payload);
+  const data = await apiPost('/documents/templates', payload);
   return documentTemplateSchema.parse(data);
 }
 
@@ -75,7 +75,7 @@ export async function createDocumentTemplateVersion(
   input: UpsertDocumentTemplateInput,
 ): Promise<DocumentTemplate> {
   const payload = upsertDocumentTemplateSchema.parse({ ...input, id });
-  const data = await apiPost(`/v1/documents/templates/${id}/versions`, payload);
+  const data = await apiPost(`/documents/templates/${id}/versions`, payload);
   return documentTemplateSchema.parse(data);
 }
 
@@ -84,19 +84,19 @@ export async function updateDocumentTemplate(
   input: unknown,
 ): Promise<DocumentTemplate> {
   const payload = updateDocumentTemplateMetadataSchema.parse(input);
-  const data = await apiPatch(`/v1/documents/templates/${id}`, payload);
+  const data = await apiPatch(`/documents/templates/${id}`, payload);
   return documentTemplateSchema.parse(data);
 }
 
 export async function archiveDocumentTemplate(id: string) {
-  await apiDelete(`/v1/documents/templates/${id}`);
+  await apiDelete(`/documents/templates/${id}`);
 }
 
 export async function previewDocumentTemplate(
   input: unknown,
 ): Promise<DocumentPreview> {
   const payload = generateDocumentPreviewSchema.parse(input);
-  const data = await apiPost('/v1/documents/preview', payload);
+  const data = await apiPost('/documents/preview', payload);
   return {
     filename: String((data as { filename?: string }).filename ?? 'preview.pdf'),
     mimeType: String(
@@ -108,6 +108,6 @@ export async function previewDocumentTemplate(
 
 export async function signGeneratedDocument(input: SignDocumentInput) {
   const payload = signGeneratedDocumentSchema.parse(input);
-  const data = await apiPost('/v1/documents/sign', payload);
+  const data = await apiPost('/documents/sign', payload);
   return generatedDocumentSchema.parse(data);
 }

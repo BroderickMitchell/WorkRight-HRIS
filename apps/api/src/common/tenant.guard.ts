@@ -52,12 +52,20 @@ export class TenantGuard implements CanActivate {
 
     const { appRoles, roleKeys } = mergeRoles([userRolesRaw, headerRolesRaw]);
 
+    // Handle x-user-id header in demo mode
+    const userIdHeader = this.demoMode
+      ? (Array.isArray(request.headers['x-user-id'])
+          ? request.headers['x-user-id'][0]
+          : (request.headers['x-user-id'] as string | undefined))
+      : undefined;
+    const actorId = request.user?.id ?? userIdHeader ?? 'anonymous';
+
     request.appRoles = appRoles;
     request.roleKeys = roleKeys;
     request.tenantId = tenantId;
 
     this.cls.set('tenantId', tenantId);
-    this.cls.set('actorId', request.user?.id ?? 'anonymous');
+    this.cls.set('actorId', actorId);
     this.cls.set('actorAppRoles', appRoles);
     this.cls.set('actorRoleKeys', roleKeys);
     this.cls.set('ip', request.ip);
@@ -65,4 +73,3 @@ export class TenantGuard implements CanActivate {
     return true;
   }
 }
-
