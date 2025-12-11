@@ -37,10 +37,10 @@ export default function EmployeeDocumentsClient({ employeeId, employeeName, temp
     if (!selectedTemplate) return;
     const defaults: MergeValues = {};
     selectedTemplate.placeholders.forEach((field) => {
-      defaults[field.key] = mergeValues[field.key] ?? '';
+      defaults[field.key] = '';
     });
     setMergeValues(defaults);
-  }, [selectedTemplateId]);
+  }, [selectedTemplateId, selectedTemplate]);
 
   const handleGenerate = async () => {
     if (!selectedTemplate) return;
