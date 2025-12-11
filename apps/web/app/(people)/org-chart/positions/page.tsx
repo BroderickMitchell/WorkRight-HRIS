@@ -222,8 +222,8 @@ export default function PositionsOrgChartPage() {
       if (showFilledPositions) params.set("includeVacant", "true");
       const qs = params.toString();
       const path = qs
-        ? `/v1/positions/orgchart?${qs}`
-        : "/v1/positions/orgchart";
+        ? `/positions/orgchart?${qs}`
+        : "/positions/orgchart";
       const data = await apiFetch<OrgChartResponse>(path);
       setNodes(data);
     } catch (err) {

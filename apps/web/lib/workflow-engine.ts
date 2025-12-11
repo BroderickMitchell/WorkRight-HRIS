@@ -79,7 +79,7 @@ function saveInstances(list: WorkflowInstance[]) {
 
 async function recordActivityEvent(wf: WorkflowInstance, activity: Activity) {
   try {
-    await apiPost('/v1/audit/events', {
+    await apiPost('/audit/events', {
       entity: 'workflowInstance',
       entityId: wf.id,
       action: activity.kind,
@@ -99,7 +99,7 @@ async function recordActivityEvent(wf: WorkflowInstance, activity: Activity) {
 export async function resolveAssignee(assignee: Assignee, context: { target: WorkflowTarget }): Promise<StepAssigneeResolution> {
   if (assignee.kind === 'POSITION') {
     try {
-      const employees = await apiFetch<any[]>(`/v1/directory/employees`);
+      const employees = await apiFetch<any[]>(`/directory/employees`);
       const occupant = employees.find((e) => e.positionId === assignee.positionId);
       return { assignee, resolvedEmployeeId: occupant?.id };
     } catch {
@@ -108,7 +108,7 @@ export async function resolveAssignee(assignee: Assignee, context: { target: Wor
   }
   if (assignee.kind === 'MANAGER_OF_EMPLOYEE' && context.target.kind === 'EMPLOYEE') {
     try {
-      const emp = await apiFetch<any>(`/v1/directory/employees/${context.target.employeeId}`);
+      const emp = await apiFetch<any>(`/directory/employees/${context.target.employeeId}`);
       return { assignee, resolvedEmployeeId: emp?.managerId };
     } catch {
       return { assignee };
