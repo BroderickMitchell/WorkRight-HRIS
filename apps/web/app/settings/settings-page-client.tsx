@@ -227,7 +227,7 @@ export default function SettingsPageClient({ initialTab = 'branding' }: Settings
     } finally {
       setSavingBranding(false);
     }
-  }, [accentColor, assetRemovals, darkMode, legalAddress, pendingAssets, primaryColor, subjectPrefix, supportEmail]);
+  }, [accentColor, assetRemovals, darkMode, legalAddress, pendingAssets, primaryColor, subjectPrefix, supportEmail, surfaceColor]);
 
   const brandingPreviewUrl = useMemo(() => resolveAssetUrl(branding?.logoUrl), [branding?.logoUrl]);
 
