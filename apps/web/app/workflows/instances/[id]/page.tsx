@@ -41,7 +41,7 @@ export default function TemplateWorkflowDetail({ params }: Props) {
   useEffect(() => {
     (async () => {
       try {
-        const rows = await apiFetch<Employee[]>('/v1/directory/employees');
+        const rows = await apiFetch<Employee[]>('/directory/employees');
         setEmployees(rows);
       } catch {
         setEmployees([]);
@@ -71,7 +71,7 @@ export default function TemplateWorkflowDetail({ params }: Props) {
       if (filterTo) {
         try { const iso = new Date(filterTo).toISOString(); qs.push(`to=${encodeURIComponent(iso)}`); } catch {}
       }
-      const res = await apiFetch<{ items: any[]; nextCursor?: string }>(`/v1/audit/events?${qs.join('&')}`);
+      const res = await apiFetch<{ items: any[]; nextCursor?: string }>(`/audit/events?${qs.join('&')}`);
       setServerEvents((prev) => (reset ? res.items : [...prev, ...res.items]));
       setServerCursor(res.nextCursor);
       serverCursorRef.current = res.nextCursor;

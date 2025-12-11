@@ -6,17 +6,24 @@ options:
 
 steps:
 - name: gcr.io/cloud-builders/docker
-  args: [build, -t, gcr.io/$PROJECT_ID/workright-hris-api, --target, runtime-api, .]
+  args: [build, --no-cache, -t, gcr.io/$PROJECT_ID/workright-hris-api, --target, runtime-api, .]
 
 - name: gcr.io/cloud-builders/docker
-  args: 
+  args:
   - build
+  - --no-cache
   - -t
   - gcr.io/$PROJECT_ID/workright-hris-web
   - --target
   - runtime-web
   - --build-arg
   - NEXT_PUBLIC_API_URL=https://workright-api-932379746185.australia-southeast1.run.app
+  - --build-arg
+  - NEXT_PUBLIC_DEMO_MODE=true
+  - --build-arg
+  - NEXT_PUBLIC_TENANT_ID=demo-tenant-001
+  - --build-arg
+  - NEXT_PUBLIC_USER_ID=user-demo-admin
   - .
 
 - name: gcr.io/cloud-builders/docker

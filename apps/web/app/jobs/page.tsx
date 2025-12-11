@@ -8,7 +8,7 @@ type JobItem = { slug: string; title: string; location: string; workType: string
 export default function JobsPage() {
   const [items, setItems] = useState<JobItem[]>([]);
   useEffect(() => {
-    apiFetch<{ items: JobItem[] }>(`/v1/jobs`).then((r) => setItems(r.items ?? [])).catch(() => setItems([]));
+    apiFetch<{ items: JobItem[] }>(`/jobs`).then((r) => setItems(r.items ?? [])).catch(() => setItems([]));
   }, []);
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6" aria-label="Job listings">

@@ -15,7 +15,7 @@ function ownerName(goal: GoalListItem) {
 }
 
 export default async function GoalsPage() {
-  const goals = await apiFetch<GoalListItem[]>('/v1/performance/goals').catch(() => []);
+  const goals = await apiFetch<GoalListItem[]>('/performance/goals').catch(() => []);
   const formatter = new Intl.DateTimeFormat('en-AU', { dateStyle: 'medium' });
 
   return (

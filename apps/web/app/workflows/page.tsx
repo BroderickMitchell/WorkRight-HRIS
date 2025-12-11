@@ -244,8 +244,8 @@ const [edges, setEdges, onEdgesChange] = useEdgesState<WorkflowEdgeData>([]);
       try {
         setLoading(true);
         const [wf, res] = await Promise.all([
-          apiFetch<WorkflowSummary[]>(`/v1/workflows`),
-          apiFetch<WorkflowResources>(`/v1/workflows/resources`),
+          apiFetch<WorkflowSummary[]>(`/workflows`),
+          apiFetch<WorkflowResources>(`/workflows/resources`),
         ]);
         if (cancelled) return;
         setWorkflows(wf);
@@ -381,8 +381,8 @@ const onConnect = useCallback((connection: Connection) => {
     if (!newWorkflowName.trim()) return;
     try {
       setSaving(true);
-      const created = await apiPost<WorkflowSummary>("/v1/workflows", { name: newWorkflowName.trim() });
-      const refreshed = await apiFetch<WorkflowSummary[]>("/v1/workflows");
+      const created = await apiPost<WorkflowSummary>("/workflows", { name: newWorkflowName.trim() });
+      const refreshed = await apiFetch<WorkflowSummary[]>("/workflows");
       setWorkflows(refreshed);
       const match = refreshed.find((wf) => wf.id === created.id);
       if (match) {
@@ -422,7 +422,7 @@ const onConnect = useCallback((connection: Connection) => {
     setMessage(null);
     setError(null);
     try {
-      await apiPut(`/v1/workflows/${selectedWorkflow.id}/graph`, buildGraphPayload());
+      await apiPut(`/workflows/${selectedWorkflow.id}/graph`, buildGraphPayload());
       setMessage("Draft saved");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -437,8 +437,8 @@ const onConnect = useCallback((connection: Connection) => {
     setMessage(null);
     setError(null);
     try {
-      await apiPost(`/v1/workflows/${selectedWorkflow.id}/activate`, {});
-      const refreshed = await apiFetch<WorkflowSummary[]>("/v1/workflows");
+      await apiPost(`/workflows/${selectedWorkflow.id}/activate`, {});
+      const refreshed = await apiFetch<WorkflowSummary[]>("/workflows");
       setWorkflows(refreshed);
       const match = refreshed.find((wf) => wf.id === selectedWorkflow.id);
       if (match) loadWorkflow(match);
