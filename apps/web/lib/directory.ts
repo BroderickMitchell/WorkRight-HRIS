@@ -52,9 +52,9 @@ export interface EmployeeProfile extends DirectoryEmployee {
 }
 
 export const fetchEmployees = cache(async () => {
-  return apiFetch<DirectoryEmployee[]>('/v1/directory/employees');
+  return apiFetch<DirectoryEmployee[]>('/directory/employees');
 });
 
 export const fetchEmployeeProfile = cache(async (id: string) => {
-  return apiFetch<EmployeeProfile>(`/v1/directory/employees/${id}`);
+  return apiFetch<EmployeeProfile>(`/directory/employees/${id}`);
 });
