@@ -17,7 +17,7 @@ steps:
   - --target
   - runtime-web
   - --build-arg
-  - NEXT_PUBLIC_API_URL=https://workright-api-932379746185.australia-southeast1.run.app/v1
+  - NEXT_PUBLIC_API_URL=https://workright-api-932379746185.australia-southeast1.run.app
   - --build-arg
   - NEXT_PUBLIC_DEMO_MODE=true
   - --build-arg
